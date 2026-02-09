@@ -20,35 +20,40 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('token'));
 
-  const getToken = () => localStorage.getItem('token');
-
-  // Validate token on mount
+  // Validate existing token on mount (with timeout)
   useEffect(() => {
-    const token = getToken();
+    const token = localStorage.getItem('token');
     if (!token) {
+      // No token — go straight to login, no loading
       setLoading(false);
       return;
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5s max
+
     fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     })
       .then(res => {
-        if (!res.ok) throw new Error('Invalid token');
+        if (!res.ok) throw new Error('bad');
         return res.json();
       })
-      .then((data: User) => {
-        setUser(data);
-      })
+      .then((data: User) => setUser(data))
       .catch(() => {
+        // Token invalid or API down — clear and show login
         localStorage.removeItem('token');
         setUser(null);
       })
       .finally(() => {
+        clearTimeout(timeout);
         setLoading(false);
       });
+
+    return () => { clearTimeout(timeout); controller.abort(); };
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -72,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token: getToken(), loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token: localStorage.getItem('token'), loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

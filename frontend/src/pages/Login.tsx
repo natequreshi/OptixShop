@@ -119,23 +119,7 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Demo credentials */}
-        <div style={{
-          marginTop: 28, padding: '14px 16px', background: '#F9FAFB', borderRadius: 10,
-          border: '1px solid #E5E7EB', fontSize: 12, color: '#6B7280',
-        }}>
-          <div style={{ fontWeight: 600, color: '#374151', marginBottom: 6, fontSize: 12 }}>Demo Credentials</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
-            <span><b>admin</b> / admin123</span>
-            <span style={{ color: '#9CA3AF' }}>Owner</span>
-            <span><b>manager</b> / admin123</span>
-            <span style={{ color: '#9CA3AF' }}>Manager</span>
-            <span><b>cashier1</b> / admin123</span>
-            <span style={{ color: '#9CA3AF' }}>Cashier</span>
-            <span><b>optom</b> / admin123</span>
-            <span style={{ color: '#9CA3AF' }}>Optometrist</span>
-          </div>
-        </div>
+
       </div>
     </div>
   );

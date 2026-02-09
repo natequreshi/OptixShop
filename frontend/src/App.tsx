@@ -28,7 +28,7 @@ function RequireAuth() {
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8F9FC' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ width: 40, height: 40, border: '3px solid #E5E7EB', borderTopColor: '#4F46E5', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-          <div style={{ color: '#6B7280', fontSize: 13 }}>Loading...</div>
+          <div style={{ color: '#6B7280', fontSize: 13 }}>Connecting...</div>
         </div>
       </div>
     );
@@ -44,7 +44,8 @@ function RequireAuth() {
 /** Guard: redirects to /dashboard if already logged in */
 function GuestOnly() {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  // While checking token, show login page anyway (better than blank screen)
+  if (loading) return <Login />;
   if (user) return <Navigate to="/dashboard" replace />;
   return <Login />;
 }
