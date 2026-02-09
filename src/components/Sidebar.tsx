@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   Glasses,
   Settings,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ const navItems = [
   { href: "/grn",                icon: PackageCheck,    label: "GRN" },
   { href: "/purchase-invoices",  icon: Receipt,         label: "Purchase Invoices" },
   { href: "/sales",              icon: DollarSign,      label: "Sales" },
+  { href: "/expenses",           icon: Wallet,          label: "Expenses" },
   { href: "/lab-orders",         icon: Microscope,      label: "Lab Orders" },
   { href: "/accounting",         icon: BookOpen,        label: "Accounting" },
   { href: "/reports",            icon: BarChart3,       label: "Reports" },

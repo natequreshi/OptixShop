@@ -8,10 +8,20 @@ import {
   AlertTriangle,
   Microscope,
   TrendingUp,
+  TrendingDown,
   ArrowUpRight,
+  Wallet,
+  ReceiptText,
+  Undo2,
+  ShoppingCart,
+  FileWarning,
+  CircleDollarSign,
+  BarChart3,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import {
+  LineChart,
+  Line,
   BarChart,
   Bar,
   XAxis,
@@ -19,6 +29,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Area,
+  AreaChart,
 } from "recharts";
 
 interface Props {
@@ -31,6 +43,14 @@ interface Props {
     monthSalesAmount: number;
     lowStockCount: number;
     pendingLabOrders: number;
+    totalSales: number;
+    netSales: number;
+    invoiceDue: number;
+    totalSellReturn: number;
+    totalPurchase: number;
+    purchaseDue: number;
+    totalPurchaseReturn: number;
+    totalExpense: number;
   };
   recentSales: {
     id: string;
@@ -42,64 +62,101 @@ interface Props {
     itemCount: number;
   }[];
   topProducts: { name: string; revenue: number; qty: number }[];
+  salesLast30Days: { date: string; amount: number }[];
+  salesByMonth: { month: string; amount: number }[];
 }
 
-export default function DashboardClient({ stats, recentSales, topProducts }: Props) {
-  const cards = [
+export default function DashboardClient({ stats, recentSales, topProducts, salesLast30Days, salesByMonth }: Props) {
+  /* ─── Top 8 Summary Cards (matching reference image) ─── */
+  const summaryCards = [
     {
-      title: "Today's Sales",
-      value: formatCurrency(stats.todaySalesAmount),
-      sub: `${stats.todaySalesCount} transactions`,
+      title: "Total Sales",
+      value: formatCurrency(stats.totalSales),
       icon: DollarSign,
-      color: "text-green-600",
-      bg: "bg-green-50",
+      iconColor: "text-blue-600",
+      iconBg: "bg-blue-50",
+      borderColor: "border-l-blue-500",
     },
     {
-      title: "Monthly Revenue",
-      value: formatCurrency(stats.monthSalesAmount),
-      sub: `${stats.monthSalesCount} sales this month`,
-      icon: TrendingUp,
-      color: "text-primary-600",
-      bg: "bg-primary-50",
+      title: "Net",
+      value: formatCurrency(stats.netSales),
+      icon: CircleDollarSign,
+      iconColor: "text-green-600",
+      iconBg: "bg-green-50",
+      borderColor: "border-l-green-500",
     },
     {
-      title: "Products",
-      value: stats.totalProducts.toString(),
-      sub: `${stats.lowStockCount} low stock`,
-      icon: Package,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      title: "Invoice Due",
+      value: formatCurrency(stats.invoiceDue),
+      icon: FileWarning,
+      iconColor: "text-orange-600",
+      iconBg: "bg-orange-50",
+      borderColor: "border-l-orange-500",
     },
     {
-      title: "Customers",
-      value: stats.totalCustomers.toString(),
-      sub: "Active customers",
-      icon: Users,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
+      title: "Total Sell Return",
+      value: formatCurrency(stats.totalSellReturn),
+      icon: Undo2,
+      iconColor: "text-red-600",
+      iconBg: "bg-red-50",
+      borderColor: "border-l-red-500",
     },
     {
-      title: "Low Stock Alerts",
-      value: stats.lowStockCount.toString(),
-      sub: "Items need reorder",
-      icon: AlertTriangle,
-      color: "text-orange-600",
-      bg: "bg-orange-50",
+      title: "Total Purchase",
+      value: formatCurrency(stats.totalPurchase),
+      icon: ShoppingCart,
+      iconColor: "text-cyan-600",
+      iconBg: "bg-cyan-50",
+      borderColor: "border-l-cyan-500",
     },
     {
-      title: "Pending Lab Orders",
-      value: stats.pendingLabOrders.toString(),
-      sub: "Awaiting completion",
-      icon: Microscope,
-      color: "text-rose-600",
-      bg: "bg-rose-50",
+      title: "Purchase Due",
+      value: formatCurrency(stats.purchaseDue),
+      icon: ReceiptText,
+      iconColor: "text-amber-600",
+      iconBg: "bg-amber-50",
+      borderColor: "border-l-amber-500",
+    },
+    {
+      title: "Total Purchase Return",
+      value: formatCurrency(stats.totalPurchaseReturn),
+      icon: Undo2,
+      iconColor: "text-rose-600",
+      iconBg: "bg-rose-50",
+      borderColor: "border-l-rose-500",
+    },
+    {
+      title: "Expense",
+      value: formatCurrency(stats.totalExpense),
+      icon: Wallet,
+      iconColor: "text-purple-600",
+      iconBg: "bg-purple-50",
+      borderColor: "border-l-purple-500",
     },
   ];
+
+  /* ─── Secondary stats row ─── */
+  const quickStats = [
+    { title: "Today's Sales", value: formatCurrency(stats.todaySalesAmount), sub: `${stats.todaySalesCount} sales`, icon: DollarSign, color: "text-green-600", bg: "bg-green-50" },
+    { title: "Monthly Revenue", value: formatCurrency(stats.monthSalesAmount), sub: `${stats.monthSalesCount} this month`, icon: TrendingUp, color: "text-primary-600", bg: "bg-primary-50" },
+    { title: "Products", value: stats.totalProducts.toString(), sub: `${stats.lowStockCount} low stock`, icon: Package, color: "text-blue-600", bg: "bg-blue-50" },
+    { title: "Customers", value: stats.totalCustomers.toString(), sub: "Active", icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
+    { title: "Low Stock", value: stats.lowStockCount.toString(), sub: "Need reorder", icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-50" },
+    { title: "Pending Lab", value: stats.pendingLabOrders.toString(), sub: "In progress", icon: Microscope, color: "text-rose-600", bg: "bg-rose-50" },
+  ];
+
+  const formatChartDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Welcome back 👋</p>
+        </div>
         <p className="text-sm text-gray-500">
           {new Date().toLocaleDateString("en-IN", {
             weekday: "long",
@@ -110,9 +167,79 @@ export default function DashboardClient({ stats, recentSales, topProducts }: Pro
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* ── Top Summary Cards (8 cards, 4 per row) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {summaryCards.map((card) => (
+          <div key={card.title} className={`card p-4 border-l-4 ${card.borderColor}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">{card.title}</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{card.value}</p>
+              </div>
+              <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
+                <card.icon size={20} className={card.iconColor} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Sales Last 30 Days (Line Chart) ── */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 size={18} className="text-primary-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Sales Last 30 Days</h3>
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={salesLast30Days}>
+            <defs>
+              <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={formatChartDate} interval={2} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+            <Tooltip
+              formatter={(value: number) => [formatCurrency(value), "Sales"]}
+              labelFormatter={(label) => formatChartDate(label)}
+              contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
+            />
+            <Area type="monotone" dataKey="amount" stroke="#4F46E5" strokeWidth={2} fill="url(#salesGradient)" dot={{ r: 2, fill: "#4F46E5" }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Sales Current Financial Year (Line Chart) ── */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={18} className="text-primary-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Sales Current Financial Year</h3>
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={salesByMonth}>
+            <defs>
+              <linearGradient id="yearGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+            <Tooltip
+              formatter={(value: number) => [formatCurrency(value), "Sales"]}
+              contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
+            />
+            <Area type="monotone" dataKey="amount" stroke="#06B6D4" strokeWidth={2} fill="url(#yearGradient)" dot={{ r: 3, fill: "#06B6D4" }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Quick Stats Row ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((card) => (
+        {quickStats.map((card) => (
           <div key={card.title} className="card p-5">
             <div className="flex items-start justify-between">
               <div>

@@ -6,29 +6,37 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const today = new Date().toISOString().split("T")[0];
   const monthStart = today.slice(0, 7) + "-01";
+  const yearStart = today.slice(0, 4) + "-01-01";
+
+  // Get date 30 days ago
+  const d30 = new Date();
+  d30.setDate(d30.getDate() - 30);
+  const thirtyDaysAgo = d30.toISOString().split("T")[0];
 
   const [
     totalProducts,
     totalCustomers,
     todaySales,
     monthSales,
+    allTimeSales,
     lowStockCount,
     pendingLabOrders,
     recentSales,
     topProducts,
+    totalPurchases,
+    purchaseDue,
+    totalReturns,
+    totalPurchaseReturns,
+    totalExpenses,
+    invoiceDue,
+    last30DaysSales,
+    yearSales,
   ] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.customer.count({ where: { isActive: true } }),
-    prisma.sale.aggregate({
-      where: { saleDate: today },
-      _sum: { totalAmount: true },
-      _count: true,
-    }),
-    prisma.sale.aggregate({
-      where: { saleDate: { gte: monthStart } },
-      _sum: { totalAmount: true },
-      _count: true,
-    }),
+    prisma.sale.aggregate({ where: { saleDate: today }, _sum: { totalAmount: true }, _count: true }),
+    prisma.sale.aggregate({ where: { saleDate: { gte: monthStart } }, _sum: { totalAmount: true }, _count: true }),
+    prisma.sale.aggregate({ _sum: { totalAmount: true, paidAmount: true }, _count: true }),
     prisma.inventory.count({ where: { quantity: { lte: 5 } } }),
     prisma.labOrder.count({ where: { status: { in: ["pending", "in_progress"] } } }),
     prisma.sale.findMany({
@@ -42,6 +50,28 @@ export default async function DashboardPage() {
       orderBy: { _sum: { total: "desc" } },
       take: 5,
     }),
+    // Total purchases (purchase invoices)
+    prisma.purchaseInvoice.aggregate({ _sum: { totalAmount: true, paidAmount: true, balanceAmount: true } }),
+    // Purchase due (unpaid balance)
+    prisma.purchaseInvoice.aggregate({ where: { status: { in: ["unpaid", "partial"] } }, _sum: { balanceAmount: true } }),
+    // Sell returns
+    prisma.return.aggregate({ _sum: { totalAmount: true } }),
+    // Purchase returns (we don't have a purchase return model, use 0)
+    Promise.resolve({ _sum: { totalAmount: 0 } }),
+    // Total expenses
+    prisma.expense.aggregate({ _sum: { amount: true } }),
+    // Invoice due (unpaid sales)
+    prisma.sale.aggregate({ where: { paymentStatus: { in: ["partial", "unpaid"] } }, _sum: { balanceAmount: true } }),
+    // Last 30 days sales grouped by date
+    prisma.sale.findMany({
+      where: { saleDate: { gte: thirtyDaysAgo } },
+      select: { saleDate: true, totalAmount: true },
+    }),
+    // Financial year sales (by month)
+    prisma.sale.findMany({
+      where: { saleDate: { gte: yearStart } },
+      select: { saleDate: true, totalAmount: true },
+    }),
   ]);
 
   // Fetch product names for top products
@@ -52,6 +82,38 @@ export default async function DashboardPage() {
   });
   const productMap = Object.fromEntries(products.map((p) => [p.id, p.name]));
 
+  // Aggregate last 30 days into daily data
+  const dailyMap: Record<string, number> = {};
+  last30DaysSales.forEach((s) => {
+    dailyMap[s.saleDate] = (dailyMap[s.saleDate] ?? 0) + s.totalAmount;
+  });
+  const salesLast30Days: { date: string; amount: number }[] = [];
+  for (let i = 30; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    salesLast30Days.push({ date: dateStr, amount: dailyMap[dateStr] ?? 0 });
+  }
+
+  // Aggregate financial year by month
+  const monthlyMap: Record<string, number> = {};
+  yearSales.forEach((s) => {
+    const month = s.saleDate.slice(0, 7);
+    monthlyMap[month] = (monthlyMap[month] ?? 0) + s.totalAmount;
+  });
+  const currentYear = parseInt(today.slice(0, 4));
+  const salesByMonth: { month: string; amount: number }[] = [];
+  for (let m = 1; m <= 12; m++) {
+    const monthStr = `${currentYear}-${String(m).padStart(2, "0")}`;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    salesByMonth.push({ month: `${monthNames[m - 1]}-${currentYear}`, amount: monthlyMap[monthStr] ?? 0 });
+  }
+
+  const totalSalesAmount = allTimeSales._sum.totalAmount ?? 0;
+  const totalPaidSales = allTimeSales._sum.paidAmount ?? 0;
+  const totalReturnAmount = totalReturns._sum.totalAmount ?? 0;
+  const netSales = totalSalesAmount - totalReturnAmount;
+
   const stats = {
     totalProducts,
     totalCustomers,
@@ -61,6 +123,14 @@ export default async function DashboardPage() {
     monthSalesAmount: monthSales._sum.totalAmount ?? 0,
     lowStockCount,
     pendingLabOrders,
+    totalSales: totalSalesAmount,
+    netSales,
+    invoiceDue: invoiceDue._sum.balanceAmount ?? 0,
+    totalSellReturn: totalReturnAmount,
+    totalPurchase: totalPurchases._sum.totalAmount ?? 0,
+    purchaseDue: purchaseDue._sum.balanceAmount ?? 0,
+    totalPurchaseReturn: totalPurchaseReturns._sum.totalAmount ?? 0,
+    totalExpense: totalExpenses._sum.amount ?? 0,
   };
 
   const topProductsData = topProducts.map((p) => ({
@@ -86,6 +156,8 @@ export default async function DashboardPage() {
       stats={stats}
       recentSales={serializedSales}
       topProducts={topProductsData}
+      salesLast30Days={salesLast30Days}
+      salesByMonth={salesByMonth}
     />
   );
 }

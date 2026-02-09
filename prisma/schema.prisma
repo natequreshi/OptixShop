@@ -30,6 +30,7 @@ model User {
   registerSessions  RegisterSession[]
   journalEntries    JournalEntry[]
   auditLogs         AuditLog[]
+  expenses          Expense[]      @relation("expenseCreator")
 
   @@map("users")
 }
@@ -699,6 +700,28 @@ model Coupon {
   isActive     Boolean @default(true) @map("is_active")
 
   @@map("coupons")
+}
+
+// ─── EXPENSES ─────────────────────────────────────────
+model Expense {
+  id            String   @id @default(cuid())
+  expenseNo     String   @unique @map("expense_no")
+  category      String   @default("general")
+  description   String
+  amount        Float
+  expenseDate   String   @map("expense_date")
+  paymentMethod String   @default("cash") @map("payment_method")
+  reference     String?
+  notes         String?
+  isRecurring   Boolean  @default(false) @map("is_recurring")
+  recurringType String?  @map("recurring_type")
+  createdById   String?  @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  createdBy User? @relation("expenseCreator", fields: [createdById], references: [id])
+
+  @@map("expenses")
 }
 
 model LoyaltyTransaction {
