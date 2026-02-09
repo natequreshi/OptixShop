@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Banknote, Smartphone, User, X, Receipt, Package, Calculator, ListTodo
+  Banknote, Smartphone, User, X, Receipt, Package
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -36,11 +36,9 @@ export default function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [amountTendered, setAmountTendered] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showCalculator, setShowCalculator] = useState(false);
-  const [showTodoList, setShowTodoList] = useState(false);
-  const [calcDisplay, setCalcDisplay] = useState("0");
-  const [todos, setTodos] = useState<{id: number; text: string; done: boolean}[]>([]);
-  const [todoInput, setTodoInput] = useState("");
+  const [manualSubtotal, setManualSubtotal] = useState<number | null>(null);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -82,15 +80,18 @@ export default function POSPage() {
     setCart(prev => prev.filter(i => i.id !== id));
   }
 
-  const subtotal = cart.reduce((s, i) => s + i.sellingPrice * i.qty, 0);
+  const subtotal = manualSubtotal !== null ? manualSubtotal : cart.reduce((s, i) => s + i.sellingPrice * i.qty, 0);
+  const discountAmount = (subtotal * discountPercent) / 100;
+  const afterDiscount = subtotal - discountAmount;
   const totalDiscount = cart.reduce((s, i) => s + i.discount * i.qty, 0);
-  const taxableAmount = subtotal - totalDiscount;
+  const taxableAmount = afterDiscount - totalDiscount;
   const taxAmount = cart.reduce((s, i) => {
     const lineTotal = (i.sellingPrice - i.discount) * i.qty;
     return s + lineTotal * (i.taxRate / 100);
   }, 0);
   const grandTotal = taxableAmount + taxAmount;
-  const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : 0;
+  const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
+  const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : denominationsTotal > 0 ? Math.max(0, denominationsTotal - grandTotal) : 0;
 
   async function completeSale() {
     if (cart.length === 0) return toast.error("Cart is empty");
@@ -113,9 +114,16 @@ export default function POSPage() {
         }),
       });
       if (res.ok) {
+        const saleData = await res.json();
         toast.success("Sale completed!");
+        
+        // Print thermal receipt
+        printThermalReceipt(saleData);
+        
         setCart([]); setSelectedCustomer(null);
         setShowPayment(false); setAmountTendered("");
+        setManualSubtotal(null); setDiscountPercent(0);
+        setCashDenominations({});
       } else {
         toast.error("Sale failed");
       }
@@ -125,22 +133,129 @@ export default function POSPage() {
     setLoading(false);
   }
 
-  return (
-    <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
-      {/* Header with Calculator and Todo */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Point of Sale</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowCalculator(!showCalculator)} className="btn-secondary flex items-center gap-2" title="Calculator">
-            <Calculator size={18} /> Calculator
-          </button>
-          <button onClick={() => setShowTodoList(!showTodoList)} className="btn-secondary flex items-center gap-2" title="Todo List">
-            <ListTodo size={18} /> Todo List
-          </button>
+  function printThermalReceipt(saleData: any) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const receiptHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Receipt</title>
+        <style>
+          @media print {
+            @page { margin: 0; size: 80mm auto; }
+          }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Courier New', monospace;
+            width: 80mm;
+            padding: 10mm 5mm;
+            font-size: 11px;
+            line-height: 1.4;
+          }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .large { font-size: 14px; }
+          .separator { border-top: 1px dashed #000; margin: 8px 0; }
+          .row { display: flex; justify-content: space-between; margin: 3px 0; }
+          .items { margin: 10px 0; }
+          .item { display: flex; justify-content: space-between; margin: 3px 0; }
+          .total-row { font-size: 13px; font-weight: bold; margin-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="center large bold">OPTICS SHOP</div>
+        <div class="center">POS Receipt</div>
+        <div class="separator"></div>
+        
+        <div class="row">
+          <span>Receipt #:</span>
+          <span class="bold">${saleData.invoiceNo || 'N/A'}</span>
         </div>
-      </div>
+        <div class="row">
+          <span>Date:</span>
+          <span>${new Date().toLocaleString()}</span>
+        </div>
+        ${selectedCustomer ? `
+        <div class="row">
+          <span>Customer:</span>
+          <span>${selectedCustomer.firstName} ${selectedCustomer.lastName}</span>
+        </div>
+        ` : ''}
+        
+        <div class="separator"></div>
+        
+        <div class="items">
+          ${cart.map(item => `
+            <div class="item">
+              <span>${item.name} x${item.qty}</span>
+              <span>${formatCurrency(item.sellingPrice * item.qty)}</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="row">
+          <span>Subtotal:</span>
+          <span>${formatCurrency(subtotal)}</span>
+        </div>
+        ${discountAmount > 0 ? `
+        <div class="row">
+          <span>Discount (${discountPercent}%):</span>
+          <span>-${formatCurrency(discountAmount)}</span>
+        </div>
+        ` : ''}
+        <div class="row">
+          <span>Tax:</span>
+          <span>${formatCurrency(taxAmount)}</span>
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="row total-row">
+          <span>TOTAL:</span>
+          <span>${formatCurrency(grandTotal)}</span>
+        </div>
+        
+        <div class="row">
+          <span>Payment Method:</span>
+          <span class="bold">${paymentMethod.toUpperCase()}</span>
+        </div>
+        ${paymentMethod === 'cash' && denominationsTotal > 0 ? `
+        <div class="row">
+          <span>Cash Tendered:</span>
+          <span>${formatCurrency(denominationsTotal)}</span>
+        </div>
+        <div class="row">
+          <span>Change:</span>
+          <span>${formatCurrency(change)}</span>
+        </div>
+        ` : ''}
+        
+        <div class="separator"></div>
+        
+        <div class="center">Thank you for shopping!</div>
+        <div class="center">Please visit again</div>
+        
+        <script>
+          window.onload = () => {
+            window.print();
+            setTimeout(() => window.close(), 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(receiptHtml);
+    printWindow.document.close();
+  }
 
-      <div className="flex gap-6 flex-1 overflow-hidden">
+  return (
+    <div className="flex gap-6 h-[calc(100vh-8rem)]">
       {/* Products Panel */}
       <div className="flex-1 flex flex-col">
         <div className="mb-4">
@@ -150,12 +265,12 @@ export default function POSPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid gap-3" style={{gridTemplateColumns: 'repeat(auto-fill, 200px)'}}>
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
-              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col h-fit"
-            >
-              <div className="w-full aspect-[4/3] bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col w-[200px] h-[200px]">
+              <div className="w-full h-[120px] bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {p.imageUrl ? (
                   <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                 ) : (
@@ -181,14 +296,15 @@ export default function POSPage() {
             </button>
           ))}
           {filteredProducts.length === 0 && (
-            <div className="col-span-full text-center py-12 text-gray-400">No products found</div>
+            <div className="w-full text-center py-12 text-gray-400">No products found</div>
           )}
           {products.length > 0 && filteredProducts.length === 0 && search && (
-            <div className="col-span-full text-center py-6 text-gray-500 text-sm">No products match "{search}"</div>
+            <div className="w-full text-center py-6 text-gray-500 text-sm">No products match "{search}"</div>
           )}
           {products.length === 0 && (
-            <div className="col-span-full text-center py-12 text-gray-400">Loading products...</div>
+            <div className="w-full text-center py-12 text-gray-400">Loading products...</div>
           )}
+          </div>
         </div>
       </div>
 
@@ -254,8 +370,30 @@ export default function POSPage() {
 
         {/* Totals */}
         <div className="p-4 border-t border-gray-100 space-y-2">
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-          {totalDiscount > 0 && <div className="flex justify-between text-sm"><span className="text-gray-500">Discount</span><span className="text-red-600">-{formatCurrency(totalDiscount)}</span></div>}
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">Subtotal</span>
+            <input 
+              type="number" 
+              value={manualSubtotal !== null ? manualSubtotal : subtotal.toFixed(2)} 
+              onChange={(e) => setManualSubtotal(e.target.value === '' ? null : parseFloat(e.target.value))}
+              className="input text-sm w-24 text-right p-1" 
+              step="0.01"
+            />
+          </div>
+          
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">Discount %</span>
+            <input 
+              type="number" 
+              value={discountPercent} 
+              onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)}
+              className="input text-sm w-24 text-right p-1" 
+              step="0.1"
+              placeholder="0"
+            />
+          </div>
+          {discountAmount > 0 && <div className="flex justify-between text-sm"><span className="text-gray-500">Discount Amount</span><span className="text-red-600">-{formatCurrency(discountAmount)}</span></div>}
+          
           <div className="flex justify-between text-sm"><span className="text-gray-500">Tax</span><span>{formatCurrency(taxAmount)}</span></div>
           <div className="flex justify-between text-lg font-bold border-t border-gray-100 pt-2">
             <span>Total</span><span className="text-primary-600">{formatCurrency(grandTotal)}</span>
@@ -281,10 +419,32 @@ export default function POSPage() {
                 ))}
               </div>
               {paymentMethod === "cash" && (
-                <div>
-                  <label className="label text-xs">Amount Tendered</label>
-                  <input type="number" value={amountTendered} onChange={(e) => setAmountTendered(e.target.value)} className="input" placeholder={grandTotal.toFixed(2)} />
-                  {change > 0 && <p className="text-sm text-green-600 mt-1">Change: {formatCurrency(change)}</p>}
+                <div className="space-y-3">
+                  <div>
+                    <label className="label text-xs">Cash Denominations</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[2000, 1000, 500, 200, 100, 50, 20, 10].map(denom => (
+                        <div key={denom} className="flex flex-col items-center">
+                          <span className="text-xs text-gray-500 mb-1">₹{denom}</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={cashDenominations[denom] || 0}
+                            onChange={(e) => setCashDenominations({...cashDenominations, [denom]: parseInt(e.target.value) || 0})}
+                            className="input text-xs text-center w-full p-1"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {denominationsTotal > 0 && (
+                      <p className="text-sm text-blue-600 mt-2">Total Cash: {formatCurrency(denominationsTotal)}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="label text-xs">Amount Tendered</label>
+                    <input type="number" value={amountTendered} onChange={(e) => setAmountTendered(e.target.value)} className="input" placeholder={grandTotal.toFixed(2)} />
+                    {change > 0 && <p className="text-sm text-green-600 mt-1">Change: {formatCurrency(change)}</p>}
+                  </div>
                 </div>
               )}
               <div className="flex gap-2">

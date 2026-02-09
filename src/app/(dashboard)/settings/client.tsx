@@ -112,6 +112,14 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Field label="State / Province" value={val("store_state")} onChange={(v) => set("store_state", v)} />
               <Field label="Country" value={val("store_country", "Pakistan")} onChange={(v) => set("store_country", v)} />
 
+              <SectionTitle icon={MapPin} title="Location" />
+              <Field label="Location Name" value={val("location_name", "Main Store")} onChange={(v) => set("location_name", v)} />
+              <Field label="Location Address" value={val("location_address")} onChange={(v) => set("location_address", v)} multiline />
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Location Phone" value={val("location_phone")} onChange={(v) => set("location_phone", v)} />
+                <Field label="Tax ID / NTN" value={val("location_tax_id")} onChange={(v) => set("location_tax_id", v)} />
+              </div>
+
               <SectionTitle icon={Globe} title="Regional" />
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Currency Symbol" value={val("currency", "Rs.")} onChange={(v) => set("currency", v)} />
