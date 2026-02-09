@@ -2,12 +2,17 @@ import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = path.join(__dirname, '..', '..', 'data', 'optics.db');
+const IS_VERCEL = !!process.env.VERCEL;
+const DB_PATH = IS_VERCEL
+  ? '/tmp/optics.db'
+  : path.join(__dirname, '..', '..', 'data', 'optics.db');
 
-// Ensure data directory exists
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Ensure data directory exists (not needed on Vercel)
+if (!IS_VERCEL) {
+  const dataDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
 /**

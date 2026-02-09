@@ -8,6 +8,8 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
+    "build:all": "cd frontend && npm run build && cd ../backend && npm run build",
+    "start": "cd backend && node dist/index.js",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "db:seed": "cd backend && npm run seed"
   },

@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { initializeDatabase } from './database/connection';
+import fs from 'fs';
+import db, { initializeDatabase } from './database/connection';
+import { seedDatabase } from './database/seed';
 import { authRouter } from './routes/auth';
 import { dashboardRouter } from './routes/dashboard';
 import { productsRouter } from './routes/products';
@@ -55,11 +57,17 @@ app.use('/api/brands', brandsRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/coupons', couponsRouter);
 
-// Serve static frontend in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '..', '..', 'frontend', 'dist')));
+// API 404 handler (must be after API routes)
+app.use('/api/*', (_req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// Serve static frontend (for non-Vercel deployments)
+const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
+if (!process.env.VERCEL && fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
   app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'dist', 'index.html'));
+    res.sendFile(path.join(frontendDist, 'index.html'));
   });
 }
 
@@ -72,16 +80,27 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   });
 });
 
-// Initialize database then start server
-initializeDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`\n🔭 OptiVision POS Server running on http://localhost:${PORT}`);
-    console.log(`   API: http://localhost:${PORT}/api`);
-    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
+// Initialize database and start server (skip on Vercel — handled by serverless entry)
+if (!process.env.VERCEL) {
+  initializeDatabase().then(() => {
+    // Auto-seed if database is empty
+    try {
+      const row = db.prepare('SELECT id FROM users LIMIT 1').get();
+      if (!row) {
+        seedDatabase();
+        console.log('\u2705 Auto-seeded fresh database');
+      }
+    } catch (e) { /* table may not exist */ }
+
+    app.listen(PORT, () => {
+      console.log(`\n\ud83d\udd2d OptiVision POS Server running on http://localhost:${PORT}`);
+      console.log(`   API: http://localhost:${PORT}/api`);
+      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
+    });
+  }).catch((err) => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
   });
-}).catch((err) => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
+}
 
 export default app;

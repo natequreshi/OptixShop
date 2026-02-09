@@ -2,9 +2,7 @@ import db, { initializeDatabase } from './connection';
 import { v4 as uuid } from 'uuid';
 import bcrypt from 'bcryptjs';
 
-async function seed() {
-await initializeDatabase();
-
+export function seedDatabase() {
 console.log('🌱 Seeding database...');
 
 // ─── Settings ─────────────────────────────────────────
@@ -281,4 +279,9 @@ console.log('✅ Database seeded successfully!');
 console.log('   Default login: admin / admin123');
 }
 
-seed().catch(err => { console.error('Seed failed:', err); process.exit(1); });
+// CLI entry point (run via: tsx src/database/seed.ts)
+if (process.argv[1]?.replace(/\\/g, '/').includes('seed')) {
+  initializeDatabase()
+    .then(() => { seedDatabase(); })
+    .catch(err => { console.error('Seed failed:', err); process.exit(1); });
+}
