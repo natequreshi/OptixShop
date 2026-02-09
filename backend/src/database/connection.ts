@@ -96,31 +96,43 @@ class DatabaseWrapper {
     return {
       get(...params: any[]) {
         const stmt = db.prepare(sql);
-        const bound = params.length > 0 ? (typeof params[0] === 'object' && !Array.isArray(params[0]) ? stmt.bind(convertNamedParams(params[0])) : stmt.bind(params)) : stmt;
-        if (bound.step()) {
-          const cols = bound.getColumnNames();
-          const vals = bound.get();
-          bound.free();
+        if (params.length > 0) {
+          if (typeof params[0] === 'object' && !Array.isArray(params[0])) {
+            stmt.bind(convertNamedParams(params[0]));
+          } else {
+            stmt.bind(params);
+          }
+        }
+        if (stmt.step()) {
+          const cols = stmt.getColumnNames();
+          const vals = stmt.get();
+          stmt.free();
           const row: any = {};
           cols.forEach((col: string, i: number) => { row[col] = vals[i]; });
           return row;
         }
-        bound.free();
+        stmt.free();
         return undefined;
       },
 
       all(...params: any[]) {
         const results: any[] = [];
         const stmt = db.prepare(sql);
-        const bound = params.length > 0 ? (typeof params[0] === 'object' && !Array.isArray(params[0]) ? stmt.bind(convertNamedParams(params[0])) : stmt.bind(params)) : stmt;
-        while (bound.step()) {
-          const cols = bound.getColumnNames();
-          const vals = bound.get();
+        if (params.length > 0) {
+          if (typeof params[0] === 'object' && !Array.isArray(params[0])) {
+            stmt.bind(convertNamedParams(params[0]));
+          } else {
+            stmt.bind(params);
+          }
+        }
+        while (stmt.step()) {
+          const cols = stmt.getColumnNames();
+          const vals = stmt.get();
           const row: any = {};
           cols.forEach((col: string, i: number) => { row[col] = vals[i]; });
           results.push(row);
         }
-        bound.free();
+        stmt.free();
         return results;
       },
 
@@ -159,15 +171,18 @@ class DatabaseWrapper {
   }
 }
 
-/** Convert { key: value } named params to sql.js format { $key: value, :key: value } */
+/** Convert { key: value } named params to sql.js format with all prefix variants */
 function convertNamedParams(obj: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
-    // sql.js expects $key or :key or @key
+    // sql.js expects $key or :key or @key — register all three so it works
+    // regardless of which prefix the SQL uses
     if (key.startsWith('$') || key.startsWith(':') || key.startsWith('@')) {
       result[key] = value;
     } else {
       result[`$${key}`] = value;
+      result[`@${key}`] = value;
+      result[`:${key}`] = value;
     }
   }
   return result;
