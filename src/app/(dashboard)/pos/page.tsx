@@ -134,21 +134,23 @@ export default function POSPage() {
         <div className="flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
-              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden"
+              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col"
             >
-              <div className="aspect-[4/3] bg-gray-50 flex items-center justify-center overflow-hidden">
+              <div className="w-full aspect-[4/3] bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {p.imageUrl ? (
                   <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                 ) : (
                   <Package size={32} className="text-gray-300" />
                 )}
               </div>
-              <div className="p-3">
-                <p className="text-sm font-medium text-gray-800 truncate group-hover:text-primary-700">{p.name}</p>
-                <p className="text-xs text-gray-400 font-mono">{p.sku}</p>
+              <div className="p-3 flex-1 flex flex-col justify-between min-h-[80px]">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5">{p.sku}</p>
+                </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-sm font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
-                  <span className={cn("text-xs", p.stock <= 0 ? "text-red-500" : "text-gray-400")}>QTY: {p.stock}</span>
+                  <span className={cn("text-xs font-medium", p.stock <= 0 ? "text-red-500" : "text-gray-500")}>QTY: {p.stock}</span>
                 </div>
               </div>
             </button>
