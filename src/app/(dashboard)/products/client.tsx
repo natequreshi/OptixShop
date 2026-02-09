@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Package, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Package, Edit2, Trash2, Copy, Check, X, Image as ImageIcon, Filter } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 interface Product {
   id: string; sku: string; name: string; productType: string;
-  category: string; brand: string; costPrice: number;
-  sellingPrice: number; mrp: number; taxRate: number;
-  stock: number; isActive: boolean;
+  categoryId: string; category: string; brandId: string; brand: string;
+  costPrice: number; sellingPrice: number; mrp: number; taxRate: number;
+  stock: number; sold: number; imageUrl: string; description: string;
+  isActive: boolean;
 }
 
 interface Props {
@@ -23,15 +24,48 @@ export default function ProductsClient({ products, categories, brands }: Props) 
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [brandFilter, setBrandFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [inlineEdit, setInlineEdit] = useState<{ id: string; field: "costPrice" | "sellingPrice"; value: string } | null>(null);
 
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.sku.toLowerCase().includes(search.toLowerCase());
     const matchType = !typeFilter || p.productType === typeFilter;
-    return matchSearch && matchType;
+    const matchCategory = !categoryFilter || p.category === categoryFilter;
+    const matchBrand = !brandFilter || p.brand === brandFilter;
+    return matchSearch && matchType && matchCategory && matchBrand;
   });
+
+  async function handleDuplicate(product: Product) {
+    const newProduct = {
+      ...product,
+      sku: `${product.sku}-COPY`,
+      name: `${product.name} (Copy)`,
+    };
+    delete (newProduct as any).id;
+    const res = await fetch("/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newProduct),
+    });
+    if (res.ok) { toast.success("Product duplicated"); router.refresh(); }
+    else toast.error("Failed to duplicate");
+  }
+
+  async function handleInlineSave(id: string, field: "costPrice" | "sellingPrice", value: string) {
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0) { toast.error("Invalid price"); return; }
+    const res = await fetch(`/api/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: numValue }),
+    });
+    if (res.ok) { toast.success("Updated"); setInlineEdit(null); router.refresh(); }
+    else toast.error("Failed to update");
+  }
 
   const typeColors: Record<string, string> = {
     frame: "bg-blue-50 text-blue-700",
@@ -59,20 +93,43 @@ export default function ProductsClient({ products, categories, brands }: Props) 
       </div>
 
       {/* Filters */}
-      <div className="card p-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products..." className="input pl-10" />
+      <div className="card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter size={16} className="text-gray-400" />
+          <span className="text-sm font-medium text-gray-600">Filters</span>
         </div>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="input w-auto">
-          <option value="">All Types</option>
-          <option value="frame">Frames</option>
-          <option value="lens">Lenses</option>
-          <option value="contact_lens">Contact Lenses</option>
-          <option value="sunglasses">Sunglasses</option>
-          <option value="accessory">Accessories</option>
-          <option value="solution">Solutions</option>
-        </select>
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or SKU..." className="input pl-10" />
+          </div>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="input w-auto min-w-[140px]">
+            <option value="">All Types</option>
+            <option value="frame">Frames</option>
+            <option value="lens">Lenses</option>
+            <option value="contact_lens">Contact Lenses</option>
+            <option value="sunglasses">Sunglasses</option>
+            <option value="accessory">Accessories</option>
+            <option value="solution">Solutions</option>
+          </select>
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input w-auto min-w-[140px]">
+            <option value="">All Categories</option>
+            {[...new Set(products.map(p => p.category))].filter(c => c !== "—").map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+          <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="input w-auto min-w-[140px]">
+            <option value="">All Brands</option>
+            {[...new Set(products.map(p => p.brand))].filter(b => b !== "—").map((brand) => (
+              <option key={brand} value={brand}>{brand}</option>
+            ))}
+          </select>
+          {(search || typeFilter || categoryFilter || brandFilter) && (
+            <button onClick={() => { setSearch(""); setTypeFilter(""); setCategoryFilter(""); setBrandFilter(""); }} className="text-sm text-gray-500 hover:text-gray-700 underline">
+              Clear filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -81,6 +138,7 @@ export default function ProductsClient({ products, categories, brands }: Props) 
           <table className="w-full">
             <thead>
               <tr className="table-header">
+                <th className="px-4 py-3">Image</th>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3">Type</th>
@@ -89,6 +147,7 @@ export default function ProductsClient({ products, categories, brands }: Props) 
                 <th className="px-4 py-3 text-right">Cost</th>
                 <th className="px-4 py-3 text-right">Price</th>
                 <th className="px-4 py-3 text-center">Stock</th>
+                <th className="px-4 py-3 text-center">Sold</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -96,7 +155,19 @@ export default function ProductsClient({ products, categories, brands }: Props) 
             <tbody className="divide-y divide-gray-100">
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50">
+                  {/* Image */}
+                  <td className="px-4 py-3">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon size={16} className="text-gray-400" />
+                      )}
+                    </div>
+                  </td>
+                  {/* SKU */}
                   <td className="px-4 py-3 text-sm font-mono text-gray-600">{p.sku}</td>
+                  {/* Product */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -105,29 +176,96 @@ export default function ProductsClient({ products, categories, brands }: Props) 
                       <span className="text-sm font-medium text-gray-800">{p.name}</span>
                     </div>
                   </td>
+                  {/* Type */}
                   <td className="px-4 py-3">
                     <span className={cn("text-xs px-2 py-1 rounded-full font-medium", typeColors[p.productType] ?? "bg-gray-100 text-gray-600")}>
                       {p.productType.replace("_", " ")}
                     </span>
                   </td>
+                  {/* Category */}
                   <td className="px-4 py-3 text-sm text-gray-600">{p.category}</td>
+                  {/* Brand */}
                   <td className="px-4 py-3 text-sm text-gray-600">{p.brand}</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-600">{formatCurrency(p.costPrice)}</td>
-                  <td className="px-4 py-3 text-sm text-right font-medium text-gray-800">{formatCurrency(p.sellingPrice)}</td>
+                  {/* Cost - Inline Edit */}
+                  <td className="px-4 py-3 text-right">
+                    {inlineEdit?.id === p.id && inlineEdit.field === "costPrice" ? (
+                      <div className="flex items-center gap-1 justify-end">
+                        <input
+                          type="number"
+                          step="1"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({ ...inlineEdit, value: e.target.value })}
+                          className="w-24 px-2 py-1 text-sm border border-primary-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 text-right"
+                          autoFocus
+                        />
+                        <button onClick={() => handleInlineSave(p.id, "costPrice", inlineEdit.value)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Save">
+                          <Check size={14} />
+                        </button>
+                        <button onClick={() => setInlineEdit(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded" title="Cancel">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setInlineEdit({ id: p.id, field: "costPrice", value: p.costPrice.toString() })}
+                        className="text-sm text-gray-600 hover:text-primary-600 hover:underline cursor-pointer"
+                      >
+                        {formatCurrency(p.costPrice)}
+                      </button>
+                    )}
+                  </td>
+                  {/* Price - Inline Edit */}
+                  <td className="px-4 py-3 text-right">
+                    {inlineEdit?.id === p.id && inlineEdit.field === "sellingPrice" ? (
+                      <div className="flex items-center gap-1 justify-end">
+                        <input
+                          type="number"
+                          step="1"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({ ...inlineEdit, value: e.target.value })}
+                          className="w-24 px-2 py-1 text-sm border border-primary-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 text-right"
+                          autoFocus
+                        />
+                        <button onClick={() => handleInlineSave(p.id, "sellingPrice", inlineEdit.value)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Save">
+                          <Check size={14} />
+                        </button>
+                        <button onClick={() => setInlineEdit(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded" title="Cancel">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setInlineEdit({ id: p.id, field: "sellingPrice", value: p.sellingPrice.toString() })}
+                        className="text-sm font-medium text-gray-800 hover:text-primary-600 hover:underline cursor-pointer"
+                      >
+                        {formatCurrency(p.sellingPrice)}
+                      </button>
+                    )}
+                  </td>
+                  {/* Stock */}
                   <td className="px-4 py-3 text-center">
                     <span className={cn("text-sm font-medium", p.stock <= 5 ? "text-red-600" : "text-gray-800")}>{p.stock}</span>
                   </td>
+                  {/* Sold */}
+                  <td className="px-4 py-3 text-center">
+                    <span className="text-sm font-medium text-green-600">{p.sold}</span>
+                  </td>
+                  {/* Status */}
                   <td className="px-4 py-3 text-center">
                     <span className={cn("text-xs px-2 py-1 rounded-full", p.isActive ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500")}>
                       {p.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
+                  {/* Actions */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => { setEditing(p); setShowModal(true); }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600">
+                      <button onClick={() => { setEditing(p); setShowModal(true); }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600" title="Edit">
                         <Edit2 size={15} />
                       </button>
-                      <button onClick={() => handleDelete(p.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600">
+                      <button onClick={() => handleDuplicate(p)} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="Duplicate">
+                        <Copy size={15} />
+                      </button>
+                      <button onClick={() => handleDelete(p.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600" title="Delete">
                         <Trash2 size={15} />
                       </button>
                     </div>
@@ -135,7 +273,7 @@ export default function ProductsClient({ products, categories, brands }: Props) 
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={10} className="text-center py-12 text-gray-400">No products found</td></tr>
+                <tr><td colSpan={12} className="text-center py-12 text-gray-400">No products found</td></tr>
               )}
             </tbody>
           </table>
@@ -168,12 +306,14 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     sku: product?.sku ?? "",
     name: product?.name ?? "",
     productType: product?.productType ?? "frame",
-    categoryId: "",
-    brandId: "",
+    categoryId: product?.categoryId ?? "",
+    brandId: product?.brandId ?? "",
     costPrice: product?.costPrice ?? 0,
     sellingPrice: product?.sellingPrice ?? 0,
     mrp: product?.mrp ?? 0,
     taxRate: product?.taxRate ?? 18,
+    imageUrl: product?.imageUrl ?? "",
+    description: product?.description ?? "",
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -214,6 +354,14 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
           <div>
             <label className="label">Product Name</label>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" required />
+          </div>
+          <div>
+            <label className="label">Image URL</label>
+            <input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="input" placeholder="https://example.com/image.jpg" />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[60px]" placeholder="Product description..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

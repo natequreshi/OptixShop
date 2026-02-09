@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       taxRate: body.taxRate ?? 18,
       hsnSacCode: body.hsnSacCode,
       description: body.description,
+      imageUrl: body.imageUrl || null,
     },
   });
   // Create inventory record

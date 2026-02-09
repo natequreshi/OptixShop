@@ -16,6 +16,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       mrp: body.mrp,
       taxRate: body.taxRate,
       description: body.description,
+      imageUrl: body.imageUrl || null,
       isActive: body.isActive,
     },
   });
