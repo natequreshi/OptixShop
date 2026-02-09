@@ -342,7 +342,7 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <SectionTitle icon={Palette} title="Appearance" />
               <Field label="Primary Color" value={val("primary_color", "#4F46E5")} onChange={(v) => set("primary_color", v)} placeholder="#4F46E5" />
               <Toggle label="Compact Sidebar" checked={val("sidebar_compact", "false") === "true"} onToggle={() => toggle("sidebar_compact")} desc="Start with collapsed sidebar by default" />
-              <Toggle label="Dark Mode (coming soon)" checked={false} onToggle={() => toast("Coming soon!")} desc="Toggle dark mode theme" />
+              <Toggle label="Dark Mode" checked={val("dark_mode", "false") === "true"} onToggle={() => toggle("dark_mode")} desc="Toggle dark mode theme" />
             </>
           )}
         </div>

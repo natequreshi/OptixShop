@@ -42,3 +42,27 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "Failed to update sale" }, { status: 500 });
   }
 }
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const sale = await prisma.sale.findUnique({
+      where: { id: params.id },
+      include: { items: true },
+    });
+    if (!sale) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    // Delete sale items first
+    await prisma.saleItem.deleteMany({ where: { saleId: params.id } });
+    
+    // Delete payments
+    await prisma.payment.deleteMany({ where: { saleId: params.id } });
+    
+    // Delete the sale
+    await prisma.sale.delete({ where: { id: params.id } });
+
+    return NextResponse.json({ message: "Sale deleted successfully" });
+  } catch (error) {
+    console.error("[Sale DELETE] Error:", error);
+    return NextResponse.json({ error: "Failed to delete sale" }, { status: 500 });
+  }
+}

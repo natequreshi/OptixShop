@@ -134,7 +134,7 @@ export default function POSPage() {
         <div className="flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
-              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col"
+              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col h-fit"
             >
               <div className="w-full aspect-[4/3] bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {p.imageUrl ? (
@@ -157,6 +157,12 @@ export default function POSPage() {
           ))}
           {filteredProducts.length === 0 && (
             <div className="col-span-full text-center py-12 text-gray-400">No products found</div>
+          )}
+          {products.length > 0 && filteredProducts.length === 0 && search && (
+            <div className="col-span-full text-center py-6 text-gray-500 text-sm">No products match "{search}"</div>
+          )}
+          {products.length === 0 && (
+            <div className="col-span-full text-center py-12 text-gray-400">Loading products...</div>
           )}
         </div>
       </div>

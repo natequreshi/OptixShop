@@ -28,10 +28,9 @@ interface Customer {
   latestRx: RxData | null; sales: SaleRecord[];
 }
 
-type ColumnKey = "phone" | "whatsapp" | "email" | "city" | "country" | "odRx" | "osRx" | "purchases" | "totalSpent" | "loyalty";
+type ColumnKey = "whatsapp" | "email" | "city" | "country" | "odRx" | "osRx" | "purchases" | "totalSpent" | "loyalty";
 
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
-  { key: "phone", label: "Phone" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "email", label: "Email" },
   { key: "city", label: "City" },
@@ -43,7 +42,7 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "loyalty", label: "Loyalty" },
 ];
 
-const DEFAULT_COLUMNS: ColumnKey[] = ["phone", "whatsapp", "city", "odRx", "osRx", "purchases", "totalSpent", "loyalty"];
+const DEFAULT_COLUMNS: ColumnKey[] = ["whatsapp", "city", "odRx", "osRx", "purchases", "totalSpent", "loyalty"];
 
 function getInitialColumns(settings: Record<string, string>): ColumnKey[] {
   const raw = settings["customer_visible_columns"];
@@ -151,7 +150,6 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
               <tr className="table-header">
                 <th className="px-3 py-3 w-8"></th>
                 <th className="px-4 py-3 text-left">Customer</th>
-                {isCol("phone") && <th className="px-4 py-3 text-left">Phone</th>}
                 {isCol("whatsapp") && <th className="px-4 py-3 text-left">WhatsApp</th>}
                 {isCol("email") && <th className="px-4 py-3 text-left">Email</th>}
                 {isCol("city") && <th className="px-4 py-3 text-left">City</th>}
@@ -223,14 +221,6 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
             </div>
           </div>
         </td>
-        {/* Phone */}
-        {isCol("phone") && (
-          <td className="px-4 py-3 text-sm text-gray-600">
-            {c.phone ? (
-              <span className="flex items-center gap-1.5"><Phone size={13} className="text-gray-400" />{c.phone}</span>
-            ) : "—"}
-          </td>
-        )}
         {/* WhatsApp */}
         {isCol("whatsapp") && (
           <td className="px-4 py-3 text-sm">
@@ -328,13 +318,49 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
       </tr>
 
       {/* Purchase History Accordion */}
-      {expanded && c.sales.length > 0 && (
+      {expanded && (
         <tr>
           <td colSpan={100} className="bg-gray-50/80 px-4 py-0">
-            <div className="py-4 pl-12">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <FileText size={14} /> Purchase History
-              </h4>
+            <div className="py-4 pl-12 space-y-6">
+              {/* Prescription Details */}
+              {rx && (
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <FileText size={14} /> Latest Prescription
+                  </h4>
+                  <div className="bg-white rounded-lg border border-gray-100 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-mono text-primary-600 font-semibold">{rx.prescriptionNo}</span>
+                      <span className="text-xs text-gray-500">{formatDate(rx.date)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 mb-2">OD (Right Eye)</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-500">Sphere:</span><span className="font-medium">{fmtRx(rx.odSph)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Cylinder:</span><span className="font-medium">{fmtRx(rx.odCyl)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Axis:</span><span className="font-medium">{rx.odAxis ?? "—"}°</span></div>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 mb-2">OS (Left Eye)</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-500">Sphere:</span><span className="font-medium">{fmtRx(rx.osSph)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Cylinder:</span><span className="font-medium">{fmtRx(rx.osCyl)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Axis:</span><span className="font-medium">{rx.osAxis ?? "—"}°</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Purchase History */}
+              {c.sales.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <ShoppingBag size={14} /> Purchase History
+                  </h4>
               <div className="space-y-3">
                 {c.sales.map((sale) => (
                   <div key={sale.id} className="bg-white rounded-lg border border-gray-100 p-3">
@@ -369,6 +395,8 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
                   </div>
                 ))}
               </div>
+                </div>
+              )}
             </div>
           </td>
         </tr>

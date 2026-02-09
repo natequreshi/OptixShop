@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Package, Edit2, Trash2, Copy, Check, X, Image as ImageIcon, Filter } from "lucide-react";
+import Link from "next/link";
+import { Plus, Search, Package, Edit2, Trash2, Copy, Check, X, Image as ImageIcon, Filter, FolderTree } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -87,9 +88,14 @@ export default function ProductsClient({ products, categories, brands }: Props) 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-        <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-primary flex items-center gap-2">
-          <Plus size={18} /> Add Product
-        </button>
+        <div className="flex items-center gap-3">
+          <Link href="/categories" className="btn-secondary flex items-center gap-2">
+            <FolderTree size={18} /> Categories
+          </Link>
+          <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-primary flex items-center gap-2">
+            <Plus size={18} /> Add Product
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

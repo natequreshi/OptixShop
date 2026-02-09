@@ -21,6 +21,7 @@ import {
   BarChart3,
   Lock,
   Unlock,
+  RotateCcw,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
@@ -87,7 +88,8 @@ interface Props {
 export default function DashboardClient({ stats, recentSales, topProducts, salesLast30Days, salesByMonth }: Props) {
   const [isLocked, setIsLocked] = useState(true);
   const [width, setWidth] = useState(1200);
-  const [layouts, setLayouts] = useState<any>({
+  
+  const defaultLayouts = {
     lg: [
       { i: "summary", x: 0, y: 0, w: 12, h: 2, minH: 2, minW: 12 },
       { i: "sales30", x: 0, y: 2, w: 12, h: 4, minH: 3, minW: 6 },
@@ -96,7 +98,13 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       { i: "topProducts", x: 0, y: 12, w: 6, h: 4, minH: 3, minW: 4 },
       { i: "recentSales", x: 6, y: 12, w: 6, h: 4, minH: 3, minW: 4 },
     ],
-  });
+  };
+  
+  const [layouts, setLayouts] = useState<any>(defaultLayouts);
+
+  const resetLayout = () => {
+    setLayouts(defaultLayouts);
+  };
 
   // Handle width changes
   React.useEffect(() => {
@@ -198,10 +206,18 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
         </div>
         <div className="flex items-center gap-4">
           <button
+            onClick={resetLayout}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+            title="Reset widget positions"
+          >
+            <RotateCcw size={16} />
+            Reset Layout
+          </button>
+          <button
             onClick={() => setIsLocked(!isLocked)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
               isLocked
-                ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                 : "bg-primary-600 text-white hover:bg-primary-700"
             }`}
           >
