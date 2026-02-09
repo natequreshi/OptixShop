@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Settings, Store, Receipt, Shield, ToggleLeft, ToggleRight,
   CreditCard, Tag, Save, Palette, Globe, FileText, Award,
-  MessageCircle, Users, Phone, Send, Key, Link,
+  MessageCircle, Users, Phone, Send, Key, Link, PenTool,
+  Layout, Type, Grid, AlignLeft, AlignCenter, AlignRight,
+  MapPin, Eye, EyeOff,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "appearance" | "whatsapp" | "customers";
+type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "invoice_designer" | "appearance" | "whatsapp" | "customers";
 
 const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "general", label: "General", icon: Store },
@@ -17,6 +20,7 @@ const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "loyalty", label: "Loyalty Program", icon: Award },
   { key: "modules", label: "Modules", icon: Shield },
   { key: "receipt", label: "Receipt / Invoice", icon: FileText },
+  { key: "invoice_designer", label: "Invoice Designer", icon: PenTool },
   { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { key: "customers", label: "Customer Columns", icon: Users },
   { key: "appearance", label: "Appearance", icon: Palette },
@@ -36,6 +40,7 @@ const CUSTOMER_COLUMN_OPTIONS = [
 ];
 
 export default function SettingsClient({ settings }: { settings: Record<string, string> }) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("general");
   const [form, setForm] = useState<Record<string, string>>({ ...settings });
   const [saving, setSaving] = useState(false);
@@ -46,13 +51,22 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
 
   async function handleSave() {
     setSaving(true);
-    const res = await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) toast.success("Settings saved!");
-    else toast.error("Failed to save settings");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        toast.success("Settings saved!");
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to save settings");
+      }
+    } catch (err) {
+      toast.error("Network error saving settings");
+    }
     setSaving(false);
   }
 
@@ -107,6 +121,11 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <SectionTitle icon={Palette} title="Branding" />
               <Field label="Logo URL" value={val("logo_url")} onChange={(v) => set("logo_url", v)} placeholder="https://example.com/logo.png" />
               <p className="text-xs text-gray-400">Enter a URL for your shop logo. It will appear on login and receipts.</p>
+
+              <SectionTitle icon={MapPin} title="Google Maps Integration" />
+              <Field label="Google Maps API Key" value={val("google_maps_api_key")} onChange={(v) => set("google_maps_api_key", v)} placeholder="AIzaSy..." />
+              <p className="text-xs text-gray-400">Required for address autocomplete in Customer forms. Get a key from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">Google Cloud Console</a>. Enable Places API and Maps JavaScript API.</p>
+              <Toggle label="Enable Address Autocomplete" checked={val("google_maps_enabled", "false") === "true"} onToggle={() => toggle("google_maps_enabled")} desc="Use Google Maps to autocomplete customer addresses" />
             </>
           )}
 
@@ -165,6 +184,112 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Toggle label="Show Store Logo on Receipt" checked={val("receipt_show_logo", "true") === "true"} onToggle={() => toggle("receipt_show_logo")} />
               <Toggle label="Show Prescription on Receipt" checked={val("receipt_show_prescription", "true") === "true"} onToggle={() => toggle("receipt_show_prescription")} />
               <Toggle label="Auto-Print Receipt after Sale" checked={val("receipt_auto_print", "false") === "true"} onToggle={() => toggle("receipt_auto_print")} />
+            </>
+          )}
+
+          {tab === "invoice_designer" && (
+            <>
+              {/* Template Selection */}
+              <SectionTitle icon={Layout} title="Template Style" />
+              <div className="grid grid-cols-3 gap-3">
+                {(["modern", "classic", "minimal"] as const).map((t) => (
+                  <button key={t} onClick={() => set("invoice_template", t)}
+                    className={cn("border-2 rounded-xl p-4 text-center transition-all",
+                      val("invoice_template", "modern") === t ? "border-primary-500 bg-primary-50" : "border-gray-200 hover:border-gray-300"
+                    )}>
+                    <div className={cn("mx-auto mb-2 w-full h-20 rounded-lg border",
+                      t === "modern" ? "bg-gradient-to-br from-primary-50 to-blue-50 border-primary-200" :
+                      t === "classic" ? "bg-gray-50 border-gray-300" : "bg-white border-gray-200"
+                    )} />
+                    <p className="text-sm font-medium capitalize">{t}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Logo Position */}
+              <SectionTitle icon={AlignCenter} title="Logo Position" />
+              <div className="flex gap-3">
+                {(["left", "center", "right"] as const).map((pos) => {
+                  const Icon = pos === "left" ? AlignLeft : pos === "center" ? AlignCenter : AlignRight;
+                  return (
+                    <button key={pos} onClick={() => set("invoice_logo_position", pos)}
+                      className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 text-sm font-medium transition",
+                        val("invoice_logo_position", "left") === pos ? "border-primary-500 bg-primary-50 text-primary-700" : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      )}>
+                      <Icon size={16} /> {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Paper & Font */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Paper Size</label>
+                  <select value={val("invoice_paper_size", "a4")} onChange={(e) => set("invoice_paper_size", e.target.value)} className="input">
+                    <option value="a4">A4</option>
+                    <option value="letter">Letter</option>
+                    <option value="thermal">Thermal (80mm)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Font Size</label>
+                  <select value={val("invoice_font_size", "medium")} onChange={(e) => set("invoice_font_size", e.target.value)} className="input">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Accent Color</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={val("invoice_accent_color", "#4F46E5")} onChange={(e) => set("invoice_accent_color", e.target.value)} className="w-10 h-10 rounded cursor-pointer border" />
+                    <input value={val("invoice_accent_color", "#4F46E5")} onChange={(e) => set("invoice_accent_color", e.target.value)} className="input" />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Border Style</label>
+                  <select value={val("invoice_border_style", "lines")} onChange={(e) => set("invoice_border_style", e.target.value)} className="input">
+                    <option value="none">None</option>
+                    <option value="lines">Lines</option>
+                    <option value="grid">Full Grid</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Header Section Toggles */}
+              <SectionTitle icon={Type} title="Header Section" />
+              <Toggle label="Show Store Logo" checked={val("invoice_show_logo", "true") === "true"} onToggle={() => toggle("invoice_show_logo")} desc="Display your store logo on the invoice" />
+              <Toggle label="Show Store Name & Address" checked={val("invoice_show_store_info", "true") === "true"} onToggle={() => toggle("invoice_show_store_info")} desc="Store name, address, city, country" />
+              <Toggle label="Show Store Phone & Email" checked={val("invoice_show_store_contact", "true") === "true"} onToggle={() => toggle("invoice_show_store_contact")} desc="Contact details in header" />
+              <Toggle label="Show GST / NTN Number" checked={val("invoice_show_gst", "true") === "true"} onToggle={() => toggle("invoice_show_gst")} desc="Tax registration number" />
+              <Field label="Custom Header Text" value={val("invoice_header_text")} onChange={(v) => set("invoice_header_text", v)} multiline placeholder="Optional text above invoice items" />
+
+              {/* Body Section Toggles */}
+              <SectionTitle icon={Grid} title="Body Section" />
+              <Toggle label="Show Customer Details" checked={val("invoice_show_customer", "true") === "true"} onToggle={() => toggle("invoice_show_customer")} desc="Customer name, phone, address" />
+              <Toggle label="Show Prescription Details" checked={val("invoice_show_prescription", "true") === "true"} onToggle={() => toggle("invoice_show_prescription")} desc="OD/OS Rx on invoice if available" />
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Item Table Columns</p>
+              <Toggle label="Show SKU Column" checked={val("invoice_show_sku", "false") === "true"} onToggle={() => toggle("invoice_show_sku")} />
+              <Toggle label="Show Discount Column" checked={val("invoice_show_discount_col", "true") === "true"} onToggle={() => toggle("invoice_show_discount_col")} />
+              <Toggle label="Show Tax Column" checked={val("invoice_show_tax_col", "true") === "true"} onToggle={() => toggle("invoice_show_tax_col")} />
+              <Toggle label="Show HSN/SAC Code" checked={val("invoice_show_hsn", "false") === "true"} onToggle={() => toggle("invoice_show_hsn")} />
+
+              {/* Footer Section */}
+              <SectionTitle icon={FileText} title="Footer Section" />
+              <Toggle label="Show Payment Summary" checked={val("invoice_show_payment_summary", "true") === "true"} onToggle={() => toggle("invoice_show_payment_summary")} desc="Subtotal, discount, tax, total breakdown" />
+              <Toggle label="Show Notes" checked={val("invoice_show_notes", "true") === "true"} onToggle={() => toggle("invoice_show_notes")} desc="Sale notes on invoice" />
+              <Toggle label="Show Thank You Message" checked={val("invoice_show_thankyou", "true") === "true"} onToggle={() => toggle("invoice_show_thankyou")} />
+              <Field label="Custom Footer Text" value={val("invoice_footer_text", "Thank you for your business!")} onChange={(v) => set("invoice_footer_text", v)} multiline placeholder="Text shown at bottom of invoice" />
+              <Toggle label="Show QR Code / Barcode" checked={val("invoice_show_qr", "false") === "true"} onToggle={() => toggle("invoice_show_qr")} desc="Show a QR code with invoice reference" />
+
+              {/* Live Preview */}
+              <SectionTitle icon={Eye} title="Preview" />
+              <InvoicePreview settings={form} />
             </>
           )}
 
@@ -267,6 +392,151 @@ function Toggle({ label, checked, onToggle, desc }: {
           <ToggleLeft size={28} className="text-gray-300" />
         )}
       </button>
+    </div>
+  );
+}
+
+/* ── Invoice Preview ────────────────────────────── */
+function InvoicePreview({ settings }: { settings: Record<string, string> }) {
+  const v = (k: string, fb = "") => settings[k] ?? fb;
+  const on = (k: string, fb = "true") => v(k, fb) === "true";
+  const template = v("invoice_template", "modern");
+  const accent = v("invoice_accent_color", "#4F46E5");
+  const logoPos = v("invoice_logo_position", "left");
+  const fontSize = v("invoice_font_size", "medium");
+  const borderStyle = v("invoice_border_style", "lines");
+  const storeName = v("store_name", "Your Store Name");
+
+  const textSize = fontSize === "small" ? "text-[10px]" : fontSize === "large" ? "text-sm" : "text-xs";
+  const headSize = fontSize === "small" ? "text-sm" : fontSize === "large" ? "text-xl" : "text-base";
+
+  const borderClass = borderStyle === "grid" ? "border border-gray-300" :
+    borderStyle === "lines" ? "border-b border-gray-200" : "";
+  const cellBorder = borderStyle === "grid" ? "border border-gray-200 px-2 py-1" : "px-2 py-1";
+
+  return (
+    <div className="border border-gray-200 rounded-xl bg-white p-6 max-w-xl mx-auto shadow-sm">
+      <div className="space-y-4" style={{ fontFamily: "inherit" }}>
+        {/* Header */}
+        <div className={cn("flex gap-4", logoPos === "center" ? "flex-col items-center text-center" : logoPos === "right" ? "flex-row-reverse" : "flex-row")}>
+          {on("invoice_show_logo") && (
+            <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accent + "15" }}>
+              <span className="text-lg font-bold" style={{ color: accent }}>{storeName.charAt(0)}</span>
+            </div>
+          )}
+          <div className={cn(logoPos === "center" ? "text-center" : "")}>
+            {on("invoice_show_store_info") && (
+              <>
+                <p className={cn(headSize, "font-bold")} style={{ color: accent }}>{storeName}</p>
+                <p className={cn(textSize, "text-gray-500")}>{v("store_address", "123 Main Street")}, {v("store_city", "City")}</p>
+              </>
+            )}
+            {on("invoice_show_store_contact") && (
+              <p className={cn(textSize, "text-gray-500")}>{v("store_phone", "0300-1234567")} · {v("store_email", "store@example.com")}</p>
+            )}
+            {on("invoice_show_gst") && v("gst_number") && (
+              <p className={cn(textSize, "text-gray-500")}>NTN: {v("gst_number")}</p>
+            )}
+          </div>
+        </div>
+
+        {v("invoice_header_text") && (
+          <p className={cn(textSize, "text-center text-gray-600 italic")}>{v("invoice_header_text")}</p>
+        )}
+
+        {/* Invoice Meta */}
+        <div className="flex justify-between pt-2" style={{ borderTop: `2px solid ${accent}` }}>
+          <div>
+            <p className={cn(textSize, "text-gray-500")}>Invoice No</p>
+            <p className={cn(textSize, "font-semibold")}>INV00001</p>
+          </div>
+          <div className="text-right">
+            <p className={cn(textSize, "text-gray-500")}>Date</p>
+            <p className={cn(textSize, "font-semibold")}>09 Feb, 2026</p>
+          </div>
+        </div>
+
+        {/* Customer */}
+        {on("invoice_show_customer") && (
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className={cn(textSize, "text-gray-500 mb-1")}>Bill To:</p>
+            <p className={cn(textSize, "font-semibold")}>John Doe</p>
+            <p className={cn(textSize, "text-gray-600")}>+92 300 1234567</p>
+          </div>
+        )}
+
+        {/* Prescription */}
+        {on("invoice_show_prescription") && (
+          <div className="bg-blue-50 rounded-lg p-3">
+            <p className={cn(textSize, "text-blue-700 font-semibold mb-1")}>Prescription</p>
+            <div className="grid grid-cols-2 gap-2">
+              <p className={cn(textSize, "text-blue-600")}>OD: +1.00 / -0.50 × 90°</p>
+              <p className={cn(textSize, "text-blue-600")}>OS: +0.75 / -0.25 × 180°</p>
+            </div>
+          </div>
+        )}
+
+        {/* Items Table */}
+        <div className={cn("overflow-hidden", borderStyle === "grid" ? "border border-gray-300 rounded" : "")}>
+          <table className="w-full">
+            <thead>
+              <tr style={{ backgroundColor: accent + "10" }}>
+                <th className={cn(cellBorder, textSize, "text-left font-semibold")} style={{ color: accent }}>Item</th>
+                {on("invoice_show_sku", "false") && <th className={cn(cellBorder, textSize, "text-left font-semibold")} style={{ color: accent }}>SKU</th>}
+                <th className={cn(cellBorder, textSize, "text-center font-semibold")} style={{ color: accent }}>Qty</th>
+                <th className={cn(cellBorder, textSize, "text-right font-semibold")} style={{ color: accent }}>Price</th>
+                {on("invoice_show_discount_col") && <th className={cn(cellBorder, textSize, "text-right font-semibold")} style={{ color: accent }}>Disc</th>}
+                {on("invoice_show_tax_col") && <th className={cn(cellBorder, textSize, "text-right font-semibold")} style={{ color: accent }}>Tax</th>}
+                <th className={cn(cellBorder, textSize, "text-right font-semibold")} style={{ color: accent }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: "Ray-Ban Aviator Frame", sku: "FRM001", qty: 1, price: 8500, disc: 500, tax: 1440, total: 9440 },
+                { name: "CR-39 Single Vision Lens", sku: "LNS042", qty: 2, price: 2000, disc: 0, tax: 720, total: 4720 },
+              ].map((item, i) => (
+                <tr key={i} className={cn(borderClass)}>
+                  <td className={cn(cellBorder, textSize)}>{item.name}</td>
+                  {on("invoice_show_sku", "false") && <td className={cn(cellBorder, textSize, "font-mono")}>{item.sku}</td>}
+                  <td className={cn(cellBorder, textSize, "text-center")}>{item.qty}</td>
+                  <td className={cn(cellBorder, textSize, "text-right")}>{item.price.toLocaleString()}</td>
+                  {on("invoice_show_discount_col") && <td className={cn(cellBorder, textSize, "text-right text-red-600")}>{item.disc > 0 ? item.disc.toLocaleString() : "—"}</td>}
+                  {on("invoice_show_tax_col") && <td className={cn(cellBorder, textSize, "text-right")}>{item.tax.toLocaleString()}</td>}
+                  <td className={cn(cellBorder, textSize, "text-right font-medium")}>{item.total.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Payment Summary */}
+        {on("invoice_show_payment_summary") && (
+          <div className="flex justify-end">
+            <div className="w-48 space-y-1">
+              <div className={cn("flex justify-between", textSize)}><span className="text-gray-500">Subtotal</span><span>12,500</span></div>
+              <div className={cn("flex justify-between", textSize)}><span className="text-gray-500">Discount</span><span className="text-red-600">-500</span></div>
+              <div className={cn("flex justify-between", textSize)}><span className="text-gray-500">Tax</span><span>2,160</span></div>
+              <div className={cn("flex justify-between font-bold pt-1", textSize)} style={{ borderTop: `2px solid ${accent}`, color: accent }}>
+                <span>Total</span><span>14,160</span>
+              </div>
+              <div className={cn("flex justify-between", textSize)}><span className="text-gray-500">Paid</span><span className="text-green-600">10,000</span></div>
+              <div className={cn("flex justify-between font-medium", textSize)}><span className="text-gray-500">Balance</span><span className="text-red-600">4,160</span></div>
+            </div>
+          </div>
+        )}
+
+        {/* Notes */}
+        {on("invoice_show_notes") && (
+          <div className={cn(textSize, "text-gray-500 italic")}>Note: Balance due within 30 days.</div>
+        )}
+
+        {/* Footer */}
+        {on("invoice_show_thankyou") && (
+          <p className={cn(textSize, "text-center font-medium mt-4")} style={{ color: accent }}>
+            {v("invoice_footer_text", "Thank you for your business!")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -30,6 +30,16 @@ export default async function SalesPage() {
     paymentStatus: s.paymentStatus,
     itemCount: s.items.length,
     paymentMethods: [...new Set(s.payments.map((p) => p.paymentMethod))].join(", "),
+    items: s.items.map((i) => ({
+      productName: i.product.name,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      discount: i.discountAmount,
+      taxAmount: i.taxAmount,
+      total: i.total,
+    })),
+    customerId: s.customerId,
+    notes: s.notes,
   }));
 
   return <SalesClient sales={data} />;

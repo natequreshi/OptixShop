@@ -31,6 +31,7 @@ export async function PUT(req: Request) {
 
 function inferCategory(key: string): string {
   if (key.startsWith("store_") || key === "currency" || key === "logo_url" || key.startsWith("date_")) return "general";
+  if (key.startsWith("google_maps_")) return "general";
   if (key.startsWith("tax_") || key === "gst_number" || key === "default_tax_rate") return "tax";
   if (key.startsWith("loyalty_")) return "loyalty";
   if (key.startsWith("module_")) return "modules";

@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   Plus, Search, Edit2, Trash2, ChevronDown, ChevronRight,
   Phone, Mail, MapPin, Columns, MessageCircle, Globe,
-  ShoppingBag, FileText, Calendar, Package, User,
+  ShoppingBag, FileText, Calendar, Package, User, Eye,
 } from "lucide-react";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -318,6 +318,9 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
         {/* Actions */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
+            <button onClick={onToggleExpand} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View History">
+              <Eye size={15} />
+            </button>
             <button onClick={onEdit} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600" title="Edit"><Edit2 size={15} /></button>
             <button onClick={onDelete} className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600" title="Delete"><Trash2 size={15} /></button>
           </div>
@@ -380,7 +383,6 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
   const [form, setForm] = useState({
     firstName: customer?.firstName ?? "",
     lastName: customer?.lastName ?? "",
-    phone: customer?.phone ?? "",
     whatsapp: customer?.whatsapp ?? "",
     email: customer?.email ?? "",
     gender: customer?.gender ?? "",
@@ -388,16 +390,87 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
     city: customer?.city ?? "",
     state: customer?.state ?? "",
     country: customer?.country ?? "Pakistan",
+    // Rx fields
+    odSphere: "",
+    odCylinder: "",
+    odAxis: "",
+    odAdd: "",
+    osSphere: "",
+    osCylinder: "",
+    osAxis: "",
+    osAdd: "",
   });
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Google Maps address autocomplete
+  async function handleAddressChange(value: string) {
+    set("address", value);
+    if (value.length < 3) { setAddressSuggestions([]); setShowSuggestions(false); return; }
+    // If Google Maps is loaded, use it
+    if (typeof window !== "undefined" && (window as any).google?.maps?.places) {
+      const service = new (window as any).google.maps.places.AutocompleteService();
+      service.getPlacePredictions({ input: value, types: ["geocode"] }, (predictions: any[]) => {
+        if (predictions) { setAddressSuggestions(predictions); setShowSuggestions(true); }
+      });
+    }
+  }
+
+  function selectPlace(placeId: string, description: string) {
+    set("address", description);
+    setShowSuggestions(false);
+    if ((window as any).google?.maps?.places) {
+      const service = new (window as any).google.maps.places.PlacesService(document.createElement("div"));
+      service.getDetails({ placeId, fields: ["address_components"] }, (place: any) => {
+        if (place?.address_components) {
+          for (const comp of place.address_components) {
+            if (comp.types.includes("locality")) set("city", comp.long_name);
+            if (comp.types.includes("administrative_area_level_1")) set("state", comp.long_name);
+            if (comp.types.includes("country")) set("country", comp.long_name);
+          }
+        }
+      });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     const url = customer ? `/api/customers/${customer.id}` : "/api/customers";
     const method = customer ? "PUT" : "POST";
-    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+
+    // Build payload with Rx data
+    const payload: any = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      phone: form.whatsapp, // use whatsapp as phone too
+      whatsapp: form.whatsapp,
+      email: form.email,
+      gender: form.gender,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      country: form.country,
+    };
+
+    // Include Rx data if any Rx field is filled
+    const hasRx = form.odSphere || form.odCylinder || form.odAxis || form.osSphere || form.osCylinder || form.osAxis;
+    if (hasRx) {
+      payload.rx = {
+        odSphere: form.odSphere ? parseFloat(form.odSphere) : null,
+        odCylinder: form.odCylinder ? parseFloat(form.odCylinder) : null,
+        odAxis: form.odAxis ? parseInt(form.odAxis) : null,
+        odAdd: form.odAdd ? parseFloat(form.odAdd) : null,
+        osSphere: form.osSphere ? parseFloat(form.osSphere) : null,
+        osCylinder: form.osCylinder ? parseFloat(form.osCylinder) : null,
+        osAxis: form.osAxis ? parseInt(form.osAxis) : null,
+        osAdd: form.osAdd ? parseFloat(form.osAdd) : null,
+      };
+    }
+
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (res.ok) { toast.success(customer ? "Updated" : "Created"); onSaved(); }
     else toast.error("Failed to save");
     setLoading(false);
@@ -405,7 +478,7 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100 flex items-center gap-3">
           <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center">
             <User size={20} className="text-primary-600" />
@@ -434,26 +507,37 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
               <option value="Other">Other</option>
             </select>
           </div>
-          {/* Phone + WhatsApp */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label flex items-center gap-1.5"><Phone size={13} /> Phone</label>
-              <input value={form.phone} onChange={(e) => set("phone", e.target.value)} className="input" placeholder="+92..." />
-            </div>
-            <div>
-              <label className="label flex items-center gap-1.5"><MessageCircle size={13} className="text-green-600" /> WhatsApp</label>
-              <input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} className="input" placeholder="+923001234567" />
-            </div>
+          {/* WhatsApp Only */}
+          <div>
+            <label className="label flex items-center gap-1.5"><MessageCircle size={13} className="text-green-600" /> WhatsApp *</label>
+            <input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} className="input" placeholder="+923001234567" required />
+            <p className="text-xs text-gray-400 mt-1">This will also be used as the primary contact number</p>
           </div>
           {/* Email */}
           <div>
             <label className="label flex items-center gap-1.5"><Mail size={13} /> Email</label>
             <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="input" />
           </div>
-          {/* Address */}
-          <div>
+          {/* Address with Google Maps Autocomplete */}
+          <div className="relative">
             <label className="label flex items-center gap-1.5"><MapPin size={13} /> Address</label>
-            <input value={form.address} onChange={(e) => set("address", e.target.value)} className="input" placeholder="Street address" />
+            <input
+              value={form.address}
+              onChange={(e) => handleAddressChange(e.target.value)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              className="input"
+              placeholder="Start typing address..."
+            />
+            {showSuggestions && addressSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto z-50">
+                {addressSuggestions.map((s: any) => (
+                  <button key={s.place_id} type="button" onClick={() => selectPlace(s.place_id, s.description)}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-700 flex items-center gap-2">
+                    <MapPin size={12} className="text-gray-400 flex-shrink-0" /> {s.description}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {/* City, State, Country */}
           <div className="grid grid-cols-3 gap-4">
@@ -470,6 +554,57 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
               <input value={form.country} onChange={(e) => set("country", e.target.value)} className="input" />
             </div>
           </div>
+
+          {/* ── Rx Section ─────────────────────── */}
+          <div className="border-t border-gray-100 pt-4">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Eye size={16} className="text-primary-600" /> Prescription (Rx)
+            </h3>
+            <p className="text-xs text-gray-400 mb-3">Optional — enter the customer&apos;s latest prescription. This creates a prescription record.</p>
+            
+            {/* OD (Right Eye) */}
+            <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">OD — Right Eye</p>
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              <div>
+                <label className="label text-xs">Sphere (SPH)</label>
+                <input type="number" step="0.25" value={form.odSphere} onChange={(e) => set("odSphere", e.target.value)} className="input" placeholder="±0.00" />
+              </div>
+              <div>
+                <label className="label text-xs">Cylinder (CYL)</label>
+                <input type="number" step="0.25" value={form.odCylinder} onChange={(e) => set("odCylinder", e.target.value)} className="input" placeholder="±0.00" />
+              </div>
+              <div>
+                <label className="label text-xs">Axis</label>
+                <input type="number" step="1" min="0" max="180" value={form.odAxis} onChange={(e) => set("odAxis", e.target.value)} className="input" placeholder="0-180" />
+              </div>
+              <div>
+                <label className="label text-xs">Add</label>
+                <input type="number" step="0.25" value={form.odAdd} onChange={(e) => set("odAdd", e.target.value)} className="input" placeholder="+0.00" />
+              </div>
+            </div>
+
+            {/* OS (Left Eye) */}
+            <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">OS — Left Eye</p>
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="label text-xs">Sphere (SPH)</label>
+                <input type="number" step="0.25" value={form.osSphere} onChange={(e) => set("osSphere", e.target.value)} className="input" placeholder="±0.00" />
+              </div>
+              <div>
+                <label className="label text-xs">Cylinder (CYL)</label>
+                <input type="number" step="0.25" value={form.osCylinder} onChange={(e) => set("osCylinder", e.target.value)} className="input" placeholder="±0.00" />
+              </div>
+              <div>
+                <label className="label text-xs">Axis</label>
+                <input type="number" step="1" min="0" max="180" value={form.osAxis} onChange={(e) => set("osAxis", e.target.value)} className="input" placeholder="0-180" />
+              </div>
+              <div>
+                <label className="label text-xs">Add</label>
+                <input type="number" step="0.25" value={form.osAdd} onChange={(e) => set("osAdd", e.target.value)} className="input" placeholder="+0.00" />
+              </div>
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Banknote, Smartphone, User, X, Receipt
+  Banknote, Smartphone, User, X, Receipt, Package
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 
 interface Product {
   id: string; sku: string; name: string; sellingPrice: number;
-  taxRate: number; productType: string; stock: number;
+  taxRate: number; productType: string; stock: number; imageUrl: string | null;
 }
 
 interface CartItem extends Product {
@@ -44,6 +44,7 @@ export default function POSPage() {
         id: p.id, sku: p.sku, name: p.name, sellingPrice: p.sellingPrice,
         taxRate: p.taxRate, productType: p.productType,
         stock: p.inventory?.quantity ?? 0,
+        imageUrl: p.imageUrl || null,
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
@@ -133,13 +134,22 @@ export default function POSPage() {
         <div className="flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
-              className="card p-3 text-left hover:border-primary-300 hover:shadow-md transition group"
+              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden"
             >
-              <p className="text-sm font-medium text-gray-800 truncate group-hover:text-primary-700">{p.name}</p>
-              <p className="text-xs text-gray-400 font-mono">{p.sku}</p>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-sm font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
-                <span className={cn("text-xs", p.stock <= 0 ? "text-red-500" : "text-gray-400")}>Stk: {p.stock}</span>
+              <div className="aspect-[4/3] bg-gray-50 flex items-center justify-center overflow-hidden">
+                {p.imageUrl ? (
+                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Package size={32} className="text-gray-300" />
+                )}
+              </div>
+              <div className="p-3">
+                <p className="text-sm font-medium text-gray-800 truncate group-hover:text-primary-700">{p.name}</p>
+                <p className="text-xs text-gray-400 font-mono">{p.sku}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-sm font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
+                  <span className={cn("text-xs", p.stock <= 0 ? "text-red-500" : "text-gray-400")}>QTY: {p.stock}</span>
+                </div>
               </div>
             </button>
           ))}
