@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import * as React from "react";
 import {
   DollarSign,
   ShoppingBag,
@@ -35,11 +36,10 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import GridLayout from "react-grid-layout";
+import { Responsive, ResponsiveProps } from "react-grid-layout";
+import { useContainerWidth } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-
-const ResponsiveGridLayout = GridLayout.WidthProvider(GridLayout.Responsive);
 
 interface Layout {
   i: string;
@@ -86,7 +86,8 @@ interface Props {
 
 export default function DashboardClient({ stats, recentSales, topProducts, salesLast30Days, salesByMonth }: Props) {
   const [isLocked, setIsLocked] = useState(true);
-  const [layouts, setLayouts] = useState<{ lg: Layout[] }>({
+  const [width, setWidth] = useState(1200);
+  const [layouts, setLayouts] = useState<any>({
     lg: [
       { i: "summary", x: 0, y: 0, w: 12, h: 2, minH: 2, minW: 12 },
       { i: "sales30", x: 0, y: 2, w: 12, h: 4, minH: 3, minW: 6 },
@@ -96,6 +97,14 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       { i: "recentSales", x: 6, y: 12, w: 6, h: 4, minH: 3, minW: 4 },
     ],
   });
+
+  // Handle width changes
+  React.useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   /* ─── Top 8 Summary Cards (matching reference image) ─── */
   const summaryCards = [
@@ -210,16 +219,16 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
         </div>
       </div>
 
-      <ResponsiveGridLayout
+      <Responsive
         className="layout"
         layouts={layouts}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
         rowHeight={80}
-        isDraggable={!isLocked}
-        isResizable={!isLocked}
+        width={width}
+        dragConfig={{ enabled: !isLocked, handle: ".drag-handle" }}
+        resizeConfig={{ enabled: !isLocked }}
         onLayoutChange={(layout, allLayouts) => setLayouts(allLayouts)}
-        draggableHandle=".drag-handle"
       >
         {/* ── Top Summary Cards (8 cards, 4 per row) ── */}
         <div key="summary" className="dashboard-widget">
@@ -391,7 +400,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
             </div>
           </div>
         </div>
-      </ResponsiveGridLayout>
+      </Responsive>
     </div>
   );
 }
