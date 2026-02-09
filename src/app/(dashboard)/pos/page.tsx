@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Banknote, Smartphone, User, X, Receipt, Package
+  Banknote, Smartphone, User, X, Receipt, Package, Calculator, ListTodo
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -36,6 +36,11 @@ export default function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [amountTendered, setAmountTendered] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [showTodoList, setShowTodoList] = useState(false);
+  const [calcDisplay, setCalcDisplay] = useState("0");
+  const [todos, setTodos] = useState<{id: number; text: string; done: boolean}[]>([]);
+  const [todoInput, setTodoInput] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -121,7 +126,21 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-8rem)]">
+    <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
+      {/* Header with Calculator and Todo */}
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Point of Sale</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowCalculator(!showCalculator)} className="btn-secondary flex items-center gap-2" title="Calculator">
+            <Calculator size={18} /> Calculator
+          </button>
+          <button onClick={() => setShowTodoList(!showTodoList)} className="btn-secondary flex items-center gap-2" title="Todo List">
+            <ListTodo size={18} /> Todo List
+          </button>
+        </div>
+      </div>
+
+      <div className="flex gap-6 flex-1 overflow-hidden">
       {/* Products Panel */}
       <div className="flex-1 flex flex-col">
         <div className="mb-4">
@@ -143,14 +162,20 @@ export default function POSPage() {
                   <Package size={32} className="text-gray-300" />
                 )}
               </div>
-              <div className="p-3 flex-1 flex flex-col justify-between min-h-[80px]">
-                <div>
-                  <p className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">{p.sku}</p>
+              <div className="p-3 flex-1 flex flex-col justify-between">
+                <div className="mb-2">
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">SKU: {p.sku}</p>
                 </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
-                  <span className={cn("text-xs font-medium", p.stock <= 0 ? "text-red-500" : "text-gray-500")}>QTY: {p.stock}</span>
+                <div className="space-y-1.5 border-t border-gray-100 dark:border-gray-700 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Price</span>
+                    <span className="text-sm font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Stock</span>
+                    <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock} units</span>
+                  </div>
                 </div>
               </div>
             </button>
@@ -272,6 +297,82 @@ export default function POSPage() {
           )}
         </div>
       </div>
+      </div>
+
+      {/* Calculator Modal */}
+      {showCalculator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowCalculator(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-80 p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold dark:text-white">Calculator</h3>
+              <button onClick={() => setShowCalculator(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4 text-right">
+              <div className="text-2xl font-mono font-bold dark:text-white">{calcDisplay}</div>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map((btn) => (
+                <button key={btn} onClick={() => {
+                  if (btn === '=') {
+                    try { setCalcDisplay(eval(calcDisplay).toString()); } catch { setCalcDisplay('Error'); }
+                  } else if (calcDisplay === '0' || calcDisplay === 'Error') {
+                    setCalcDisplay(btn);
+                  } else {
+                    setCalcDisplay(calcDisplay + btn);
+                  }
+                }} className={cn("py-3 rounded-lg font-medium transition", 
+                  btn === '=' ? "bg-primary-600 text-white hover:bg-primary-700" : 
+                  "bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 dark:text-white"
+                )}>{btn}</button>
+              ))}
+              <button onClick={() => setCalcDisplay('0')} className="col-span-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium">Clear</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Todo List Modal */}
+      {showTodoList && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowTodoList(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-96 max-h-[600px] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-semibold dark:text-white">Todo List</h3>
+              <button onClick={() => setShowTodoList(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex gap-2">
+                <input value={todoInput} onChange={(e) => setTodoInput(e.target.value)} onKeyDown={(e) => {
+                  if (e.key === 'Enter' && todoInput.trim()) {
+                    setTodos([...todos, { id: Date.now(), text: todoInput.trim(), done: false }]);
+                    setTodoInput('');
+                  }
+                }} placeholder="Add new todo..." className="input flex-1" />
+                <button onClick={() => {
+                  if (todoInput.trim()) {
+                    setTodos([...todos, { id: Date.now(), text: todoInput.trim(), done: false }]);
+                    setTodoInput('');
+                  }
+                }} className="btn-primary"><Plus size={18} /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {todos.length === 0 ? (
+                <p className="text-center text-gray-400 py-8">No todos yet. Add one above!</p>
+              ) : (
+                todos.map((todo) => (
+                  <div key={todo.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group">
+                    <input type="checkbox" checked={todo.done} onChange={() => setTodos(todos.map(t => t.id === todo.id ? {...t, done: !t.done} : t))}
+                      className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500" />
+                    <span className={cn("flex-1 text-sm dark:text-gray-200", todo.done && "line-through text-gray-400")}>{todo.text}</span>
+                    <button onClick={() => setTodos(todos.filter(t => t.id !== todo.id))}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition"><Trash2 size={14} /></button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
