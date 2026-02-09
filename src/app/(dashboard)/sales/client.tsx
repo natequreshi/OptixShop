@@ -315,11 +315,13 @@ function EditSaleModal({ sale, onClose, onSaved }: { sale: Sale; onClose: () => 
 /* ── Print Invoice Modal ─────────────────── */
 function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
   const [template, setTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
+  const [taxEnabled, setTaxEnabled] = useState(true);
 
   useEffect(() => {
     fetch("/api/settings").then(r => r.json()).then((settings) => {
       const printTemplate = settings.find((s: any) => s.key === 'print_template')?.value || '80mm';
       setTemplate(printTemplate as any);
+      setTaxEnabled(settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true');
     });
   }, []);
 
@@ -346,7 +348,7 @@ function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void 
           </div>
         </div>
         <div className="p-8 overflow-y-auto max-h-[calc(90vh-80px)]">
-          <InvoiceTemplate sale={sale} template={template} />
+          <InvoiceTemplate sale={sale} template={template} taxEnabled={taxEnabled} />
         </div>
       </div>
     </div>
@@ -354,7 +356,7 @@ function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void 
 }
 
 /* ── Invoice Templates ─────────────────── */
-function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "modern" | "classic" | "minimal" }) {
+function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template: "80mm" | "modern" | "classic" | "minimal"; taxEnabled: boolean }) {
   if (template === "80mm") {
     return (
       <div style={{ width: '80mm', margin: '0 auto', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.4' }}>
@@ -409,7 +411,7 @@ function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "m
             <span>-{formatCurrency(sale.discountAmount)}</span>
           </div>
         )}
-        {sale.taxAmount > 0 && (
+        {taxEnabled && sale.taxAmount > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
             <span>Tax:</span>
             <span>{formatCurrency(sale.taxAmount)}</span>
@@ -465,7 +467,7 @@ function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "m
               <th className="text-left py-3 px-4 text-sm font-semibold">Product</th>
               <th className="text-center py-3 px-4 text-sm font-semibold">Qty</th>
               <th className="text-right py-3 px-4 text-sm font-semibold">Price</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold">Tax</th>
+              {taxEnabled && <th className="text-right py-3 px-4 text-sm font-semibold">Tax</th>}
               <th className="text-right py-3 px-4 text-sm font-semibold">Total</th>
             </tr>
           </thead>
@@ -475,7 +477,7 @@ function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "m
                 <td className="py-3 px-4 text-sm">{item.productName}</td>
                 <td className="py-3 px-4 text-sm text-center">{item.quantity}</td>
                 <td className="py-3 px-4 text-sm text-right">{formatCurrency(item.unitPrice)}</td>
-                <td className="py-3 px-4 text-sm text-right">{formatCurrency(item.taxAmount)}</td>
+                {taxEnabled && <td className="py-3 px-4 text-sm text-right">{formatCurrency(item.taxAmount)}</td>}
                 <td className="py-3 px-4 text-sm text-right font-medium">{formatCurrency(item.total)}</td>
               </tr>
             ))}
@@ -487,7 +489,7 @@ function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "m
           <div className="w-64 space-y-2">
             <div className="flex justify-between text-sm"><span>Subtotal:</span><span>{formatCurrency(sale.subtotal)}</span></div>
             {sale.discountAmount > 0 && <div className="flex justify-between text-sm text-red-600"><span>Discount:</span><span>-{formatCurrency(sale.discountAmount)}</span></div>}
-            <div className="flex justify-between text-sm"><span>Tax:</span><span>{formatCurrency(sale.taxAmount)}</span></div>
+            {taxEnabled && <div className="flex justify-between text-sm"><span>Tax:</span><span>{formatCurrency(sale.taxAmount)}</span></div>}
             <div className="flex justify-between text-lg font-bold border-t border-gray-300 pt-2"><span>Total:</span><span>{formatCurrency(sale.totalAmount)}</span></div>
             <div className="flex justify-between text-sm text-green-600"><span>Paid:</span><span>{formatCurrency(sale.paidAmount)}</span></div>
             {sale.balanceAmount > 0 && <div className="flex justify-between text-sm text-red-600 font-medium"><span>Balance Due:</span><span>{formatCurrency(sale.balanceAmount)}</span></div>}
@@ -550,7 +552,7 @@ function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "m
           <div className="w-64 space-y-1 text-sm">
             <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(sale.subtotal)}</span></div>
             {sale.discountAmount > 0 && <div className="flex justify-between"><span>Discount:</span><span>-{formatCurrency(sale.discountAmount)}</span></div>}
-            <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(sale.taxAmount)}</span></div>
+            {taxEnabled && <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(sale.taxAmount)}</span></div>}
             <div className="flex justify-between text-lg font-bold border-t-2 border-gray-800 pt-2 mt-2"><span>Grand Total:</span><span>{formatCurrency(sale.totalAmount)}</span></div>
           </div>
         </div>
@@ -598,7 +600,7 @@ function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "m
         <div className="w-48 space-y-2 text-sm">
           <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span>{formatCurrency(sale.subtotal)}</span></div>
           {sale.discountAmount > 0 && <div className="flex justify-between text-gray-600"><span>Discount</span><span>-{formatCurrency(sale.discountAmount)}</span></div>}
-          <div className="flex justify-between"><span className="text-gray-600">Tax</span><span>{formatCurrency(sale.taxAmount)}</span></div>
+          {taxEnabled && <div className="flex justify-between"><span className="text-gray-600">Tax</span><span>{formatCurrency(sale.taxAmount)}</span></div>}
           <div className="flex justify-between text-lg font-medium border-t border-gray-300 pt-2 mt-2"><span>Total</span><span>{formatCurrency(sale.totalAmount)}</span></div>
         </div>
       </div>
@@ -613,23 +615,200 @@ function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "m
 /* ── Create Sale Modal ─────────────────── */
 function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const router = useRouter();
+  const [products, setProducts] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  const [form, setForm] = useState({
+    customerId: "",
+    items: [{ productId: "", quantity: 1, unitPrice: 0, discount: 0 }],
+    paymentMethod: "cash",
+    paymentStatus: "paid",
+    amountTendered: 0,
+    deliveryAddress: "",
+    deliveryDate: "",
+    notes: "",
+  });
+
+  useEffect(() => {
+    fetch("/api/products").then(r => r.json()).then(setProducts);
+    fetch("/api/customers").then(r => r.json()).then(setCustomers);
+  }, []);
+
+  const addItem = () => {
+    setForm({...form, items: [...form.items, { productId: "", quantity: 1, unitPrice: 0, discount: 0 }]});
+  };
+
+  const removeItem = (index: number) => {
+    setForm({...form, items: form.items.filter((_, i) => i !== index)});
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const items = [...form.items];
+    items[index] = {...items[index], [field]: value};
+    
+    if (field === "productId") {
+      const product = products.find(p => p.id === value);
+      if (product) items[index].unitPrice = product.sellingPrice;
+    }
+    
+    setForm({...form, items});
+  };
+
+  const subtotal = form.items.reduce((sum, item) => {
+    const product = products.find(p => p.id === item.productId);
+    if (!product) return sum;
+    return sum + (item.unitPrice * item.quantity) - item.discount;
+  }, 0);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (form.items.length === 0 || !form.items[0].productId) {
+      return toast.error("Add at least one product");
+    }
+    
+    setLoading(true);
+    try {
+      const res = await fetch("/api/sales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId: form.customerId || null,
+          paymentMethod: form.paymentMethod,
+          paymentStatus: form.paymentStatus,
+          amountTendered: form.amountTendered,
+          deliveryAddress: form.deliveryAddress || null,
+          deliveryDate: form.deliveryDate || null,
+          notes: form.notes || null,
+          items: form.items.map(item => {
+            const product = products.find(p => p.id === item.productId);
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discount: item.discount,
+              taxRate: product?.taxRate || 0,
+            };
+          }),
+        }),
+      });
+      
+      if (res.ok) {
+        toast.success("Sale created successfully!");
+        onCreated();
+        onClose();
+      } else {
+        toast.error("Failed to create sale");
+      }
+    } catch {
+      toast.error("Error creating sale");
+    }
+    setLoading(false);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold dark:text-white">Create New Sale</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
         </div>
-        <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">To create a new sale, please use the POS (Point of Sale) interface for a better experience.</p>
-          <div className="flex flex-col gap-2">
-            <button onClick={() => router.push("/pos")} className="btn-primary w-full">
-              Go to POS
-            </button>
-            <button onClick={onClose} className="btn-secondary w-full">Cancel</button>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Customer (Optional)</label>
+              <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input">
+                <option value="">Walk-in Customer</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="label">Payment Method</label>
+              <select value={form.paymentMethod} onChange={(e) => setForm({...form, paymentMethod: e.target.value})} className="input">
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </div>
           </div>
-        </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Payment Status</label>
+              <select value={form.paymentStatus} onChange={(e) => setForm({...form, paymentStatus: e.target.value})} className="input">
+                <option value="paid">Paid</option>
+                <option value="partial">Partial</option>
+                <option value="unpaid">Unpaid</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="label">Amount Tendered</label>
+              <input type="number" value={form.amountTendered} onChange={(e) => setForm({...form, amountTendered: parseFloat(e.target.value) || 0})} className="input" step="0.01" />
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Delivery Address (Optional)</label>
+            <textarea value={form.deliveryAddress} onChange={(e) => setForm({...form, deliveryAddress: e.target.value})} className="input" rows={2} placeholder="Enter delivery address if applicable"></textarea>
+          </div>
+
+          <div>
+            <label className="label">Delivery Date (Optional)</label>
+            <input type="date" value={form.deliveryDate} onChange={(e) => setForm({...form, deliveryDate: e.target.value})} className="input" />
+          </div>
+
+          <div>
+            <label className="label">Notes (Optional)</label>
+            <textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} className="input" rows={2} placeholder="Additional notes"></textarea>
+          </div>
+
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold dark:text-white">Products</h3>
+              <button type="button" onClick={addItem} className="btn-secondary text-sm flex items-center gap-1">
+                <Plus size={14} /> Add Product
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {form.items.map((item, index) => (
+                <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="flex-1 grid grid-cols-4 gap-2">
+                    <select value={item.productId} onChange={(e) => updateItem(index, "productId", e.target.value)} className="input col-span-2" required>
+                      <option value="">Select Product</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} - {formatCurrency(p.sellingPrice)}</option>
+                      ))}
+                    </select>
+                    <input type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)} className="input" placeholder="Qty" min="1" required />
+                    <input type="number" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", parseFloat(e.target.value) || 0)} className="input" placeholder="Price" step="0.01" required />
+                  </div>
+                  <button type="button" onClick={() => removeItem(index)} className="text-red-500 hover:text-red-700 p-2">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <span className="font-semibold dark:text-white">Total:</span>
+            <span className="text-xl font-bold text-primary-600">{formatCurrency(subtotal)}</span>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+            <button type="submit" disabled={loading} className="btn-primary flex-1">
+              {loading ? "Creating..." : "Create Sale"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

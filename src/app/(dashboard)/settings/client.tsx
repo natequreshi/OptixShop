@@ -12,12 +12,13 @@ import {
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "invoice_designer" | "appearance" | "whatsapp" | "customers";
+type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment";
 
 const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "general", label: "General", icon: Store },
   { key: "tax", label: "Tax & GST", icon: Receipt },
   { key: "loyalty", label: "Loyalty Program", icon: Award },
+  { key: "payment", label: "Payment Gateway", icon: CreditCard },
   { key: "modules", label: "Modules", icon: Shield },
   { key: "receipt", label: "Receipt / Invoice", icon: FileText },
   { key: "invoice_designer", label: "Invoice Designer", icon: PenTool },
@@ -161,6 +162,59 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Min Points to Redeem" value={val("loyalty_min_redeem", "100")} onChange={(v) => set("loyalty_min_redeem", v)} type="number" />
                 <Field label="Max Discount (%)" value={val("loyalty_max_discount_pct", "10")} onChange={(v) => set("loyalty_max_discount_pct", v)} type="number" />
+              </div>
+            </>
+          )}
+
+          {tab === "payment" && (
+            <>
+              <SectionTitle icon={CreditCard} title="Payment Gateway Settings" />
+              
+              <div className="space-y-6">
+                <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+                  <h4 className="font-medium mb-3 dark:text-white">Stripe</h4>
+                  <Toggle label="Enable Stripe" checked={val("payment_stripe_enabled", "false") === "true"} onToggle={() => toggle("payment_stripe_enabled")} desc="Accept card payments via Stripe" />
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <Field label="Publishable Key" value={val("payment_stripe_publishable_key")} onChange={(v) => set("payment_stripe_publishable_key", v)} placeholder="pk_live_..." />
+                    <Field label="Secret Key" value={val("payment_stripe_secret_key")} onChange={(v) => set("payment_stripe_secret_key", v)} placeholder="sk_live_..." type="password" />
+                  </div>
+                </div>
+
+                <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+                  <h4 className="font-medium mb-3 dark:text-white">PayPal</h4>
+                  <Toggle label="Enable PayPal" checked={val("payment_paypal_enabled", "false") === "true"} onToggle={() => toggle("payment_paypal_enabled")} desc="Accept payments via PayPal" />
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <Field label="Client ID" value={val("payment_paypal_client_id")} onChange={(v) => set("payment_paypal_client_id", v)} placeholder="AXc..." />
+                    <Field label="Secret" value={val("payment_paypal_secret")} onChange={(v) => set("payment_paypal_secret", v)} placeholder="..." type="password" />
+                  </div>
+                  <div className="mt-3">
+                    <label className="label">Mode</label>
+                    <select value={val("payment_paypal_mode", "sandbox")} onChange={(e) => set("payment_paypal_mode", e.target.value)} className="input">
+                      <option value="sandbox">Sandbox (Testing)</option>
+                      <option value="live">Live (Production)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+                  <h4 className="font-medium mb-3 dark:text-white">Razorpay</h4>
+                  <Toggle label="Enable Razorpay" checked={val("payment_razorpay_enabled", "false") === "true"} onToggle={() => toggle("payment_razorpay_enabled")} desc="Accept payments via Razorpay (India)" />
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <Field label="Key ID" value={val("payment_razorpay_key_id")} onChange={(v) => set("payment_razorpay_key_id", v)} placeholder="rzp_..." />
+                    <Field label="Key Secret" value={val("payment_razorpay_key_secret")} onChange={(v) => set("payment_razorpay_key_secret", v)} placeholder="..." type="password" />
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-3 dark:text-white">Bank Transfer</h4>
+                  <Toggle label="Enable Bank Transfer" checked={val("payment_bank_enabled", "true") === "true"} onToggle={() => toggle("payment_bank_enabled")} desc="Accept direct bank transfers" />
+                  <div className="mt-3 space-y-3">
+                    <Field label="Bank Name" value={val("payment_bank_name")} onChange={(v) => set("payment_bank_name", v)} placeholder="Your Bank Name" />
+                    <Field label="Account Number" value={val("payment_bank_account")} onChange={(v) => set("payment_bank_account", v)} placeholder="Account Number" />
+                    <Field label="IFSC Code" value={val("payment_bank_ifsc")} onChange={(v) => set("payment_bank_ifsc", v)} placeholder="IFSC Code" />
+                    <Field label="Account Holder Name" value={val("payment_bank_holder")} onChange={(v) => set("payment_bank_holder", v)} placeholder="Account Holder Name" />
+                  </div>
+                </div>
               </div>
             </>
           )}
