@@ -35,11 +35,11 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import { Responsive, WidthProvider, Layout } from "react-grid-layout";
+import RGL, { WidthProvider, Layout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+const ResponsiveGridLayout = WidthProvider(RGL.Responsive);
 
 interface Props {
   stats: {
