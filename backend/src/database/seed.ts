@@ -274,9 +274,174 @@ db.prepare(`
   VALUES (?, ?, ?, ?)
 `).run(uuid(), 'FY 2025-26', '2025-04-01', '2026-03-31');
 
+// ─── Additional Customers ─────────────────────────────
+const extraCustomers = [
+  { id: uuid(), no: 'C0006', first: 'Meera', last: 'Joshi', phone: '9988776606', email: 'meera.j@email.com', dob: '1992-08-17', gender: 'female', city: 'Pune' },
+  { id: uuid(), no: 'C0007', first: 'Karthik', last: 'Subramanian', phone: '9988776607', email: 'karthik.s@email.com', dob: '1988-12-03', gender: 'male', city: 'Chennai' },
+  { id: uuid(), no: 'C0008', first: 'Pooja', last: 'Gupta', phone: '9988776608', email: 'pooja.g@email.com', dob: '1997-02-25', gender: 'female', city: 'Jaipur' },
+  { id: uuid(), no: 'C0009', first: 'Deepak', last: 'Mishra', phone: '9988776609', email: 'deepak.m@email.com', dob: '1983-06-14', gender: 'male', city: 'Lucknow' },
+  { id: uuid(), no: 'C0010', first: 'Fatima', last: 'Khan', phone: '9988776610', email: 'fatima.k@email.com', dob: '1991-10-09', gender: 'female', city: 'Hyderabad' },
+  { id: uuid(), no: 'C0011', first: 'Ravi', last: 'Prasad', phone: '9988776611', email: 'ravi.p@email.com', dob: '1975-04-20', gender: 'male', city: 'Bangalore' },
+  { id: uuid(), no: 'C0012', first: 'Nisha', last: 'Agarwal', phone: '9988776612', email: 'nisha.a@email.com', dob: '2001-01-30', gender: 'female', city: 'Kolkata' },
+  { id: uuid(), no: 'C0013', first: 'Amir', last: 'Hussain', phone: '9988776613', email: 'amir.h@email.com', dob: '1986-09-11', gender: 'male', city: 'Delhi' },
+  { id: uuid(), no: 'C0014', first: 'Lakshmi', last: 'Iyer', phone: '9988776614', email: 'lakshmi.i@email.com', dob: '1993-03-05', gender: 'female', city: 'Mumbai' },
+  { id: uuid(), no: 'C0015', first: 'Sunil', last: 'Tiwari', phone: '9988776615', email: 'sunil.t@email.com', dob: '1980-11-28', gender: 'male', city: 'Bhopal' },
+];
+
+for (const c of extraCustomers) {
+  insertCustomer.run(c.id, c.no, c.first, c.last, c.phone, c.email, c.dob, c.gender, c.city);
+}
+
+const allCustomers = [...customers, ...extraCustomers];
+
+// ─── Demo Purchase Orders ─────────────────────────────
+const poStatuses = ['received', 'received', 'received', 'sent', 'draft'];
+const demoProductList = Object.entries(productIds);
+
+for (let i = 0; i < 5; i++) {
+  const poId = uuid();
+  const vendor = vendors[i % vendors.length];
+  const poDate = `2025-${String(10 + Math.floor(i / 2)).padStart(2, '0')}-${String(5 + i * 4).padStart(2, '0')}`;
+  const itemCount = 2 + (i % 3);
+  let subtotal = 0;
+  const poItems: { id: string; productKey: string; qty: number; price: number; total: number }[] = [];
+
+  for (let j = 0; j < itemCount && j < demoProductList.length; j++) {
+    const [sku, prodId] = demoProductList[(i * 3 + j) % demoProductList.length];
+    const prod = products.find(p => p.sku === sku);
+    if (!prod) continue;
+    const qty = 10 + i * 5 + j * 3;
+    const price = prod.cost;
+    const total = qty * price;
+    subtotal += total;
+    poItems.push({ id: uuid(), productKey: sku, qty, price, total });
+  }
+
+  const taxAmt = Math.round(subtotal * 0.18 * 100) / 100;
+  const totalAmt = subtotal + taxAmt;
+
+  db.prepare(`
+    INSERT OR IGNORE INTO purchase_orders (id, po_number, vendor_id, order_date, expected_delivery, subtotal, tax_amount, total_amount, status, payment_terms, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(poId, `PO-2025-${String(i + 1).padStart(4, '0')}`, vendor.id, poDate, `2025-${String(11 + Math.floor(i / 2)).padStart(2, '0')}-${String(1 + i * 3).padStart(2, '0')}`, subtotal, taxAmt, totalAmt, poStatuses[i], vendor.terms, users[0].id);
+
+  const insertPOItem = db.prepare('INSERT OR IGNORE INTO purchase_order_items (id, po_id, product_id, quantity, received_qty, unit_price, tax_rate, tax_amount, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  for (const item of poItems) {
+    const receivedQty = poStatuses[i] === 'received' ? item.qty : 0;
+    insertPOItem.run(item.id, poId, productIds[item.productKey], item.qty, receivedQty, item.price, 18, Math.round(item.total * 0.18 * 100) / 100, item.total);
+  }
+
+  // Create GRN for received POs
+  if (poStatuses[i] === 'received') {
+    const grnId = uuid();
+    db.prepare(`
+      INSERT OR IGNORE INTO goods_receipt_notes (id, grn_number, po_id, vendor_id, receipt_date, status, received_by)
+      VALUES (?, ?, ?, ?, ?, 'accepted', ?)
+    `).run(grnId, `GRN-2025-${String(i + 1).padStart(4, '0')}`, poId, vendor.id, poDate, users[1].id);
+
+    const insertGRNItem = db.prepare('INSERT OR IGNORE INTO grn_items (id, grn_id, po_item_id, product_id, ordered_qty, received_qty, accepted_qty) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    for (const item of poItems) {
+      insertGRNItem.run(uuid(), grnId, item.id, productIds[item.productKey], item.qty, item.qty, item.qty);
+    }
+  }
+}
+
+// ─── Demo Sales / Invoices ────────────────────────────
+const saleDates = [
+  '2026-01-05', '2026-01-08', '2026-01-12', '2026-01-15', '2026-01-18',
+  '2026-01-20', '2026-01-22', '2026-01-25', '2026-01-28', '2026-02-01',
+  '2026-02-03', '2026-02-05', '2026-02-07', '2026-02-08', '2026-02-09',
+];
+
+const paymentMethods = ['cash', 'card', 'upi', 'cash', 'card', 'upi', 'cash', 'card', 'cash', 'upi', 'card', 'cash', 'upi', 'card', 'cash'];
+
+for (let i = 0; i < 15; i++) {
+  const saleId = uuid();
+  const cust = allCustomers[i % allCustomers.length];
+  const invoiceNo = `INV-2026-${String(i + 1).padStart(4, '0')}`;
+
+  // Pick 1-3 products per sale
+  const numItems = 1 + (i % 3);
+  let subtotal = 0;
+  const saleItems: { prodSku: string; qty: number; unitPrice: number; costPrice: number; taxRate: number }[] = [];
+
+  for (let j = 0; j < numItems; j++) {
+    const idx = (i * 2 + j) % products.length;
+    const prod = products[idx];
+    const qty = 1 + (j % 2);
+    subtotal += prod.sell * qty;
+    saleItems.push({ prodSku: prod.sku, qty, unitPrice: prod.sell, costPrice: prod.cost, taxRate: prod.tax });
+  }
+
+  const discountAmt = i % 4 === 0 ? Math.round(subtotal * 0.1) : 0;
+  const taxableAmt = subtotal - discountAmt;
+  const avgTaxRate = saleItems.reduce((s, it) => s + it.taxRate, 0) / saleItems.length;
+  const taxAmt = Math.round(taxableAmt * (avgTaxRate / 100) * 100) / 100;
+  const cgst = Math.round(taxAmt / 2 * 100) / 100;
+  const sgst = taxAmt - cgst;
+  const totalAmt = taxableAmt + taxAmt;
+
+  const isPaid = i % 5 !== 4;
+  const paidAmt = isPaid ? totalAmt : Math.round(totalAmt * 0.5);
+  const balanceAmt = totalAmt - paidAmt;
+  const paymentStatus = isPaid ? 'paid' : 'partial';
+
+  db.prepare(`
+    INSERT OR IGNORE INTO sales (id, invoice_no, customer_id, sale_date, subtotal, discount_amount, tax_amount, cgst_amount, sgst_amount, total_amount, paid_amount, balance_amount, status, payment_status, loyalty_points_earned, cashier_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
+  `).run(saleId, invoiceNo, cust.id, saleDates[i], subtotal, discountAmt, taxAmt, cgst, sgst, totalAmt, paidAmt, balanceAmt, paymentStatus, Math.floor(totalAmt / 100) * 5, users[2].id, saleDates[i] + ' ' + `${10 + (i % 8)}:${String(15 + i * 3).padStart(2, '0')}:00`);
+
+  const insertSaleItem = db.prepare('INSERT OR IGNORE INTO sale_items (id, sale_id, product_id, quantity, unit_price, cost_price, discount_pct, tax_rate, tax_amount, cgst, sgst, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  for (const item of saleItems) {
+    const itemTotal = item.unitPrice * item.qty;
+    const itemTax = Math.round(itemTotal * (item.taxRate / 100) * 100) / 100;
+    const itemCgst = Math.round(itemTax / 2 * 100) / 100;
+    insertSaleItem.run(uuid(), saleId, productIds[item.prodSku], item.qty, item.unitPrice, item.costPrice, 0, item.taxRate, itemTax, itemCgst, itemTax - itemCgst, itemTotal + itemTax);
+  }
+
+  // Create payment record
+  const payId = uuid();
+  db.prepare(`
+    INSERT OR IGNORE INTO payments (id, payment_no, payment_type, reference_type, reference_id, customer_id, payment_date, amount, payment_method, created_by)
+    VALUES (?, ?, 'sale', 'sale', ?, ?, ?, ?, ?, ?)
+  `).run(payId, `PAY-2026-${String(i + 1).padStart(4, '0')}`, saleId, cust.id, saleDates[i], paidAmt, paymentMethods[i], users[2].id);
+}
+
+// ─── Demo Lab Orders ──────────────────────────────────
+const labStatuses = ['delivered', 'ready', 'quality_check', 'fitting', 'in_progress', 'pending'];
+for (let i = 0; i < 6; i++) {
+  const labId = uuid();
+  const cust = allCustomers[i % allCustomers.length];
+  const orderDate = `2026-01-${String(10 + i * 3).padStart(2, '0')}`;
+  const frameIdx = i % 6; // first 6 products are frames
+  const lensIdx = 6 + (i % 4); // next 4 are lenses
+  const frameProd = products[frameIdx];
+  const lensProd = products[lensIdx];
+
+  db.prepare(`
+    INSERT OR IGNORE INTO lab_orders (id, order_no, customer_id, order_date, frame_product_id, lens_product_id, fitting_height, lab_type, lab_name, status, estimated_delivery, lab_cost, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    labId,
+    `LAB-2026-${String(i + 1).padStart(4, '0')}`,
+    cust.id,
+    orderDate,
+    productIds[frameProd.sku],
+    productIds[lensProd.sku],
+    `${28 + i}mm`,
+    i % 2 === 0 ? 'in_house' : 'outsourced',
+    i % 2 === 0 ? null : 'Vision Lab Bangalore',
+    labStatuses[i],
+    `2026-01-${String(15 + i * 3).padStart(2, '0')}`,
+    lensProd.cost + 200,
+    users[0].id
+  );
+}
+
 db.saveSync();
 console.log('✅ Database seeded successfully!');
 console.log('   Default login: admin / admin123');
+console.log('   Demo data: 15 customers, 18 products, 15 sales, 5 POs, 3 GRNs, 6 lab orders');
 }
 
 // CLI entry point (run via: tsx src/database/seed.ts)

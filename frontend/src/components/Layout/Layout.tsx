@@ -1,8 +1,11 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse, Users, Eye, Truck,
   ClipboardList, FileCheck, FileText, Receipt, FlaskConical, Calculator,
-  BarChart3, DollarSign, Settings, Bell, Search, ChevronDown, Glasses
+  BarChart3, DollarSign, Settings, Bell, Search, ChevronDown, Glasses,
+  LogOut, User, Shield
 } from 'lucide-react';
 
 const navItems = [
@@ -52,8 +55,36 @@ const pageNames: Record<string, string> = {
 
 export default function Layout() {
   const location = useLocation();
-  const currentPage = pageNames[location.pathname] || 'OptiVision';
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const currentPage = pageNames[location.pathname] || 'OptixShop';
   const isPOS = location.pathname === '/pos';
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleLogout = () => {
+    setDropdownOpen(false);
+    logout();
+    navigate('/login');
+  };
+
+  const initials = user?.full_name
+    ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'U';
+
+  const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
 
   return (
     <div className="app-layout">
@@ -61,7 +92,7 @@ export default function Layout() {
         <aside className="sidebar">
           <div className="sidebar-header">
             <Glasses className="sidebar-logo" style={{ color: 'var(--primary)' }} />
-            <div className="sidebar-title">OptiVision <span>POS</span></div>
+            <div className="sidebar-title">OptixShop <span>POS</span></div>
           </div>
           <nav className="sidebar-nav">
             {navItems.map((item, i) => {
@@ -96,7 +127,7 @@ export default function Layout() {
             {isPOS && (
               <NavLink to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
                 <Glasses style={{ color: 'var(--primary)', width: 28, height: 28 }} />
-                <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>OptiVision</span>
+                <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--primary)' }}>OptixShop</span>
               </NavLink>
             )}
             <h1 className="page-title">{currentPage}</h1>
@@ -110,15 +141,50 @@ export default function Layout() {
               <Bell size={18} />
               <span style={{ position: 'absolute', top: 4, right: 4, width: 7, height: 7, background: 'var(--danger)', borderRadius: '50%' }}></span>
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8, cursor: 'pointer' }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--primary-bg)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13 }}>
-                SO
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>Shop Owner</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Admin</div>
-              </div>
-              <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+
+            {/* User Dropdown */}
+            <div className="user-dropdown-wrapper" ref={dropdownRef}>
+              <button
+                className="user-dropdown-trigger"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                <div className="user-avatar">{initials}</div>
+                <div className="user-info">
+                  <div className="user-name">{user?.full_name || 'User'}</div>
+                  <div className="user-role">{roleLabel}</div>
+                </div>
+                <ChevronDown size={14} className={`dropdown-chevron ${dropdownOpen ? 'open' : ''}`} />
+              </button>
+
+              {dropdownOpen && (
+                <div className="user-dropdown-menu">
+                  <div className="dropdown-user-header">
+                    <div className="user-avatar" style={{ width: 40, height: 40, fontSize: 15 }}>{initials}</div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{user?.full_name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{user?.email}</div>
+                    </div>
+                  </div>
+                  <div className="dropdown-divider" />
+                  <button className="dropdown-item" onClick={() => { setDropdownOpen(false); }}>
+                    <User size={14} />
+                    <span>My Profile</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { setDropdownOpen(false); }}>
+                    <Settings size={14} />
+                    <span>Settings</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { setDropdownOpen(false); }}>
+                    <Shield size={14} />
+                    <span>Role: {roleLabel}</span>
+                  </button>
+                  <div className="dropdown-divider" />
+                  <button className="dropdown-item dropdown-item-danger" onClick={handleLogout}>
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
