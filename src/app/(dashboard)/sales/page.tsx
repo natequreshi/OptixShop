@@ -1,0 +1,36 @@
+import { prisma } from "@/lib/prisma";
+import SalesClient from "./client";
+
+export const dynamic = "force-dynamic";
+
+export default async function SalesPage() {
+  const sales = await prisma.sale.findMany({
+    include: {
+      customer: true,
+      cashier: true,
+      items: { include: { product: true } },
+      payments: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const data = sales.map((s) => ({
+    id: s.id,
+    invoiceNo: s.invoiceNo,
+    customerName: s.customer ? `${s.customer.firstName} ${s.customer.lastName ?? ""}`.trim() : "Walk-in",
+    cashierName: s.cashier?.fullName ?? "—",
+    saleDate: s.saleDate,
+    subtotal: s.subtotal,
+    discountAmount: s.discountAmount,
+    taxAmount: s.taxAmount,
+    totalAmount: s.totalAmount,
+    paidAmount: s.paidAmount,
+    balanceAmount: s.balanceAmount,
+    status: s.status,
+    paymentStatus: s.paymentStatus,
+    itemCount: s.items.length,
+    paymentMethods: [...new Set(s.payments.map((p) => p.paymentMethod))].join(", "),
+  }));
+
+  return <SalesClient sales={data} />;
+}

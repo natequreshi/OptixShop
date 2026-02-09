@@ -1,0 +1,206 @@
+"use client";
+
+import { useState } from "react";
+import { Plus, Search, Eye, Edit2, Trash2, FileText } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+
+interface Rx {
+  id: string; prescriptionNo: string; customerName: string; customerId: string;
+  prescribedBy: string; prescriptionDate: string; expiryDate: string;
+  odSphere: number | null; odCylinder: number | null; odAxis: number | null; odAdd: number | null;
+  osSphere: number | null; osCylinder: number | null; osAxis: number | null; osAdd: number | null;
+}
+
+export default function PrescriptionsClient({ prescriptions, customers }: {
+  prescriptions: Rx[];
+  customers: { id: string; name: string; no: string }[];
+}) {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [viewing, setViewing] = useState<Rx | null>(null);
+
+  const filtered = prescriptions.filter((p) => {
+    const term = search.toLowerCase();
+    return p.prescriptionNo.toLowerCase().includes(term) || p.customerName.toLowerCase().includes(term);
+  });
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this prescription?")) return;
+    const res = await fetch(`/api/prescriptions/${id}`, { method: "DELETE" });
+    if (res.ok) { toast.success("Deleted"); router.refresh(); }
+    else toast.error("Failed");
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Prescriptions</h1>
+        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={18} /> Add Prescription</button>
+      </div>
+
+      <div className="card p-4">
+        <div className="relative">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search prescriptions..." className="input pl-10" />
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="table-header">
+                <th className="px-4 py-3">Rx No</th>
+                <th className="px-4 py-3">Patient</th>
+                <th className="px-4 py-3">Doctor</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3 text-center">OD (SPH/CYL/AXIS)</th>
+                <th className="px-4 py-3 text-center">OS (SPH/CYL/AXIS)</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map((p) => (
+                <tr key={p.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-mono text-primary-600">{p.prescriptionNo}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-800">{p.customerName}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{p.prescribedBy || "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(p.prescriptionDate)}</td>
+                  <td className="px-4 py-3 text-sm text-center font-mono text-gray-700">
+                    {p.odSphere ?? "—"} / {p.odCylinder ?? "—"} × {p.odAxis ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-center font-mono text-gray-700">
+                    {p.osSphere ?? "—"} / {p.osCylinder ?? "—"} × {p.osAxis ?? "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setViewing(p)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600"><Eye size={15} /></button>
+                      <button onClick={() => handleDelete(p.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600"><Trash2 size={15} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-gray-400">No prescriptions found</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {viewing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setViewing(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="text-primary-600" size={24} />
+              <div>
+                <h3 className="text-lg font-semibold">{viewing.prescriptionNo}</h3>
+                <p className="text-sm text-gray-500">{viewing.customerName}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-gray-500">Doctor</p><p className="font-medium">{viewing.prescribedBy || "—"}</p></div>
+              <div><p className="text-gray-500">Date</p><p className="font-medium">{formatDate(viewing.prescriptionDate)}</p></div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 rounded-lg p-3">
+                <p className="text-xs font-semibold text-blue-700 mb-2">Right Eye (OD)</p>
+                <div className="text-sm space-y-1">
+                  <p>SPH: <b>{viewing.odSphere ?? "—"}</b></p>
+                  <p>CYL: <b>{viewing.odCylinder ?? "—"}</b></p>
+                  <p>AXIS: <b>{viewing.odAxis ?? "—"}</b></p>
+                  <p>ADD: <b>{viewing.odAdd ?? "—"}</b></p>
+                </div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-3">
+                <p className="text-xs font-semibold text-green-700 mb-2">Left Eye (OS)</p>
+                <div className="text-sm space-y-1">
+                  <p>SPH: <b>{viewing.osSphere ?? "—"}</b></p>
+                  <p>CYL: <b>{viewing.osCylinder ?? "—"}</b></p>
+                  <p>AXIS: <b>{viewing.osAxis ?? "—"}</b></p>
+                  <p>ADD: <b>{viewing.osAdd ?? "—"}</b></p>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setViewing(null)} className="btn-secondary w-full mt-4">Close</button>
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <RxModal customers={customers} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); router.refresh(); }} />
+      )}
+    </div>
+  );
+}
+
+function RxModal({ customers, onClose, onSaved }: { customers: { id: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    customerId: "", prescribedBy: "", prescriptionDate: new Date().toISOString().split("T")[0],
+    odSphere: "", odCylinder: "", odAxis: "", odAdd: "",
+    osSphere: "", osCylinder: "", osAxis: "", osAdd: "",
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const res = await fetch("/api/prescriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        odSphere: form.odSphere ? +form.odSphere : null,
+        odCylinder: form.odCylinder ? +form.odCylinder : null,
+        odAxis: form.odAxis ? +form.odAxis : null,
+        odAdd: form.odAdd ? +form.odAdd : null,
+        osSphere: form.osSphere ? +form.osSphere : null,
+        osCylinder: form.osCylinder ? +form.osCylinder : null,
+        osAxis: form.osAxis ? +form.osAxis : null,
+        osAdd: form.osAdd ? +form.osAdd : null,
+      }),
+    });
+    if (res.ok) { toast.success("Created"); onSaved(); }
+    else toast.error("Failed");
+    setLoading(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100"><h2 className="text-lg font-semibold">New Prescription</h2></div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div><label className="label">Patient</label>
+            <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input" required>
+              <option value="">Select patient...</option>
+              {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="label">Doctor</label><input value={form.prescribedBy} onChange={(e) => setForm({...form, prescribedBy: e.target.value})} className="input" /></div>
+            <div><label className="label">Date</label><input type="date" value={form.prescriptionDate} onChange={(e) => setForm({...form, prescriptionDate: e.target.value})} className="input" /></div>
+          </div>
+          <p className="text-sm font-semibold text-blue-700">Right Eye (OD)</p>
+          <div className="grid grid-cols-4 gap-3">
+            <div><label className="label text-xs">SPH</label><input value={form.odSphere} onChange={(e) => setForm({...form, odSphere: e.target.value})} className="input" /></div>
+            <div><label className="label text-xs">CYL</label><input value={form.odCylinder} onChange={(e) => setForm({...form, odCylinder: e.target.value})} className="input" /></div>
+            <div><label className="label text-xs">AXIS</label><input value={form.odAxis} onChange={(e) => setForm({...form, odAxis: e.target.value})} className="input" /></div>
+            <div><label className="label text-xs">ADD</label><input value={form.odAdd} onChange={(e) => setForm({...form, odAdd: e.target.value})} className="input" /></div>
+          </div>
+          <p className="text-sm font-semibold text-green-700">Left Eye (OS)</p>
+          <div className="grid grid-cols-4 gap-3">
+            <div><label className="label text-xs">SPH</label><input value={form.osSphere} onChange={(e) => setForm({...form, osSphere: e.target.value})} className="input" /></div>
+            <div><label className="label text-xs">CYL</label><input value={form.osCylinder} onChange={(e) => setForm({...form, osCylinder: e.target.value})} className="input" /></div>
+            <div><label className="label text-xs">AXIS</label><input value={form.osAxis} onChange={(e) => setForm({...form, osAxis: e.target.value})} className="input" /></div>
+            <div><label className="label text-xs">ADD</label><input value={form.osAdd} onChange={(e) => setForm({...form, osAdd: e.target.value})} className="input" /></div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving..." : "Save"}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
