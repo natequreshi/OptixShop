@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -28,28 +28,51 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard",          icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/pos",                icon: ShoppingCart,    label: "POS" },
-  { href: "/products",           icon: Package,         label: "Products" },
-  { href: "/inventory",          icon: Boxes,           label: "Inventory" },
-  { href: "/customers",          icon: Users,           label: "Customers" },
-  { href: "/prescriptions",      icon: FileText,        label: "Prescriptions" },
-  { href: "/vendors",            icon: Truck,           label: "Vendors" },
-  { href: "/purchase-orders",    icon: ClipboardList,   label: "Purchase Orders" },
-  { href: "/grn",                icon: PackageCheck,    label: "GRN" },
-  { href: "/purchase-invoices",  icon: Receipt,         label: "Purchase Invoices" },
-  { href: "/sales",              icon: DollarSign,      label: "Sales" },
-  { href: "/expenses",           icon: Wallet,          label: "Expenses" },
-  { href: "/lab-orders",         icon: Microscope,      label: "Lab Orders" },
-  { href: "/accounting",         icon: BookOpen,        label: "Accounting" },
-  { href: "/reports",            icon: BarChart3,       label: "Reports" },
-  { href: "/register",           icon: CreditCard,      label: "Cash Register" },
-  { href: "/settings",           icon: Settings,        label: "Settings" },
+  { href: "/dashboard",          icon: LayoutDashboard, label: "Dashboard", module: null },
+  { href: "/pos",                icon: ShoppingCart,    label: "POS", module: "module_pos" },
+  { href: "/products",           icon: Package,         label: "Products", module: null },
+  { href: "/inventory",          icon: Boxes,           label: "Inventory", module: "module_inventory" },
+  { href: "/customers",          icon: Users,           label: "Customers", module: null },
+  { href: "/prescriptions",      icon: FileText,        label: "Prescriptions", module: "module_prescriptions" },
+  { href: "/vendors",            icon: Truck,           label: "Vendors", module: "module_vendors" },
+  { href: "/purchase-orders",    icon: ClipboardList,   label: "Purchase Orders", module: "module_purchase_orders" },
+  { href: "/grn",                icon: PackageCheck,    label: "GRN", module: "module_grn" },
+  { href: "/purchase-invoices",  icon: Receipt,         label: "Purchase Invoices", module: "module_purchase_invoices" },
+  { href: "/sales",              icon: DollarSign,      label: "Sales", module: null },
+  { href: "/expenses",           icon: Wallet,          label: "Expenses", module: null },
+  { href: "/lab-orders",         icon: Microscope,      label: "Lab Orders", module: "module_lab_orders" },
+  { href: "/accounting",         icon: BookOpen,        label: "Accounting", module: "module_accounting" },
+  { href: "/reports",            icon: BarChart3,       label: "Reports", module: "module_reports" },
+  { href: "/register",           icon: CreditCard,      label: "Cash Register", module: "module_register" },
+  { href: "/settings",           icon: Settings,        label: "Settings", module: null },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then((settings) => {
+      const modules: Record<string, boolean> = {};
+      settings.forEach((s: any) => {
+        if (s.key.startsWith('module_')) {
+          modules[s.key] = s.value === 'true';
+        }
+      });
+      setEnabledModules(modules);
+    });
+  }, []);
+
+  const visibleNavItems = navItems.filter(item => {
+    if (!item.module) return true; // Always show items without module requirement
+    return enabledModules[item.module] !== false; // Show if enabled or not yet loaded
+  });
 
   return (
     <aside
@@ -68,7 +91,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link

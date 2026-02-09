@@ -91,12 +91,14 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
   
   const defaultLayouts = {
     lg: [
+      // Cards on top
       { i: "summary", x: 0, y: 0, w: 12, h: 2, minH: 2, minW: 12 },
-      { i: "sales30", x: 0, y: 2, w: 12, h: 4, minH: 3, minW: 6 },
-      { i: "salesYear", x: 0, y: 6, w: 12, h: 4, minH: 3, minW: 6 },
-      { i: "quickStats", x: 0, y: 10, w: 12, h: 2, minH: 2, minW: 12 },
-      { i: "topProducts", x: 0, y: 12, w: 6, h: 4, minH: 3, minW: 4 },
-      { i: "recentSales", x: 6, y: 12, w: 6, h: 4, minH: 3, minW: 4 },
+      { i: "quickStats", x: 0, y: 2, w: 12, h: 2, minH: 2, minW: 12 },
+      { i: "topProducts", x: 0, y: 4, w: 6, h: 4, minH: 3, minW: 4 },
+      { i: "recentSales", x: 6, y: 4, w: 6, h: 4, minH: 3, minW: 4 },
+      // Charts below
+      { i: "sales30", x: 0, y: 8, w: 12, h: 4, minH: 3, minW: 6 },
+      { i: "salesYear", x: 0, y: 12, w: 12, h: 4, minH: 3, minW: 6 },
     ],
   };
   
@@ -104,6 +106,26 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
 
   const resetLayout = () => {
     setLayouts(defaultLayouts);
+    localStorage.removeItem('dashboard-layout');
+  };
+
+  // Load layout from localStorage
+  React.useEffect(() => {
+    const saved = localStorage.getItem('dashboard-layout');
+    if (saved) {
+      try {
+        setLayouts(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load layout:', e);
+      }
+    }
+  }, []);
+
+  const onLayoutChange = (layout: Layout[], layouts: any) => {
+    if (!isLocked) {
+      setLayouts(layouts);
+      localStorage.setItem('dashboard-layout', JSON.stringify(layouts));
+    }
   };
 
   // Handle width changes
@@ -242,9 +264,10 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
         rowHeight={80}
         width={width}
-        dragConfig={{ enabled: !isLocked, handle: ".drag-handle" }}
-        resizeConfig={{ enabled: !isLocked }}
-        onLayoutChange={(layout, allLayouts) => setLayouts(allLayouts)}
+        isDraggable={!isLocked}
+        isResizable={!isLocked}
+        onLayoutChange={onLayoutChange}
+        draggableHandle=".drag-handle"
       >
         {/* ── Top Summary Cards (8 cards, 4 per row) ── */}
         <div key="summary" className="dashboard-widget">
