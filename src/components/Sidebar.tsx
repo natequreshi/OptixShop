@@ -52,11 +52,6 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
-
   useEffect(() => {
     fetch("/api/settings").then(r => r.json()).then((settings) => {
       const modules: Record<string, boolean> = {};

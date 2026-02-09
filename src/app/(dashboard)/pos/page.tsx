@@ -38,8 +38,7 @@ export default function POSPage() {
   const [loading, setLoading] = useState(false);
   const [manualSubtotal, setManualSubtotal] = useState<number | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
-  const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});
-  const [taxEnabled, setTaxEnabled] = useState(true);
+  const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});  const [transactionId, setTransactionId] = useState("");  const [taxEnabled, setTaxEnabled] = useState(true);
   const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -95,7 +94,7 @@ export default function POSPage() {
     const lineTotal = (i.sellingPrice - i.discount) * i.qty;
     return s + lineTotal * (i.taxRate / 100);
   }, 0) : 0;
-  const grandTotal = taxableAmount + taxAmount;
+  const grandTotal = taxEnabled ? taxableAmount + taxAmount : taxableAmount;
   const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
   const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : denominationsTotal > 0 ? Math.max(0, denominationsTotal - grandTotal) : 0;
 
@@ -109,6 +108,7 @@ export default function POSPage() {
         body: JSON.stringify({
           customerId: selectedCustomer?.id || null,
           paymentMethod,
+          transactionId: transactionId || undefined,
           amountTendered: +amountTendered || grandTotal,
           items: cart.map(i => ({
             productId: i.id,
@@ -130,6 +130,7 @@ export default function POSPage() {
         setShowPayment(false); setAmountTendered("");
         setManualSubtotal(null); setDiscountPercent(0);
         setCashDenominations({});
+        setTransactionId("");
       } else {
         toast.error("Sale failed");
       }
@@ -232,6 +233,12 @@ export default function POSPage() {
           <span>Payment Method:</span>
           <span class="bold">${paymentMethod.toUpperCase()}</span>
         </div>
+        ${transactionId ? `
+        <div class="row">
+          <span>Transaction ID:</span>
+          <span class="bold">${transactionId}</span>
+        </div>
+        ` : ''}
         ${paymentMethod === 'cash' && denominationsTotal > 0 ? `
         <div class="row">
           <span>Cash Tendered:</span>
@@ -455,10 +462,19 @@ export default function POSPage() {
                   </div>
                 </div>
               )}
+              <div>
+                <label className="label text-xs">Transaction ID (Optional)</label>
+                <input 
+                  type="text" 
+                  value={transactionId} 
+                  onChange={(e) => setTransactionId(e.target.value)} 
+                  className="input text-sm" 
+                  placeholder="Enter transaction reference" 
+                />
+              </div>
               <div className="flex gap-2">
                 <button onClick={() => setShowPayment(false)} className="btn-secondary flex-1">Cancel</button>
-                <button onClick={completeSale} disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                  <Receipt size={16} /> {loading ? "Processing..." : "Complete"}
+                <button onClick={completeSale} disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">\n                  <Receipt size={16} /> {loading ? "Processing..." : "Complete"}
                 </button>
               </div>
             </div>

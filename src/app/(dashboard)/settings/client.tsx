@@ -172,36 +172,20 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               
               <div className="space-y-6">
                 <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                  <h4 className="font-medium mb-3 dark:text-white">Stripe</h4>
-                  <Toggle label="Enable Stripe" checked={val("payment_stripe_enabled", "false") === "true"} onToggle={() => toggle("payment_stripe_enabled")} desc="Accept card payments via Stripe" />
-                  <div className="grid grid-cols-2 gap-4 mt-3">
-                    <Field label="Publishable Key" value={val("payment_stripe_publishable_key")} onChange={(v) => set("payment_stripe_publishable_key", v)} placeholder="pk_live_..." />
-                    <Field label="Secret Key" value={val("payment_stripe_secret_key")} onChange={(v) => set("payment_stripe_secret_key", v)} placeholder="sk_live_..." type="password" />
+                  <h4 className="font-medium mb-3 dark:text-white">Easypaisa</h4>
+                  <Toggle label="Enable Easypaisa" checked={val("payment_easypaisa_enabled", "false") === "true"} onToggle={() => toggle("payment_easypaisa_enabled")} desc="Accept payments via Easypaisa" />
+                  <div className="mt-3 space-y-3">
+                    <Field label="Easypaisa Account Number" value={val("payment_easypaisa_account")} onChange={(v) => set("payment_easypaisa_account", v)} placeholder="03XX-XXXXXXX" />
+                    <Field label="Account Title" value={val("payment_easypaisa_title")} onChange={(v) => set("payment_easypaisa_title", v)} placeholder="Account Holder Name" />
                   </div>
                 </div>
 
                 <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                  <h4 className="font-medium mb-3 dark:text-white">PayPal</h4>
-                  <Toggle label="Enable PayPal" checked={val("payment_paypal_enabled", "false") === "true"} onToggle={() => toggle("payment_paypal_enabled")} desc="Accept payments via PayPal" />
-                  <div className="grid grid-cols-2 gap-4 mt-3">
-                    <Field label="Client ID" value={val("payment_paypal_client_id")} onChange={(v) => set("payment_paypal_client_id", v)} placeholder="AXc..." />
-                    <Field label="Secret" value={val("payment_paypal_secret")} onChange={(v) => set("payment_paypal_secret", v)} placeholder="..." type="password" />
-                  </div>
-                  <div className="mt-3">
-                    <label className="label">Mode</label>
-                    <select value={val("payment_paypal_mode", "sandbox")} onChange={(e) => set("payment_paypal_mode", e.target.value)} className="input">
-                      <option value="sandbox">Sandbox (Testing)</option>
-                      <option value="live">Live (Production)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                  <h4 className="font-medium mb-3 dark:text-white">Razorpay</h4>
-                  <Toggle label="Enable Razorpay" checked={val("payment_razorpay_enabled", "false") === "true"} onToggle={() => toggle("payment_razorpay_enabled")} desc="Accept payments via Razorpay (India)" />
-                  <div className="grid grid-cols-2 gap-4 mt-3">
-                    <Field label="Key ID" value={val("payment_razorpay_key_id")} onChange={(v) => set("payment_razorpay_key_id", v)} placeholder="rzp_..." />
-                    <Field label="Key Secret" value={val("payment_razorpay_key_secret")} onChange={(v) => set("payment_razorpay_key_secret", v)} placeholder="..." type="password" />
+                  <h4 className="font-medium mb-3 dark:text-white">JazzCash</h4>
+                  <Toggle label="Enable JazzCash" checked={val("payment_jazzcash_enabled", "false") === "true"} onToggle={() => toggle("payment_jazzcash_enabled")} desc="Accept payments via JazzCash" />
+                  <div className="mt-3 space-y-3">
+                    <Field label="JazzCash Account Number" value={val("payment_jazzcash_account")} onChange={(v) => set("payment_jazzcash_account", v)} placeholder="03XX-XXXXXXX" />
+                    <Field label="Account Title" value={val("payment_jazzcash_title")} onChange={(v) => set("payment_jazzcash_title", v)} placeholder="Account Holder Name" />
                   </div>
                 </div>
 
@@ -211,8 +195,8 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
                   <div className="mt-3 space-y-3">
                     <Field label="Bank Name" value={val("payment_bank_name")} onChange={(v) => set("payment_bank_name", v)} placeholder="Your Bank Name" />
                     <Field label="Account Number" value={val("payment_bank_account")} onChange={(v) => set("payment_bank_account", v)} placeholder="Account Number" />
-                    <Field label="IFSC Code" value={val("payment_bank_ifsc")} onChange={(v) => set("payment_bank_ifsc", v)} placeholder="IFSC Code" />
-                    <Field label="Account Holder Name" value={val("payment_bank_holder")} onChange={(v) => set("payment_bank_holder", v)} placeholder="Account Holder Name" />
+                    <Field label="IBAN" value={val("payment_bank_iban")} onChange={(v) => set("payment_bank_iban", v)} placeholder="PKXX XXXX XXXX XXXX XXXX XXXX XXXX" />
+                    <Field label="Account Title" value={val("payment_bank_holder")} onChange={(v) => set("payment_bank_holder", v)} placeholder="Account Holder Name" />
                   </div>
                 </div>
               </div>

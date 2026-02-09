@@ -619,12 +619,20 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    firstName: "", lastName: "", email: "", phone: "", whatsapp: "",
+    address: "", city: "", country: "",
+    rxOd: "", rxOs: "", rxPd: "", rxAdd: ""
+  });
+  
   const [form, setForm] = useState({
     customerId: "",
     items: [{ productId: "", quantity: 1, unitPrice: 0, discount: 0 }],
     paymentMethod: "cash",
     paymentStatus: "paid",
     amountTendered: 0,
+    transactionId: "",
     deliveryAddress: "",
     deliveryDate: "",
     notes: "",
@@ -669,14 +677,34 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
     
     setLoading(true);
     try {
+      let customerId = form.customerId;
+      
+      // Create new customer if needed
+      if (showNewCustomer && newCustomer.firstName && newCustomer.phone) {
+        const custRes = await fetch("/api/customers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newCustomer),
+        });
+        if (custRes.ok) {
+          const createdCustomer = await custRes.json();
+          customerId = createdCustomer.id;
+        } else {
+          toast.error("Failed to create customer");
+          setLoading(false);
+          return;
+        }
+      }
+      
       const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerId: form.customerId || null,
+          customerId: customerId || null,
           paymentMethod: form.paymentMethod,
           paymentStatus: form.paymentStatus,
           amountTendered: form.amountTendered,
+          transactionId: form.transactionId || undefined,
           deliveryAddress: form.deliveryAddress || null,
           deliveryDate: form.deliveryDate || null,
           notes: form.notes || null,
@@ -717,13 +745,24 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Customer (Optional)</label>
-              <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input">
-                <option value="">Walk-in Customer</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-2">
+                <label className="label mb-0">Customer (Optional)</label>
+                <button type="button" onClick={() => setShowNewCustomer(!showNewCustomer)} className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                  {showNewCustomer ? "Select Existing" : "+ Create New"}
+                </button>
+              </div>
+              {!showNewCustomer ? (
+                <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input">
+                  <option value="">Walk-in Customer</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.firstName} {c.lastName} ({c.phone})</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-sm text-primary-700 dark:text-primary-300">
+                  Fill customer details below
+                </div>
+              )}
             </div>
             
             <div>
@@ -754,6 +793,11 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </div>
 
           <div>
+            <label className="label">Transaction ID (Optional)</label>
+            <input type="text" value={form.transactionId} onChange={(e) => setForm({...form, transactionId: e.target.value})} className="input" placeholder="Enter transaction reference" />
+          </div>
+
+          <div>
             <label className="label">Delivery Address (Optional)</label>
             <textarea value={form.deliveryAddress} onChange={(e) => setForm({...form, deliveryAddress: e.target.value})} className="input" rows={2} placeholder="Enter delivery address if applicable"></textarea>
           </div>
@@ -768,13 +812,88 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} className="input" rows={2} placeholder="Additional notes"></textarea>
           </div>
 
+          {showNewCustomer && (
+            <div className="border-t border-b border-gray-200 dark:border-gray-700 py-4 space-y-4">
+              <h3 className="font-semibold text-sm dark:text-white">New Customer Details</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label text-xs">First Name *</label>
+                  <input type="text" value={newCustomer.firstName} onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})} className="input text-sm" placeholder="First Name" required />
+                </div>
+                <div>
+                  <label className="label text-xs">Last Name</label>
+                  <input type="text" value={newCustomer.lastName} onChange={(e) => setNewCustomer({...newCustomer, lastName: e.target.value})} className="input text-sm" placeholder="Last Name" />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label text-xs">Phone *</label>
+                  <input type="tel" value={newCustomer.phone} onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})} className="input text-sm" placeholder="+92-XXX-XXXXXXX" required />
+                </div>
+                <div>
+                  <label className="label text-xs">WhatsApp</label>
+                  <input type="tel" value={newCustomer.whatsapp} onChange={(e) => setNewCustomer({...newCustomer, whatsapp: e.target.value})} className="input text-sm" placeholder="+92-XXX-XXXXXXX" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="label text-xs">Email</label>
+                <input type="email" value={newCustomer.email} onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})} className="input text-sm" placeholder="email@example.com" />
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="label text-xs">Address</label>
+                  <input type="text" value={newCustomer.address} onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})} className="input text-sm" placeholder="Street Address" />
+                </div>
+                <div>
+                  <label className="label text-xs">City</label>
+                  <input type="text" value={newCustomer.city} onChange={(e) => setNewCustomer({...newCustomer, city: e.target.value})} className="input text-sm" placeholder="City" />
+                </div>
+                <div>
+                  <label className="label text-xs">Country</label>
+                  <input type="text" value={newCustomer.country} onChange={(e) => setNewCustomer({...newCustomer, country: e.target.value})} className="input text-sm" placeholder="Pakistan" />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <label className="label text-xs">RX OD</label>
+                  <input type="text" value={newCustomer.rxOd} onChange={(e) => setNewCustomer({...newCustomer, rxOd: e.target.value})} className="input text-sm" placeholder="Right Eye" />
+                </div>
+                <div>
+                  <label className="label text-xs">RX OS</label>
+                  <input type="text" value={newCustomer.rxOs} onChange={(e) => setNewCustomer({...newCustomer, rxOs: e.target.value})} className="input text-sm" placeholder="Left Eye" />
+                </div>
+                <div>
+                  <label className="label text-xs">RX PD</label>
+                  <input type="text" value={newCustomer.rxPd} onChange={(e) => setNewCustomer({...newCustomer, rxPd: e.target.value})} className="input text-sm" placeholder="PD" />
+                </div>
+                <div>
+                  <label className="label text-xs">RX ADD</label>
+                  <input type="text" value={newCustomer.rxAdd} onChange={(e) => setNewCustomer({...newCustomer, rxAdd: e.target.value})} className="input text-sm" placeholder="Addition" />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold dark:text-white">Products</h3>
+              <h3 className="font-semibold dark:text-white">
+                Products {products.length > 0 && <span className="text-sm text-gray-500 font-normal">({products.length} available)</span>}
+              </h3>
               <button type="button" onClick={addItem} className="btn-secondary text-sm flex items-center gap-1">
                 <Plus size={14} /> Add Product
               </button>
             </div>
+            
+            {products.length === 0 && (
+              <div className="text-center py-4 text-gray-400 text-sm">
+                Loading products...
+              </div>
+            )}
             
             <div className="space-y-3">
               {form.items.map((item, index) => (
