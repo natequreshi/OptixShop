@@ -40,6 +40,7 @@ export default function POSPage() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});
   const [taxEnabled, setTaxEnabled] = useState(true);
+  const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function POSPage() {
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
     fetch("/api/settings").then(r => r.json()).then((settings) => {
       setTaxEnabled(settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true');
+      setPrintTemplate(settings.find((s: any) => s.key === 'print_template')?.value || '80mm');
     });
     searchRef.current?.focus();
   }, []);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Eye, Edit2, ChevronDown, ChevronRight, Package, Calendar, X, Printer, Plus, Trash2 } from "lucide-react";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -314,7 +314,14 @@ function EditSaleModal({ sale, onClose, onSaved }: { sale: Sale; onClose: () => 
 
 /* ── Print Invoice Modal ─────────────────── */
 function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
-  const [template, setTemplate] = useState<"modern" | "classic" | "minimal">("modern");
+  const [template, setTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then((settings) => {
+      const printTemplate = settings.find((s: any) => s.key === 'print_template')?.value || '80mm';
+      setTemplate(printTemplate as any);
+    });
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -327,6 +334,7 @@ function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void 
           <h2 className="text-lg font-semibold dark:text-white">Print Invoice — {sale.invoiceNo}</h2>
           <div className="flex items-center gap-3">
             <select value={template} onChange={(e) => setTemplate(e.target.value as any)} className="input">
+              <option value="80mm">80mm Thermal</option>
               <option value="modern">Modern</option>
               <option value="classic">Classic</option>
               <option value="minimal">Minimal</option>
@@ -346,7 +354,88 @@ function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void 
 }
 
 /* ── Invoice Templates ─────────────────── */
-function InvoiceTemplate({ sale, template }: { sale: Sale; template: "modern" | "classic" | "minimal" }) {
+function InvoiceTemplate({ sale, template }: { sale: Sale; template: "80mm" | "modern" | "classic" | "minimal" }) {
+  if (template === "80mm") {
+    return (
+      <div style={{ width: '80mm', margin: '0 auto', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.4' }}>
+        <style>{`
+          @media print {
+            @page { margin: 0; size: 80mm auto; }
+            body { width: 80mm; }
+          }
+        `}</style>
+        
+        <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>OPTICS SHOP</div>
+        <div style={{ textAlign: 'center', marginBottom: '8px' }}>POS Receipt</div>
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }}></div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+          <span>Receipt #:</span>
+          <span style={{ fontWeight: 'bold' }}>{sale.invoiceNo}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+          <span>Date:</span>
+          <span>{formatDate(sale.saleDate)}</span>
+        </div>
+        {sale.customerName && sale.customerName !== 'Walk-in Customer' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+            <span>Customer:</span>
+            <span>{sale.customerName}</span>
+          </div>
+        )}
+        
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }}></div>
+        
+        <div style={{ margin: '10px 0' }}>
+          {sale.items.map((item, i) => (
+            <div key={i} style={{ marginBottom: '3px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{item.productName} x{item.quantity}</span>
+                <span>{formatCurrency(item.total)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }}></div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+          <span>Subtotal:</span>
+          <span>{formatCurrency(sale.subtotal)}</span>
+        </div>
+        {sale.discountAmount > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+            <span>Discount:</span>
+            <span>-{formatCurrency(sale.discountAmount)}</span>
+          </div>
+        )}
+        {sale.taxAmount > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+            <span>Tax:</span>
+            <span>{formatCurrency(sale.taxAmount)}</span>
+          </div>
+        )}
+        
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }}></div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '8px 0', fontSize: '13px', fontWeight: 'bold' }}>
+          <span>TOTAL:</span>
+          <span>{formatCurrency(sale.totalAmount)}</span>
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+          <span>Payment Method:</span>
+          <span style={{ fontWeight: 'bold' }}>{sale.paymentMethods.toUpperCase()}</span>
+        </div>
+        
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }}></div>
+        
+        <div style={{ textAlign: 'center', margin: '8px 0' }}>Thank you for shopping!</div>
+        <div style={{ textAlign: 'center' }}>Please visit again</div>
+      </div>
+    );
+  }
+  
   if (template === "modern") {
     return (
       <div className="bg-white text-gray-900 p-8 max-w-4xl mx-auto">

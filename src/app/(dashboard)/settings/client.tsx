@@ -187,6 +187,18 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
             <>
               <SectionTitle icon={FileText} title="Receipt / Invoice Settings" />
               <Field label="Invoice Prefix" value={val("invoice_prefix", "INV")} onChange={(v) => set("invoice_prefix", v)} />
+              
+              <div className="space-y-2">
+                <label className="label">Print Template</label>
+                <select value={val("print_template", "80mm")} onChange={(e) => set("print_template", e.target.value)} className="input">
+                  <option value="80mm">80mm Thermal Receipt</option>
+                  <option value="modern">Modern Invoice</option>
+                  <option value="classic">Classic Invoice</option>
+                  <option value="minimal">Minimal Invoice</option>
+                </select>
+                <p className="text-xs text-gray-400">Default template for POS and sales printing</p>
+              </div>
+
               <Field label="Receipt Header Text" value={val("receipt_header")} onChange={(v) => set("receipt_header", v)} multiline placeholder="Custom text shown at top of receipts" />
               <Field label="Receipt Footer Text" value={val("receipt_footer", "Thank you for shopping with us!")} onChange={(v) => set("receipt_footer", v)} multiline placeholder="Custom text shown at bottom of receipts" />
               <Toggle label="Show Store Logo on Receipt" checked={val("receipt_show_logo", "true") === "true"} onToggle={() => toggle("receipt_show_logo")} />
