@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { sendWhatsAppNotification, formatCurrencyPlain } from "@/lib/whatsapp";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -96,6 +97,19 @@ export async function POST(req: Request) {
       where: { id: body.customerId },
       data: { totalPurchases: { increment: totalAmount } },
     });
+
+    // Send WhatsApp notification
+    const customer = await prisma.customer.findUnique({ where: { id: body.customerId } });
+    const waNumber = customer?.whatsapp || customer?.phone;
+    if (waNumber) {
+      const itemsList = body.items.map((i: any) => `${i.productName ?? "Item"} × ${i.quantity}`).join(", ");
+      sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
+        customerName: `${customer!.firstName} ${customer!.lastName ?? ""}`.trim(),
+        invoiceNo: invoiceNo,
+        totalAmount: formatCurrencyPlain(totalAmount),
+        items: itemsList,
+      }).catch((err) => console.error("[WhatsApp] notification error:", err));
+    }
   }
 
   return NextResponse.json(sale, { status: 201 });

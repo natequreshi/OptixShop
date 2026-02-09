@@ -201,12 +201,14 @@ model Customer {
   firstName    String   @map("first_name")
   lastName     String?  @map("last_name")
   phone        String?
+  whatsapp     String?
   email        String?
   dateOfBirth  String?  @map("date_of_birth")
   gender       String?
   address      String?
   city         String?
   state        String?
+  country      String?  @default("Pakistan")
   pincode      String?
   gstNo        String?  @map("gst_no")
   loyaltyPoints Int     @default(0) @map("loyalty_points")

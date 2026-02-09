@@ -4,11 +4,12 @@ import { useState } from "react";
 import {
   Settings, Store, Receipt, Shield, ToggleLeft, ToggleRight,
   CreditCard, Tag, Save, Palette, Globe, FileText, Award,
+  MessageCircle, Users, Phone, Send, Key, Link,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "appearance";
+type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "appearance" | "whatsapp" | "customers";
 
 const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "general", label: "General", icon: Store },
@@ -16,7 +17,22 @@ const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "loyalty", label: "Loyalty Program", icon: Award },
   { key: "modules", label: "Modules", icon: Shield },
   { key: "receipt", label: "Receipt / Invoice", icon: FileText },
+  { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { key: "customers", label: "Customer Columns", icon: Users },
   { key: "appearance", label: "Appearance", icon: Palette },
+];
+
+const CUSTOMER_COLUMN_OPTIONS = [
+  { key: "phone", label: "Phone" },
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "email", label: "Email" },
+  { key: "city", label: "City" },
+  { key: "country", label: "Country" },
+  { key: "odRx", label: "OD (Rx)" },
+  { key: "osRx", label: "OS (Rx)" },
+  { key: "purchases", label: "Purchases" },
+  { key: "totalSpent", label: "Total Spent" },
+  { key: "loyalty", label: "Loyalty Points" },
 ];
 
 export default function SettingsClient({ settings }: { settings: Record<string, string> }) {
@@ -149,6 +165,50 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Toggle label="Show Store Logo on Receipt" checked={val("receipt_show_logo", "true") === "true"} onToggle={() => toggle("receipt_show_logo")} />
               <Toggle label="Show Prescription on Receipt" checked={val("receipt_show_prescription", "true") === "true"} onToggle={() => toggle("receipt_show_prescription")} />
               <Toggle label="Auto-Print Receipt after Sale" checked={val("receipt_auto_print", "false") === "true"} onToggle={() => toggle("receipt_auto_print")} />
+            </>
+          )}
+
+          {tab === "whatsapp" && (
+            <>
+              <SectionTitle icon={MessageCircle} title="WhatsApp Integration" />
+              <Toggle label="Enable WhatsApp Notifications" checked={val("whatsapp_enabled", "false") === "true"} onToggle={() => toggle("whatsapp_enabled")} desc="Send order notifications to customers via WhatsApp" />
+
+              <SectionTitle icon={Key} title="WhatsApp Business API" />
+              <p className="text-xs text-gray-500 -mt-2 mb-3">Connect your WhatsApp Business account to send automated delivery notifications.</p>
+              <Field label="API Provider" value={val("whatsapp_provider", "direct")} onChange={(v) => set("whatsapp_provider", v)} placeholder="direct / twilio / wati" />
+              <Field label="API Endpoint / URL" value={val("whatsapp_api_url")} onChange={(v) => set("whatsapp_api_url", v)} placeholder="https://graph.facebook.com/v17.0/..." />
+              <Field label="API Token / Auth Key" value={val("whatsapp_api_token")} onChange={(v) => set("whatsapp_api_token", v)} placeholder="Your API token" />
+              <Field label="Phone Number ID" value={val("whatsapp_phone_id")} onChange={(v) => set("whatsapp_phone_id", v)} placeholder="WhatsApp Business phone number ID" />
+
+              <SectionTitle icon={Send} title="Notification Templates" />
+              <Field label="Order Confirmation Message" value={val("whatsapp_order_template", "Dear {customer_name}, your order #{invoice_no} has been confirmed. Total: {total_amount}. Thank you for choosing {store_name}!")} onChange={(v) => set("whatsapp_order_template", v)} multiline />
+              <Field label="Delivery Ready Message" value={val("whatsapp_delivery_template", "Dear {customer_name}, your order #{invoice_no} is ready for delivery/pickup. Please visit {store_name} to collect. Thank you!")} onChange={(v) => set("whatsapp_delivery_template", v)} multiline />
+              <Field label="Lab Order Ready Message" value={val("whatsapp_lab_ready_template", "Dear {customer_name}, your prescription glasses (Order #{order_no}) are ready! Please visit {store_name} to collect. Thank you!")} onChange={(v) => set("whatsapp_lab_ready_template", v)} multiline />
+              <p className="text-xs text-gray-400">Available placeholders: {'{customer_name}'}, {'{invoice_no}'}, {'{order_no}'}, {'{total_amount}'}, {'{store_name}'}, {'{items}'}</p>
+            </>
+          )}
+
+          {tab === "customers" && (
+            <>
+              <SectionTitle icon={Users} title="Customer Table Columns" />
+              <p className="text-sm text-gray-500 mb-4">Choose which columns are visible by default in the Customers table.</p>
+              {CUSTOMER_COLUMN_OPTIONS.map((col) => {
+                const colsRaw = val("customer_visible_columns", '["phone","whatsapp","city","odRx","osRx","purchases","totalSpent","loyalty"]');
+                let cols: string[] = [];
+                try { cols = JSON.parse(colsRaw); } catch { cols = []; }
+                const checked = cols.includes(col.key);
+                return (
+                  <Toggle
+                    key={col.key}
+                    label={col.label}
+                    checked={checked}
+                    onToggle={() => {
+                      const updated = checked ? cols.filter((c) => c !== col.key) : [...cols, col.key];
+                      set("customer_visible_columns", JSON.stringify(updated));
+                    }}
+                  />
+                );
+              })}
             </>
           )}
 

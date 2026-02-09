@@ -9,8 +9,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       firstName: body.firstName,
       lastName: body.lastName || null,
       phone: body.phone || null,
+      whatsapp: body.whatsapp || null,
       email: body.email || null,
       city: body.city || null,
+      state: body.state || null,
+      country: body.country || null,
+      address: body.address || null,
+      gender: body.gender || null,
     },
   });
   return NextResponse.json(customer);
