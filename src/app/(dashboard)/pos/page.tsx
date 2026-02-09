@@ -39,6 +39,7 @@ export default function POSPage() {
   const [manualSubtotal, setManualSubtotal] = useState<number | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});
+  const [taxEnabled, setTaxEnabled] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -51,6 +52,9 @@ export default function POSPage() {
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
+    fetch("/api/settings").then(r => r.json()).then((settings) => {
+      setTaxEnabled(settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true');
+    });
     searchRef.current?.focus();
   }, []);
 
@@ -85,10 +89,10 @@ export default function POSPage() {
   const afterDiscount = subtotal - discountAmount;
   const totalDiscount = cart.reduce((s, i) => s + i.discount * i.qty, 0);
   const taxableAmount = afterDiscount - totalDiscount;
-  const taxAmount = cart.reduce((s, i) => {
+  const taxAmount = taxEnabled ? cart.reduce((s, i) => {
     const lineTotal = (i.sellingPrice - i.discount) * i.qty;
     return s + lineTotal * (i.taxRate / 100);
-  }, 0);
+  }, 0) : 0;
   const grandTotal = taxableAmount + taxAmount;
   const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
   const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : denominationsTotal > 0 ? Math.max(0, denominationsTotal - grandTotal) : 0;
@@ -208,10 +212,12 @@ export default function POSPage() {
           <span>-${formatCurrency(discountAmount)}</span>
         </div>
         ` : ''}
+        ${taxEnabled ? `
         <div class="row">
           <span>Tax:</span>
           <span>${formatCurrency(taxAmount)}</span>
         </div>
+        ` : ''}
         
         <div class="separator"></div>
         
@@ -266,30 +272,30 @@ export default function POSPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="grid gap-3" style={{gridTemplateColumns: 'repeat(auto-fill, 200px)'}}>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
-              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col w-[200px] h-[200px]">
-              <div className="w-full h-[120px] bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
+              <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                 {p.imageUrl ? (
                   <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                 ) : (
                   <Package size={32} className="text-gray-300" />
                 )}
               </div>
-              <div className="p-3 flex-1 flex flex-col justify-between">
-                <div className="mb-2">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">SKU: {p.sku}</p>
+              <div className="p-2 flex-1 flex flex-col justify-between">
+                <div className="mb-1">
+                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">SKU: {p.sku}</p>
                 </div>
-                <div className="space-y-1.5 border-t border-gray-100 dark:border-gray-700 pt-2">
+                <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Price</span>
-                    <span className="text-sm font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400">Price</span>
+                    <span className="text-xs font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Stock</span>
-                    <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock} units</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400">Stock</span>
+                    <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock}</span>
                   </div>
                 </div>
               </div>
@@ -394,7 +400,7 @@ export default function POSPage() {
           </div>
           {discountAmount > 0 && <div className="flex justify-between text-sm"><span className="text-gray-500">Discount Amount</span><span className="text-red-600">-{formatCurrency(discountAmount)}</span></div>}
           
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Tax</span><span>{formatCurrency(taxAmount)}</span></div>
+          {taxEnabled && <div className="flex justify-between text-sm"><span className="text-gray-500">Tax</span><span>{formatCurrency(taxAmount)}</span></div>}
           <div className="flex justify-between text-lg font-bold border-t border-gray-100 pt-2">
             <span>Total</span><span className="text-primary-600">{formatCurrency(grandTotal)}</span>
           </div>
