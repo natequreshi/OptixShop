@@ -121,7 +121,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
     }
   }, []);
 
-  const onLayoutChange = (layout: Layout[], layouts: any) => {
+  const onLayoutChange = (layout: any, layouts: any) => {
     if (!isLocked) {
       setLayouts(layouts);
       localStorage.setItem('dashboard-layout', JSON.stringify(layouts));
