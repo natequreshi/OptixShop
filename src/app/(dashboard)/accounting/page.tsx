@@ -7,7 +7,7 @@ export default async function AccountingPage() {
   const [accounts, journalEntries] = await Promise.all([
     prisma.chartOfAccount.findMany({ orderBy: { accountCode: "asc" } }),
     prisma.journalEntry.findMany({
-      include: { lines: { include: { account: true } }, createdBy: true },
+      include: { lines: { include: { debitAccount: true, creditAccount: true } }, createdBy: true },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
@@ -22,10 +22,13 @@ export default async function AccountingPage() {
     id: je.id, entryNo: je.entryNo, entryDate: je.entryDate,
     description: je.description ?? "", totalAmount: je.totalAmount,
     status: je.status, createdBy: je.createdBy?.fullName ?? "—",
-    lines: je.lines.map(l => ({
-      accountCode: l.account.accountCode, accountName: l.account.accountName,
-      debit: l.debit, credit: l.credit, narration: l.narration ?? "",
-    })),
+    lines: je.lines.map(l => {
+      const acc = l.debit > 0 ? l.debitAccount : (l.creditAccount ?? l.debitAccount);
+      return {
+        accountCode: acc.accountCode, accountName: acc.accountName,
+        debit: l.debit, credit: l.credit, narration: l.narration ?? "",
+      };
+    }),
   }));
 
   // Trial balance
