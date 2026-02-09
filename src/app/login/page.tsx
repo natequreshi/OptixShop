@@ -105,11 +105,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">
-              Demo: <span className="font-mono">admin</span> / <span className="font-mono">admin123</span>
-            </p>
-          </div>
+
         </div>
       </div>
     </div>

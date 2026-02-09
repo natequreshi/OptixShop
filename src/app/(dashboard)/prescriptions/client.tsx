@@ -137,11 +137,37 @@ export default function PrescriptionsClient({ prescriptions, customers }: {
 
 function RxModal({ customers, onClose, onSaved }: { customers: { id: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
   const [loading, setLoading] = useState(false);
+  const [customerList, setCustomerList] = useState(customers);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCustFirst, setNewCustFirst] = useState("");
+  const [newCustLast, setNewCustLast] = useState("");
+  const [newCustPhone, setNewCustPhone] = useState("");
+  const [creatingCust, setCreatingCust] = useState(false);
   const [form, setForm] = useState({
     customerId: "", prescribedBy: "", prescriptionDate: new Date().toISOString().split("T")[0],
     odSphere: "", odCylinder: "", odAxis: "", odAdd: "",
     osSphere: "", osCylinder: "", osAxis: "", osAdd: "",
   });
+
+  async function handleCreateCustomer() {
+    if (!newCustFirst || !newCustPhone) { toast.error("Name and phone are required"); return; }
+    setCreatingCust(true);
+    const res = await fetch("/api/customers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ firstName: newCustFirst, lastName: newCustLast, phone: newCustPhone }),
+    });
+    if (res.ok) {
+      const cust = await res.json();
+      const name = `${cust.firstName} ${cust.lastName ?? ""}`.trim();
+      setCustomerList([...customerList, { id: cust.id, name }]);
+      setForm({ ...form, customerId: cust.id });
+      setShowNewCustomer(false);
+      setNewCustFirst(""); setNewCustLast(""); setNewCustPhone("");
+      toast.success("Customer created!");
+    } else toast.error("Failed to create customer");
+    setCreatingCust(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -172,10 +198,27 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
         <div className="p-6 border-b border-gray-100"><h2 className="text-lg font-semibold">New Prescription</h2></div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div><label className="label">Patient</label>
-            <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input" required>
-              <option value="">Select patient...</option>
-              {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="flex gap-2">
+              <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input flex-1" required>
+                <option value="">Select patient...</option>
+                {customerList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button type="button" onClick={() => setShowNewCustomer(!showNewCustomer)} className="btn-secondary text-xs whitespace-nowrap">
+                {showNewCustomer ? "Cancel" : "+ New"}
+              </button>
+            </div>
+            {showNewCustomer && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <input placeholder="First name *" value={newCustFirst} onChange={(e) => setNewCustFirst(e.target.value)} className="input text-sm" />
+                  <input placeholder="Last name" value={newCustLast} onChange={(e) => setNewCustLast(e.target.value)} className="input text-sm" />
+                </div>
+                <input placeholder="Phone *" value={newCustPhone} onChange={(e) => setNewCustPhone(e.target.value)} className="input text-sm" />
+                <button type="button" onClick={handleCreateCustomer} disabled={creatingCust} className="btn-primary text-xs w-full">
+                  {creatingCust ? "Creating..." : "Create Customer"}
+                </button>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="label">Doctor</label><input value={form.prescribedBy} onChange={(e) => setForm({...form, prescribedBy: e.target.value})} className="input" /></div>

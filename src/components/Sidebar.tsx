@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Package,
+  FolderTree,
   Boxes,
   Users,
   FileText,
@@ -21,6 +22,7 @@ import {
   CreditCard,
   ChevronLeft,
   Glasses,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,7 @@ const navItems = [
   { href: "/dashboard",          icon: LayoutDashboard, label: "Dashboard" },
   { href: "/pos",                icon: ShoppingCart,    label: "POS" },
   { href: "/products",           icon: Package,         label: "Products" },
+  { href: "/categories",         icon: FolderTree,      label: "Categories" },
   { href: "/inventory",          icon: Boxes,           label: "Inventory" },
   { href: "/customers",          icon: Users,           label: "Customers" },
   { href: "/prescriptions",      icon: FileText,        label: "Prescriptions" },
@@ -40,6 +43,7 @@ const navItems = [
   { href: "/accounting",         icon: BookOpen,        label: "Accounting" },
   { href: "/reports",            icon: BarChart3,       label: "Reports" },
   { href: "/register",           icon: CreditCard,      label: "Cash Register" },
+  { href: "/settings",           icon: Settings,        label: "Settings" },
 ];
 
 export default function Sidebar() {
