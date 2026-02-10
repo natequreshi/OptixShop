@@ -77,6 +77,13 @@ export async function POST(req: Request) {
   const actualPaidAmount = Math.min(paidAmount, totalAmount);
   const balanceAmount = Math.max(0, totalAmount - paidAmount);
 
+  const userId = (session?.user as any)?.id;
+  let cashierId: string | null = null;
+  if (userId) {
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (userExists) cashierId = userId;
+  }
+
   const sale = await prisma.sale.create({
     data: {
       invoiceNo,
@@ -92,7 +99,8 @@ export async function POST(req: Request) {
       balanceAmount: balanceAmount,
       status: paidAmount >= totalAmount ? "completed" : "pending",
       paymentStatus: paidAmount >= totalAmount ? "paid" : "partial",
-      cashierId: (session?.user as any)?.id || null,
+      cashierId,
+      notes: body.notes || null,
       items: { create: itemsData },
     },
   });
