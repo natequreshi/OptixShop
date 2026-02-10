@@ -87,6 +87,7 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
               <th className="px-4 py-3 text-right">Balance</th>
               <th className="px-4 py-3 text-center">Status</th>
               <th className="px-4 py-3 text-center">Payment</th>
+              <th className="px-4 py-3 text-center">Transaction Type</th>
               <th className="px-4 py-3 text-center">Actions</th>
             </tr></thead>
             <tbody className="divide-y divide-gray-100">
@@ -624,6 +625,7 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [products, setProducts] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [productSearch, setProductSearch] = useState<string[]>(form.items.map(() => ""));
   
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
@@ -639,8 +641,7 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
     paymentStatus: "paid",
     amountTendered: 0,
     transactionId: "",
-    deliveryAddress: "",
-    deliveryDate: "",
+    globalDiscount: 0,
     notes: "",
   });
 

@@ -147,6 +147,7 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
     customerId: "", prescribedBy: "", prescriptionDate: new Date().toISOString().split("T")[0],
     odSphere: "", odCylinder: "", odAxis: "", odAdd: "",
     osSphere: "", osCylinder: "", osAxis: "", osAdd: "",
+    photoUrl: "",
   });
 
   async function handleCreateCustomer() {
@@ -237,6 +238,17 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
             <div><label className="label text-xs">CYL</label><input value={form.osCylinder} onChange={(e) => setForm({...form, osCylinder: e.target.value})} className="input" /></div>
             <div><label className="label text-xs">AXIS</label><input value={form.osAxis} onChange={(e) => setForm({...form, osAxis: e.target.value})} className="input" /></div>
             <div><label className="label text-xs">ADD</label><input value={form.osAdd} onChange={(e) => setForm({...form, osAdd: e.target.value})} className="input" /></div>
+          </div>
+          <div>
+            <label className="label">Prescription Photo (Optional)</label>
+            <input 
+              type="text" 
+              value={form.photoUrl} 
+              onChange={(e) => setForm({...form, photoUrl: e.target.value})} 
+              className="input" 
+              placeholder="Enter image URL or upload link"
+            />
+            <p className="text-xs text-gray-500 mt-1">Paste image URL or use image hosting service</p>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
