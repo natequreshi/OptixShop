@@ -51,6 +51,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
+  const [visibleNavItems, setVisibleNavItems] = useState(navItems);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -63,18 +64,20 @@ export default function Sidebar() {
           }
         });
         setEnabledModules(modules);
+        
+        // Build visible nav items array - only include enabled modules
+        const visible = navItems.filter(item => {
+          if (!item.module) return true; // Always include items without module requirement
+          // Only include if module is enabled (or undefined means default enabled)
+          const moduleValue = modules[item.module];
+          return moduleValue === undefined || moduleValue === true;
+        });
+        setVisibleNavItems(visible);
       })
       .catch(err => {
         console.error("Failed to load settings:", err);
       });
   }, []);
-
-  const visibleNavItems = navItems.filter(item => {
-    if (!item.module) return true; // Always show items without module requirement
-    // Show only if module is explicitly true (or undefined means default enabled)
-    const moduleValue = enabledModules[item.module];
-    return moduleValue === undefined || moduleValue === true;
-  });
 
   return (
     <aside
