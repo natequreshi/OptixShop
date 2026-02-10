@@ -770,8 +770,9 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <select value={form.paymentMethod} onChange={(e) => setForm({...form, paymentMethod: e.target.value})} className="input">
                 <option value="cash">Cash</option>
                 <option value="card">Card</option>
-                <option value="upi">UPI</option>
                 <option value="bank_transfer">Bank Transfer</option>
+                <option value="easypaisa">Easypaisa</option>
+                <option value="jazzcash">JazzCash</option>
               </select>
             </div>
           </div>

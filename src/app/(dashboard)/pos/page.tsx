@@ -426,7 +426,7 @@ export default function POSPage() {
           ) : (
             <div className="space-y-3">
               <div className="flex gap-2">
-                {[{ m: "cash", icon: Banknote, label: "Cash" }, { m: "card", icon: CreditCard, label: "Card" }, { m: "upi", icon: Smartphone, label: "UPI" }].map(({ m, icon: Icon, label }) => (
+                {[{ m: "cash", icon: Banknote, label: "Cash" }, { m: "card", icon: CreditCard, label: "Card" }, { m: "bank_transfer", icon: Smartphone, label: "Bank Transfer" }].map(({ m, icon: Icon, label }) => (
                   <button key={m} onClick={() => setPaymentMethod(m)}
                     className={cn("flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition",
                       paymentMethod === m ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"

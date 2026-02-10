@@ -78,7 +78,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: DollarSign,
       iconColor: "text-blue-600",
       iconBg: "bg-blue-50",
-      borderColor: "border-l-blue-500",
+      gradient: "bg-gradient-to-br from-blue-50 to-blue-100/50",
     },
     {
       title: "Net",
@@ -86,7 +86,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: CircleDollarSign,
       iconColor: "text-green-600",
       iconBg: "bg-green-50",
-      borderColor: "border-l-green-500",
+      gradient: "bg-gradient-to-br from-green-50 to-green-100/50",
     },
     {
       title: "Invoice Due",
@@ -94,7 +94,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: FileWarning,
       iconColor: "text-orange-600",
       iconBg: "bg-orange-50",
-      borderColor: "border-l-orange-500",
+      gradient: "bg-gradient-to-br from-orange-50 to-orange-100/50",
     },
     {
       title: "Total Sell Return",
@@ -102,7 +102,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: Undo2,
       iconColor: "text-red-600",
       iconBg: "bg-red-50",
-      borderColor: "border-l-red-500",
+      gradient: "bg-gradient-to-br from-red-50 to-red-100/50",
     },
     {
       title: "Total Purchase",
@@ -110,7 +110,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: ShoppingCart,
       iconColor: "text-purple-600",
       iconBg: "bg-purple-50",
-      borderColor: "border-l-purple-500",
+      gradient: "bg-gradient-to-br from-purple-50 to-purple-100/50",
     },
     {
       title: "Purchase Due",
@@ -118,7 +118,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: AlertTriangle,
       iconColor: "text-yellow-600",
       iconBg: "bg-yellow-50",
-      borderColor: "border-l-yellow-500",
+      gradient: "bg-gradient-to-br from-yellow-50 to-yellow-100/50",
     },
     {
       title: "Total Purchase Return",
@@ -126,7 +126,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: ReceiptText,
       iconColor: "text-cyan-600",
       iconBg: "bg-cyan-50",
-      borderColor: "border-l-cyan-500",
+      gradient: "bg-gradient-to-br from-cyan-50 to-cyan-100/50",
     },
     {
       title: "Total Expense",
@@ -134,7 +134,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       icon: Wallet,
       iconColor: "text-pink-600",
       iconBg: "bg-pink-50",
-      borderColor: "border-l-pink-500",
+      gradient: "bg-gradient-to-br from-pink-50 to-pink-100/50",
     },
   ];
 
@@ -174,7 +174,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       {/* ── Top Summary Cards (8 cards, 4 per row) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card) => (
-          <div key={card.title} className={`card p-4 border-l-4 ${card.borderColor}`}>
+          <div key={card.title} className={`card p-4 ${card.gradient}`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide">{card.title}</p>

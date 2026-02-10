@@ -16,7 +16,15 @@ export async function PUT(req: Request) {
     const entries = Object.entries(body);
 
     for (const [key, value] of entries) {
-      const strValue = value === null || value === undefined ? "" : String(value);
+      let strValue: string;
+      if (value === null || value === undefined) {
+        strValue = "";
+      } else if (typeof value === "boolean") {
+        strValue = value ? "true" : "false";
+      } else {
+        strValue = String(value);
+      }
+      
       await prisma.setting.upsert({
         where: { key },
         update: { value: strValue },
