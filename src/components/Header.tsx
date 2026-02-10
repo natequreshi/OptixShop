@@ -3,8 +3,18 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, Menu } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, Menu, ShoppingCart, FileText, AlertTriangle, XCircle, Package, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  count: number;
+  color: string;
+  route: string;
+}
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -16,17 +26,44 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showTodoList, setShowTodoList] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState("0");
   const [todos, setTodos] = useState<{id: number; text: string; done: boolean}[]>([]);
   const [todoInput, setTodoInput] = useState("");
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
+  const [totalSales, setTotalSales] = useState(0);
+  const [lowStockItems, setLowStockItems] = useState<{productName: string; sku: string; quantity: number}[]>([]);
   const ref = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const res = await fetch("/api/notifications");
+        if (res.ok) {
+          const data = await res.json();
+          setNotifications(data.notifications || []);
+          setNotifCount(data.totalCount || 0);
+          setTotalSales(data.totalSales || 0);
+          setLowStockItems(data.lowStockItems || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    }
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -59,10 +96,105 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <ListTodo size={20} />
         </button>
         {/* Notifications */}
-        <button className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
-          <Bell size={20} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <div ref={notifRef} className="relative">
+          <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+            <Bell size={20} />
+            {notifCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                {notifCount > 99 ? "99+" : notifCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-800 dark:text-white text-sm">Notifications</h3>
+                  <p className="text-xs text-gray-400">Total Sales: {totalSales}</p>
+                </div>
+                {notifCount > 0 && (
+                  <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {notifCount} alert{notifCount > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Bell size={32} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                    <p className="text-sm text-gray-400 dark:text-gray-500">All caught up!</p>
+                    <p className="text-xs text-gray-300 dark:text-gray-600">No pending alerts</p>
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => { setShowNotifications(false); router.push(n.route); }}
+                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition text-left border-b border-gray-50 dark:border-gray-700/50 last:border-0"
+                    >
+                      <div className={cn("mt-0.5 p-2 rounded-lg",
+                        n.color === "red" && "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400",
+                        n.color === "yellow" && "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400",
+                        n.color === "blue" && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+                        n.color === "orange" && "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400",
+                      )}>
+                        {n.id === "pending-sales" && <ShoppingCart size={16} />}
+                        {n.id === "draft-sales" && <FileText size={16} />}
+                        {n.id === "unpaid-sales" && <CreditCard size={16} />}
+                        {n.id === "low-stock" && <Package size={16} />}
+                        {n.id === "cancelled-sales" && <XCircle size={16} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{n.title}</p>
+                          <span className={cn("text-xs font-bold px-1.5 py-0.5 rounded-full",
+                            n.color === "red" && "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400",
+                            n.color === "yellow" && "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400",
+                            n.color === "blue" && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+                            n.color === "orange" && "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400",
+                          )}>{n.count}</span>
+                        </div>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{n.message}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
+
+                {lowStockItems.length > 0 && (
+                  <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Low Stock Items</p>
+                    <div className="space-y-1.5">
+                      {lowStockItems.slice(0, 5).map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600 dark:text-gray-300 truncate mr-2">{item.productName}</span>
+                          <span className={cn("font-mono font-bold px-1.5 py-0.5 rounded",
+                            item.quantity === 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          )}>
+                            {item.quantity} left
+                          </span>
+                        </div>
+                      ))}
+                      {lowStockItems.length > 5 && (
+                        <p className="text-xs text-gray-400 text-center">+{lowStockItems.length - 5} more...</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                <button
+                  onClick={() => { setShowNotifications(false); router.push("/dashboard"); }}
+                  className="w-full text-center text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+                >
+                  View Dashboard →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* User dropdown */}
         <div ref={ref} className="relative">
