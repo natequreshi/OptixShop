@@ -713,8 +713,6 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
           paymentStatus: form.paymentStatus,
           amountTendered: form.amountTendered,
           transactionId: form.transactionId || undefined,
-          deliveryAddress: form.deliveryAddress || null,
-          deliveryDate: form.deliveryDate || null,
           notes: form.notes || null,
           items: form.items.map(item => {
             const product = products.find(p => p.id === item.productId);
