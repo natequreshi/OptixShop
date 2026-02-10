@@ -41,6 +41,7 @@ export default function POSPage() {
   const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});  const [transactionId, setTransactionId] = useState("");  const [taxEnabled, setTaxEnabled] = useState(true);
   const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const [currency, setCurrency] = useState("Rs.");
+  const [showDenominations, setShowDenominations] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function POSPage() {
       setTaxEnabled(settings['tax_enabled'] === 'true');
       setPrintTemplate((settings['print_template'] as any) || '80mm');
       setCurrency(settings['currency'] || 'Rs.');
+      setShowDenominations(settings['pos_show_denominations'] !== 'false');
     });
     searchRef.current?.focus();
   }, []);
@@ -96,7 +98,7 @@ export default function POSPage() {
     const lineTotal = (i.sellingPrice - i.discount) * i.qty;
     return s + lineTotal * (i.taxRate / 100);
   }, 0) : 0;
-  const grandTotal = taxEnabled ? taxableAmount + taxAmount : taxableAmount;
+  const grandTotal = taxableAmount + taxAmount;
   const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
   const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : denominationsTotal > 0 ? Math.max(0, denominationsTotal - grandTotal) : 0;
 
@@ -112,6 +114,7 @@ export default function POSPage() {
           paymentMethod,
           transactionId: transactionId || undefined,
           amountTendered: +amountTendered || grandTotal,
+          discountPercent,
           items: cart.map(i => ({
             productId: i.id,
             quantity: i.qty,
@@ -133,11 +136,12 @@ export default function POSPage() {
         setManualSubtotal(null); setDiscountPercent(0);
         setCashDenominations({});
         setTransactionId("");
+        router.refresh();
       } else {
-        toast.error("Sale failed");
+        toast.error("Failed to complete sale");
       }
-    } catch {
-      toast.error("Error processing sale");
+    } catch (err) {
+      toast.error("Error completing sale");
     }
     setLoading(false);
   }
@@ -272,9 +276,9 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-8rem)]">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-8rem)]">
       {/* Products Panel */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-[400px] lg:min-h-0">
         <div className="mb-4">
           <div className="relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -283,7 +287,7 @@ export default function POSPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3">
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
               className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
@@ -326,9 +330,9 @@ export default function POSPage() {
       </div>
 
       {/* Cart Panel */}
-      <div className="w-[380px] flex flex-col card">
+      <div className="w-full lg:w-[380px] xl:w-[420px] flex flex-col card order-first lg:order-last">
         {/* Customer Selection */}
-        <div className="p-4 border-b border-gray-100">
+        <div className="p-3 sm:p-4 border-b border-gray-100">
           {selectedCustomer ? (
             <div className="flex items-center justify-between bg-primary-50 rounded-lg p-2">
               <div className="flex items-center gap-2">
@@ -437,30 +441,32 @@ export default function POSPage() {
               </div>
               {paymentMethod === "cash" && (
                 <div className="space-y-3">
-                  <div>
-                    <label className="label text-xs">Cash Denominations</label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[2000, 1000, 500, 200, 100, 50, 20, 10].map(denom => (
-                        <div key={denom} className="flex flex-col items-center">
-                          <span className="text-xs text-gray-500 mb-1">{currency}{denom}</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={cashDenominations[denom] || 0}
-                            onChange={(e) => setCashDenominations({...cashDenominations, [denom]: parseInt(e.target.value) || 0})}
-                            className="input text-xs text-center w-full p-1"
-                          />
-                        </div>
-                      ))}
+                  {showDenominations && (
+                    <div>
+                      <label className="label text-xs">Cash Denominations</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[2000, 1000, 500, 200, 100, 50, 20, 10].map(denom => (
+                          <div key={denom} className="flex flex-col items-center">
+                            <span className="text-xs text-gray-500 mb-1">{currency}{denom}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={cashDenominations[denom] || 0}
+                              onChange={(e) => setCashDenominations({...cashDenominations, [denom]: parseInt(e.target.value) || 0})}
+                              className="input text-xs text-center w-full p-1"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {denominationsTotal > 0 && (
+                        <p className="text-sm text-blue-600 mt-2">Total Cash: {currency} {denominationsTotal.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                      )}
                     </div>
-                    {denominationsTotal > 0 && (
-                      <p className="text-sm text-blue-600 mt-2">Total Cash: {formatCurrency(denominationsTotal)}</p>
-                    )}
-                  </div>
+                  )}
                   <div>
                     <label className="label text-xs">Amount Tendered</label>
-                    <input type="number" value={amountTendered} onChange={(e) => setAmountTendered(e.target.value)} className="input" placeholder={grandTotal.toFixed(2)} />
-                    {change > 0 && <p className="text-sm text-green-600 mt-1">Change: {formatCurrency(change)}</p>}
+                    <input type="number" value={amountTendered} onChange={(e) => setAmountTendered(e.target.value)} className="input" placeholder={grandTotal.toFixed(0)} />
+                    {change > 0 && <p className="text-sm text-green-600 mt-1">Change: {currency} {change.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>}
                   </div>
                 </div>
               )}

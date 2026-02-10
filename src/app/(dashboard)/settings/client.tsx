@@ -242,6 +242,7 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Toggle label="Show Store Logo on Receipt" checked={val("receipt_show_logo", "true") === "true"} onToggle={() => toggle("receipt_show_logo")} />
               <Toggle label="Show Prescription on Receipt" checked={val("receipt_show_prescription", "true") === "true"} onToggle={() => toggle("receipt_show_prescription")} />
               <Toggle label="Auto-Print Receipt after Sale" checked={val("receipt_auto_print", "false") === "true"} onToggle={() => toggle("receipt_auto_print")} />
+              <Toggle label="Show Cash Denominations in POS" checked={val("pos_show_denominations", "true") === "true"} onToggle={() => toggle("pos_show_denominations")} desc="Display denomination counter in POS payment screen" />
             </>
           )}
 
