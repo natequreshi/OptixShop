@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   Plus, Search, Edit2, Trash2, ChevronDown, ChevronRight,
   Phone, Mail, MapPin, Columns, MessageCircle, Globe,
-  ShoppingBag, FileText, Calendar, Package, User, Eye,
+  ShoppingBag, FileText, Calendar, Package, User, Eye, X, Image as ImageIcon,
 } from "lucide-react";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -67,6 +67,7 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [visibleCols, setVisibleCols] = useState<ColumnKey[]>(getInitialColumns(settings));
   const [showColPicker, setShowColPicker] = useState(false);
+  const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   
   const loyaltyEnabled = settings.loyalty_enabled === "true";
   
@@ -183,6 +184,7 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
                   onToggleExpand={() => setExpandedId(expandedId === c.id ? null : c.id)}
                   onEdit={() => { setEditing(c); setShowModal(true); }}
                   onDelete={() => handleDelete(c.id)}
+                  onViewHistory={() => setHistoryCustomer(c)}
                 />
               ))}
               {filtered.length === 0 && (
@@ -196,14 +198,18 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
       {showModal && (
         <CustomerModal customer={editing} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); router.refresh(); }} />
       )}
+
+      {historyCustomer && (
+        <CustomerHistoryModal customer={historyCustomer} onClose={() => setHistoryCustomer(null)} />
+      )}
     </div>
   );
 }
 
 /* ── Customer Row ──────────────────────────────── */
-function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExpand, onEdit, onDelete }: {
+function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExpand, onEdit, onDelete, onViewHistory }: {
   customer: Customer; visibleCols: ColumnKey[]; colCount: number;
-  expanded: boolean; onToggleExpand: () => void; onEdit: () => void; onDelete: () => void;
+  expanded: boolean; onToggleExpand: () => void; onEdit: () => void; onDelete: () => void; onViewHistory: () => void;
 }) {
   const isCol = (k: ColumnKey) => visibleCols.includes(k);
   const rx = c.latestRx;
@@ -318,7 +324,7 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
         {/* Actions */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
-            <button onClick={onToggleExpand} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View History">
+            <button onClick={onViewHistory} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View History">
               <Eye size={15} />
             </button>
             <button onClick={onEdit} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600" title="Edit"><Edit2 size={15} /></button>
@@ -412,6 +418,225 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
         </tr>
       )}
     </>
+  );
+}
+
+/* ── Customer History Modal ────────────────────── */
+interface HistoryRx {
+  id: string; prescriptionNo: string; prescriptionDate: string; expiryDate: string | null;
+  prescribedBy: string | null; odSphere: number | null; odCylinder: number | null; odAxis: number | null;
+  odAdd: number | null; odPd: number | null; osSphere: number | null; osCylinder: number | null;
+  osAxis: number | null; osAdd: number | null; osPd: number | null; photoUrl: string | null; notes: string | null;
+}
+interface HistorySaleItem { productName: string; sku: string; imageUrl: string | null; quantity: number; unitPrice: number; total: number; }
+interface HistorySale { id: string; invoiceNo: string; saleDate: string; totalAmount: number; discountAmount: number; taxAmount: number; status: string; paymentMethod: string; items: HistorySaleItem[]; }
+
+function CustomerHistoryModal({ customer, onClose }: { customer: Customer; onClose: () => void }) {
+  const [tab, setTab] = useState<'prescriptions' | 'sales'>('prescriptions');
+  const [prescriptions, setPrescriptions] = useState<HistoryRx[]>([]);
+  const [sales, setSales] = useState<HistorySale[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  useState(() => {
+    setLoading(true);
+    fetch(`/api/customers/${customer.id}/history`)
+      .then(r => r.json())
+      .then(data => {
+        setPrescriptions(data.prescriptions || []);
+        setSales(data.sales || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center text-primary-700 font-bold text-lg">
+                {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{customer.firstName} {customer.lastName}</h2>
+                <p className="text-sm text-gray-500">{customer.customerNo} · {customer.phone || customer.whatsapp || 'No contact'}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition"><X size={20} /></button>
+          </div>
+          {/* Tabs */}
+          <div className="flex gap-6 border-b border-gray-200 dark:border-gray-700">
+            <button onClick={() => setTab('prescriptions')}
+              className={cn("pb-3 px-1 font-medium text-sm border-b-2 transition-colors flex items-center gap-2",
+                tab === 'prescriptions' ? "border-primary-600 text-primary-600" : "border-transparent text-gray-500 hover:text-gray-700"
+              )}>
+              <FileText size={16} /> Prescriptions ({prescriptions.length})
+            </button>
+            <button onClick={() => setTab('sales')}
+              className={cn("pb-3 px-1 font-medium text-sm border-b-2 transition-colors flex items-center gap-2",
+                tab === 'sales' ? "border-primary-600 text-primary-600" : "border-transparent text-gray-500 hover:text-gray-700"
+              )}>
+              <ShoppingBag size={16} /> Sale History ({sales.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : tab === 'prescriptions' ? (
+            /* Prescriptions Tab */
+            prescriptions.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <FileText size={40} className="mx-auto mb-3 text-gray-300" />
+                <p>No prescriptions found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {prescriptions.map((rx) => (
+                  <div key={rx.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:shadow-sm transition">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <span className="text-sm font-mono font-semibold text-primary-600">{rx.prescriptionNo}</span>
+                        {rx.prescribedBy && <span className="text-xs text-gray-500 ml-3">by {rx.prescribedBy}</span>}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 flex items-center gap-1"><Calendar size={12} /> {formatDate(rx.prescriptionDate)}</p>
+                        {rx.expiryDate && <p className="text-xs text-gray-400">Expires: {formatDate(rx.expiryDate)}</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* OD */}
+                      <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-blue-700 mb-2 uppercase tracking-wide">OD — Right Eye</p>
+                        <div className="grid grid-cols-2 gap-1 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-500">Sphere:</span><span className="font-medium">{fmtRx(rx.odSphere)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Cylinder:</span><span className="font-medium">{fmtRx(rx.odCylinder)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Axis:</span><span className="font-medium">{rx.odAxis ?? '—'}°</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Add:</span><span className="font-medium">{fmtRx(rx.odAdd)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">PD:</span><span className="font-medium">{rx.odPd ?? '—'}</span></div>
+                        </div>
+                      </div>
+                      {/* OS */}
+                      <div className="bg-green-50/50 dark:bg-green-900/10 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-green-700 mb-2 uppercase tracking-wide">OS — Left Eye</p>
+                        <div className="grid grid-cols-2 gap-1 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-500">Sphere:</span><span className="font-medium">{fmtRx(rx.osSphere)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Cylinder:</span><span className="font-medium">{fmtRx(rx.osCylinder)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Axis:</span><span className="font-medium">{rx.osAxis ?? '—'}°</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Add:</span><span className="font-medium">{fmtRx(rx.osAdd)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">PD:</span><span className="font-medium">{rx.osPd ?? '—'}</span></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rx Photo */}
+                    {rx.photoUrl && (
+                      <div className="mt-4">
+                        <button onClick={() => setPreviewImage(rx.photoUrl)} className="group relative">
+                          <img src={rx.photoUrl} alt="Prescription" className="h-24 w-auto rounded-lg border border-gray-200 object-cover cursor-pointer hover:opacity-90 transition" />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                            <ImageIcon size={20} className="text-white" />
+                          </span>
+                        </button>
+                      </div>
+                    )}
+
+                    {rx.notes && (
+                      <p className="mt-3 text-xs text-gray-500 bg-gray-50 dark:bg-gray-900 p-2 rounded"><strong>Notes:</strong> {rx.notes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            /* Sales Tab */
+            sales.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <ShoppingBag size={40} className="mx-auto mb-3 text-gray-300" />
+                <p>No sales found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sales.map((sale) => (
+                  <div key={sale.id} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900 px-5 py-3">
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm font-mono font-semibold text-primary-600">{sale.invoiceNo}</span>
+                        <span className="text-xs text-gray-500 flex items-center gap-1"><Calendar size={12} /> {formatDate(sale.saleDate)}</span>
+                        <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium",
+                          sale.status === "completed" ? "bg-green-100 text-green-700" :
+                          sale.status === "refunded" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
+                        )}>{sale.status}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500 capitalize">{sale.paymentMethod.replace('_', ' ')}</span>
+                        <span className="font-semibold text-gray-800">{formatCurrency(sale.totalAmount)}</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
+                            <th className="text-left py-2 font-medium">Product</th>
+                            <th className="text-center py-2 font-medium">Qty</th>
+                            <th className="text-right py-2 font-medium">Price</th>
+                            <th className="text-right py-2 font-medium">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {sale.items.map((item, idx) => (
+                            <tr key={idx} className="text-sm">
+                              <td className="py-2">
+                                <div className="flex items-center gap-2">
+                                  {item.imageUrl && <img src={item.imageUrl} alt="" className="w-8 h-8 rounded object-cover" />}
+                                  <div>
+                                    <p className="font-medium text-gray-800">{item.productName}</p>
+                                    <p className="text-xs text-gray-400 font-mono">{item.sku}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-2 text-center text-gray-600">{item.quantity}</td>
+                              <td className="py-2 text-right text-gray-600">{formatCurrency(item.unitPrice)}</td>
+                              <td className="py-2 text-right font-medium text-gray-800">{formatCurrency(item.total)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {(sale.discountAmount > 0 || sale.taxAmount > 0) && (
+                        <div className="border-t border-gray-100 mt-2 pt-2 flex justify-end gap-6 text-xs text-gray-500">
+                          {sale.discountAmount > 0 && <span>Discount: <strong className="text-red-600">-{formatCurrency(sale.discountAmount)}</strong></span>}
+                          {sale.taxAmount > 0 && <span>Tax: <strong>{formatCurrency(sale.taxAmount)}</strong></span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* Image Preview Overlay */}
+      {previewImage && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-w-3xl max-h-[85vh]">
+            <img src={previewImage} alt="Prescription" className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain" />
+            <button onClick={() => setPreviewImage(null)} className="absolute -top-3 -right-3 bg-white rounded-full p-1.5 shadow-lg hover:bg-gray-100">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
