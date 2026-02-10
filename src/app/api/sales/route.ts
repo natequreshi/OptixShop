@@ -15,9 +15,11 @@ export async function POST(req: Request) {
   // Calculate totals
   let subtotal = 0;
   let totalTax = 0;
+  let totalDiscount = 0;
   const itemsData = body.items.map((item: any) => {
     const lineTotal = item.unitPrice * item.quantity;
     const discountAmt = (item.discount ?? 0) * item.quantity;
+    totalDiscount += discountAmt;
     const taxableAmt = lineTotal - discountAmt;
     const taxAmt = taxableAmt * ((item.taxRate ?? 0) / 100);
     subtotal += lineTotal;
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
     };
   });
 
-  const totalAmount = subtotal + totalTax;
+  const totalAmount = subtotal - totalDiscount + totalTax;
   const paidAmount = body.amountTendered ?? totalAmount;
 
   const sale = await prisma.sale.create({
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
       customerId: body.customerId || null,
       saleDate: today,
       subtotal,
-      discountAmount: 0,
+      discountAmount: totalDiscount,
       taxAmount: totalTax,
       cgstAmount: totalTax / 2,
       sgstAmount: totalTax / 2,

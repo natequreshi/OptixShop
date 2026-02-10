@@ -237,7 +237,7 @@ export default function POSPage() {
         
         <div class="row">
           <span>Payment Method:</span>
-          <span class="bold">${paymentMethod.toUpperCase()}</span>
+          <span class="bold">${paymentMethod.toUpperCase().replace('_', ' ')}</span>
         </div>
         ${transactionId ? `
         <div class="row">
@@ -245,15 +245,17 @@ export default function POSPage() {
           <span class="bold">${transactionId}</span>
         </div>
         ` : ''}
-        ${paymentMethod === 'cash' && denominationsTotal > 0 ? `
+        ${paymentMethod === 'cash' && (denominationsTotal > 0 || parseFloat(amountTendered) > 0) ? `
         <div class="row">
           <span>Cash Tendered:</span>
-          <span>${formatCurrency(denominationsTotal)}</span>
+          <span>${formatCurrency(denominationsTotal > 0 ? denominationsTotal : parseFloat(amountTendered))}</span>
         </div>
+        ${change > 0 ? `
         <div class="row">
           <span>Change:</span>
           <span>${formatCurrency(change)}</span>
         </div>
+        ` : ''}
         ` : ''}
         
         <div class="separator"></div>
@@ -276,9 +278,9 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-8rem)]">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-8rem)] w-full overflow-x-hidden">
       {/* Products Panel */}
-      <div className="flex-1 flex flex-col min-h-[400px] lg:min-h-0">
+      <div className="w-full lg:flex-1 flex flex-col min-h-[400px] lg:min-h-0">
         <div className="mb-4">
           <div className="relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -330,7 +332,7 @@ export default function POSPage() {
       </div>
 
       {/* Cart Panel */}
-      <div className="w-full lg:w-[380px] xl:w-[420px] flex flex-col card order-first lg:order-last">
+      <div className="w-full lg:w-[380px] xl:w-[420px] flex flex-col card order-first lg:order-last shrink-0">
         {/* Customer Selection */}
         <div className="p-3 sm:p-4 border-b border-gray-100">
           {selectedCustomer ? (
