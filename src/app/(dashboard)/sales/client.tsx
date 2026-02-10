@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Eye, Edit2, ChevronDown, ChevronRight, Package, Calendar, X, Printer, Plus, Trash2 } from "lucide-react";
+import { Search, Eye, Edit2, ChevronDown, ChevronRight, Package, Calendar, X, Printer, Plus, Trash2, BarChart3 } from "lucide-react";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 interface SaleItem {
   productName: string;
@@ -40,6 +41,7 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [printingSale, setPrintingSale] = useState<Sale | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showGraphModal, setShowGraphModal] = useState(false);
 
   const filtered = sales.filter((s) => {
     const matchSearch = s.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
@@ -55,12 +57,12 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sales</h1>
         <div className="flex items-center gap-3">
+          <button onClick={() => setShowGraphModal(true)} className="btn-secondary flex items-center gap-2">
+            <BarChart3 size={18} /> Graph
+          </button>
           <button onClick={() => setShowCreateModal(true)} className="btn-primary flex items-center gap-2">
             <Plus size={18} /> New Sale
           </button>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {filtered.length} sales · Total: <span className="font-semibold text-green-600">{formatCurrency(totalRevenue)}</span>
-          </div>
         </div>
       </div>
 
@@ -120,6 +122,10 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
 
       {showCreateModal && (
         <CreateSaleModal onClose={() => setShowCreateModal(false)} onCreated={() => { setShowCreateModal(false); router.refresh(); }} />
+      )}
+
+      {showGraphModal && (
+        <SalesGraphModal sales={sales} onClose={() => setShowGraphModal(false)} />
       )}
     </div>
   );
@@ -929,6 +935,179 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── Sales Graph Modal ─────────────────────────── */
+function SalesGraphModal({ sales, onClose }: { sales: Sale[]; onClose: () => void }) {
+  const [viewMode, setViewMode] = useState<"monthly" | "quarterly" | "yearly">("monthly");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // Filter by date range if provided
+  const filteredSales = sales.filter(s => {
+    if (!startDate && !endDate) return true;
+    const saleDate = new Date(s.saleDate);
+    const start = startDate ? new Date(startDate) : new Date(0);
+    const end = endDate ? new Date(endDate) : new Date();
+    return saleDate >= start && saleDate <= end;
+  });
+
+  // Aggregate data based on view mode
+  const aggregateData = () => {
+    const dataMap: Record<string, { amount: number; count: number }> = {};
+
+    filteredSales.forEach(sale => {
+      const date = new Date(sale.saleDate);
+      let key: string;
+
+      if (viewMode === "monthly") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      } else if (viewMode === "quarterly") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = `${date.getFullYear()}`;
+      }
+
+      if (!dataMap[key]) {
+        dataMap[key] = { amount: 0, count: 0 };
+      }
+      dataMap[key].amount += sale.totalAmount;
+      dataMap[key].count += 1;
+    });
+
+    return Object.entries(dataMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, data]) => ({
+        period,
+        amount: data.amount,
+        count: data.count,
+      }));
+  };
+
+  const chartData = aggregateData();
+  const totalAmount = chartData.reduce((sum, d) => sum + d.amount, 0);
+  const totalCount = chartData.reduce((sum, d) => sum + d.count, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
+              <BarChart3 size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Sales Analytics</h2>
+              <p className="text-sm text-gray-500">View sales trends and performance</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X size={20} className="text-gray-400" />
+          </button>
+        </div>
+
+        {/* Controls */}
+        <div className="p-6 border-b border-gray-100 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">View:</span>
+            <div className="flex gap-2">
+              {(["monthly", "quarterly", "yearly"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                    viewMode === mode
+                      ? "bg-primary-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                >
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Date Range:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="input w-auto"
+              placeholder="Start Date"
+            />
+            <span className="text-gray-400">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="input w-auto"
+              placeholder="End Date"
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={() => { setStartDate(""); setEndDate(""); }}
+                className="text-sm text-primary-600 hover:text-primary-700 underline"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="p-6 grid grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-4 rounded-lg">
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Sales</p>
+            <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100/50 p-4 rounded-lg">
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Revenue</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalAmount)}</p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-4 rounded-lg">
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Average Sale</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {totalCount > 0 ? formatCurrency(totalAmount / totalCount) : formatCurrency(0)}
+            </p>
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div className="p-6">
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="period" stroke="#666" fontSize={12} />
+                <YAxis stroke="#666" fontSize={12} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  formatter={(value: any, name: string) => {
+                    if (name === "amount") return [formatCurrency(value), "Revenue"];
+                    return [value, "Count"];
+                  }}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                />
+                <Legend />
+                <Bar dataKey="amount" fill="#4F46E5" name="Revenue" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="count" fill="#10B981" name="Sales Count" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[350px] flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <BarChart3 size={48} className="mx-auto mb-3 opacity-30" />
+                <p>No sales data available for the selected period</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
