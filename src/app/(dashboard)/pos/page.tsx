@@ -183,9 +183,10 @@ export default function POSPage() {
           .center { text-align: center; }
           .bold { font-weight: bold; }
           .large { font-size: 14px; }
-          .separator { border-top: 1px dashed #000; margin: 8px 0; }
+          .separator { border-top: 1px solid #000; margin: 8px 0; }
           .row { display: flex; justify-content: space-between; margin: 3px 0; }
           .items { margin: 10px 0; }
+          .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 10px; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 4px; }
           .item { display: flex; justify-content: space-between; margin: 3px 0; }
           .total-row { font-size: 13px; font-weight: bold; margin-top: 8px; }
         </style>
@@ -205,20 +206,24 @@ export default function POSPage() {
           <span>Date:</span>
           <span>${new Date().toLocaleString()}</span>
         </div>
-        ${selectedCustomer ? `
         <div class="row">
           <span>Customer:</span>
-          <span>${selectedCustomer.firstName} ${selectedCustomer.lastName}</span>
+          <span>${selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer'}</span>
         </div>
-        ` : ''}
         
         <div class="separator"></div>
         
         <div class="items">
+          <div class="item-header">
+            <span style="flex:1">Item</span>
+            <span style="width:30px;text-align:center">Qty</span>
+            <span style="width:60px;text-align:right">Rs.</span>
+          </div>
           ${cart.map(item => `
             <div class="item">
-              <span>${item.name} x${item.qty}</span>
-              <span>${formatCurrency(item.sellingPrice * item.qty)}</span>
+              <span style="flex:1">${item.name}</span>
+              <span style="width:30px;text-align:center">${item.qty}</span>
+              <span style="width:60px;text-align:right">${formatCurrency(item.sellingPrice * item.qty)}</span>
             </div>
           `).join('')}
         </div>
@@ -270,12 +275,19 @@ export default function POSPage() {
           <span>${formatCurrency(change)}</span>
         </div>
         ` : ''}
+        ${(() => { const tendered = denominationsTotal > 0 ? denominationsTotal : parseFloat(amountTendered); return tendered < grandTotal ? `
+        <div class="row bold" style="color:#c00">
+          <span>Remaining:</span>
+          <span>${formatCurrency(grandTotal - tendered)}</span>
+        </div>
+        ` : ''; })()}
         ` : ''}
         
         <div class="separator"></div>
         
-        <div class="center">Thank you for shopping!</div>
-        <div class="center">Please visit again</div>
+        <div class="center" style="margin-top:6px">Thank you for shopping!</div>
+        <div class="center bold">${storeName}</div>
+        <div class="center" style="font-size:10px">Please visit again</div>
         
         <script>
           window.onload = () => {
