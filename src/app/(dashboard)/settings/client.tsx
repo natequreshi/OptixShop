@@ -275,8 +275,6 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Toggle label="Show Prescription on Receipt" checked={val("receipt_show_prescription", "true") === "true"} onToggle={() => toggle("receipt_show_prescription")} />
               <Toggle label="Auto-Print Receipt after Sale" checked={val("receipt_auto_print", "false") === "true"} onToggle={() => toggle("receipt_auto_print")} />
               <Toggle label="Show Cash Denominations in POS" checked={val("pos_show_denominations", "true") === "true"} onToggle={() => toggle("pos_show_denominations")} desc="Display denomination counter in POS payment screen" />
-              <Toggle label="Allow Subtotal Edit in POS" checked={val("pos_allow_subtotal_edit", "true") === "true"} onToggle={() => toggle("pos_allow_subtotal_edit")} desc="Allow cashiers to manually adjust the subtotal amount" />
-              <Toggle label="Allow Oversell (Sell Out of Stock)" checked={val("pos_allow_oversell", "false") === "true"} onToggle={() => toggle("pos_allow_oversell")} desc="Allow selling products when stock is zero" />
             </>
           )}
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Banknote, Smartphone, User, X, Receipt, Package, ScanBarcode, Filter
+  Banknote, Smartphone, User, X, Receipt, Package
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -12,24 +12,11 @@ import { useRouter } from "next/navigation";
 interface Product {
   id: string; sku: string; name: string; sellingPrice: number;
   taxRate: number; productType: string; stock: number; imageUrl: string | null;
-  categoryId: string | null; brandId: string | null;
-}
-
-interface ProductVariation {
-  id: string;
-  productId: string;
-  name: string;
-  value: string;
-  attributeType: string;
-  imageUrl: string | null;
-  sortOrder: number;
-  isActive: boolean;
 }
 
 interface CartItem extends Product {
   qty: number;
   discount: number;
-  selectedVariations?: { [attributeType: string]: string }; // e.g., { "color": "Red", "size": "Large" }
 }
 
 interface Customer {
@@ -64,18 +51,6 @@ export default function POSPage() {
   const [storePhone, setStorePhone] = useState('');
   const [storeCity, setStoreCity] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [categories, setCategories] = useState<{id: string; name: string}[]>([]);
-  const [brands, setBrands] = useState<{id: string; name: string}[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [brandFilter, setBrandFilter] = useState('');
-  const [allowSubtotalEdit, setAllowSubtotalEdit] = useState(true);
-  const [allowOversell, setAllowOversell] = useState(false);
-  const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [newProductForm, setNewProductForm] = useState({ name: '', sku: '', sellingPrice: '', costPrice: '', categoryId: '', brandId: '' });
-  const [showVariationModal, setShowVariationModal] = useState(false);
-  const [selectedProductForVariation, setSelectedProductForVariation] = useState<Product | null>(null);
-  const [productVariations, setProductVariations] = useState<ProductVariation[]>([]);
-  const [selectedVariations, setSelectedVariations] = useState<{ [attributeType: string]: string }>({});
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -85,20 +60,14 @@ export default function POSPage() {
         taxRate: p.taxRate, productType: p.productType,
         stock: p.inventory?.quantity ?? 0,
         imageUrl: p.imageUrl || null,
-        categoryId: p.categoryId || null,
-        brandId: p.brandId || null,
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
-    fetch("/api/categories").then(r => r.json()).then(setCategories).catch(() => {});
-    fetch("/api/brands").then(r => r.json()).then(setBrands).catch(() => {});
     fetch("/api/settings").then(r => r.json()).then((settings: Record<string, string>) => {
       setTaxEnabled(settings['tax_enabled'] === 'true');
       setPrintTemplate((settings['print_template'] as any) || '80mm');
       setCurrency(settings['currency'] || 'Rs.');
       setShowDenominations(settings['pos_show_denominations'] !== 'false');
-      setAllowSubtotalEdit(settings['pos_allow_subtotal_edit'] !== 'false');
-      setAllowOversell(settings['pos_allow_oversell'] === 'true');
       setStoreName(settings['store_name'] || 'OPTICS SHOP');
       setStoreAddress(settings['store_address'] || '');
       setStorePhone(settings['store_phone'] || '');
@@ -108,13 +77,10 @@ export default function POSPage() {
     searchRef.current?.focus();
   }, []);
 
-  const filteredProducts = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchCategory = !categoryFilter || (p as any).categoryId === categoryFilter;
-    const matchBrand = !brandFilter || (p as any).brandId === brandFilter;
-    return matchSearch && matchCategory && matchBrand;
-  });
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.sku.toLowerCase().includes(search.toLowerCase())
+  );
 
   const filteredCustomers = customers.filter(c =>
     `${c.firstName} ${c.lastName}`.toLowerCase().includes(custSearch.toLowerCase()) ||
@@ -122,43 +88,11 @@ export default function POSPage() {
   );
 
   function addToCart(product: Product) {
-    if (product.stock <= 0 && !allowOversell) {
-      toast.error(`${product.name} is out of stock`);
-      return;
-    }
-    
-    // Check if product has variations
-    setSelectedProductForVariation(product);
-    setSelectedVariations({});
-    
-    // Fetch variations for this product
-    fetch(`/api/product-variations?productId=${product.id}`)
-      .then(r => r.json())
-      .then((variations: ProductVariation[]) => {
-        setProductVariations(variations);
-        
-        // If product has variations, show modal; otherwise add directly
-        if (variations.length > 0) {
-          setShowVariationModal(true);
-        } else {
-          addProductToCart(product, {});
-        }
-      })
-      .catch(() => {
-        // If variations fetch fails, add directly
-        addProductToCart(product, {});
-      });
-  }
-
-  function addProductToCart(product: Product, variations: { [key: string]: string }) {
     setCart(prev => {
-      const existing = prev.find(i => i.id === product.id && JSON.stringify(i.selectedVariations || {}) === JSON.stringify(variations));
-      if (existing) return prev.map(i => i.id === product.id && JSON.stringify(i.selectedVariations || {}) === JSON.stringify(variations) ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...product, qty: 1, discount: 0, selectedVariations: variations }];
+      const existing = prev.find(i => i.id === product.id);
+      if (existing) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...product, qty: 1, discount: 0 }];
     });
-    setShowVariationModal(false);
-    setSelectedProductForVariation(null);
-    setSelectedVariations({});
   }
 
   function updateQty(id: string, delta: number) {
@@ -182,52 +116,6 @@ export default function POSPage() {
   const grandTotal = taxableAmount + taxAmount;
   const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
   const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : denominationsTotal > 0 ? Math.max(0, denominationsTotal - grandTotal) : 0;
-
-  async function handleAddProduct() {
-    if (!newProductForm.name || !newProductForm.sku || !newProductForm.sellingPrice) {
-      return toast.error("Please fill in all required fields");
-    }
-    
-    try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newProductForm.name,
-          sku: newProductForm.sku,
-          sellingPrice: parseFloat(newProductForm.sellingPrice),
-          costPrice: parseFloat(newProductForm.costPrice) || 0,
-          categoryId: newProductForm.categoryId || null,
-          brandId: newProductForm.brandId || null,
-          productType: "product",
-          taxRate: 0,
-        }),
-      });
-      
-      if (res.ok) {
-        const newProduct = await res.json();
-        setProducts(prev => [...prev, {
-          id: newProduct.id,
-          sku: newProduct.sku,
-          name: newProduct.name,
-          sellingPrice: newProduct.sellingPrice,
-          taxRate: newProduct.taxRate,
-          productType: newProduct.productType,
-          stock: 0,
-          imageUrl: newProduct.imageUrl,
-          categoryId: newProduct.categoryId,
-          brandId: newProduct.brandId,
-        }]);
-        setShowAddProductModal(false);
-        setNewProductForm({ name: '', sku: '', sellingPrice: '', costPrice: '', categoryId: '', brandId: '' });
-        toast.success("Product added successfully");
-      } else {
-        toast.error("Failed to add product");
-      }
-    } catch (err) {
-      toast.error("Error adding product");
-    }
-  }
 
   async function completeSale() {
     if (cart.length === 0) return toast.error("Cart is empty");
@@ -423,35 +311,10 @@ export default function POSPage() {
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-8rem)] w-full overflow-x-hidden">
       {/* Products Panel */}
       <div className="w-full lg:flex-1 flex flex-col min-h-[400px] lg:min-h-0">
-        <div className="mb-4 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input text-xs py-2 px-2 w-auto min-w-[140px]">
-              <option value="">All Categories</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="input text-xs py-2 px-2 w-auto min-w-[140px]">
-              <option value="">All Brands</option>
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-            {(categoryFilter || brandFilter) && (
-              <button onClick={() => { setCategoryFilter(''); setBrandFilter(''); }} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
-                <X size={12} /> Clear
-              </button>
-            )}
-            <button
-              onClick={() => setShowAddProductModal(true)}
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 shrink-0 transition text-xs font-medium ml-auto"
-              title="Add new product"
-            >
-              <Plus size={16} /> Add Product
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <ScanBarcode size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Enter Product name / SKU / Scan bar code" className="input pl-10 pr-10 text-base" />
-              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16} /></button>}
-            </div>
+        <div className="mb-4">
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products by name or SKU..." className="input pl-10 text-base" />
           </div>
         </div>
 
@@ -460,9 +323,9 @@ export default function POSPage() {
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
               className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
-              <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden" style={{ aspectRatio: '1/1' }}>
+              <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                 {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" style={{ aspectRatio: '1/1' }} />
+                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                 ) : (
                   <Package size={32} className="text-gray-300" />
                 )}
@@ -565,16 +428,9 @@ export default function POSPage() {
             </div>
           ) : (
             cart.map((item) => (
-              <div key={`${item.id}-${JSON.stringify(item.selectedVariations || {})}`} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+              <div key={item.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
-                  {item.selectedVariations && Object.keys(item.selectedVariations).length > 0 && (
-                    <p className="text-xs text-gray-500">
-                      {Object.entries(item.selectedVariations)
-                        .map(([type, value]) => `${type}: ${value}`)
-                        .join(", ")}
-                    </p>
-                  )}
                   <p className="text-xs text-gray-400">{formatCurrency(item.sellingPrice)} × {item.qty}</p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -593,17 +449,13 @@ export default function POSPage() {
         <div className="p-4 border-t border-gray-100 space-y-2">
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-500">Subtotal</span>
-            {allowSubtotalEdit ? (
-              <input 
-                type="number" 
-                value={manualSubtotal !== null ? manualSubtotal : subtotal.toFixed(2)} 
-                onChange={(e) => setManualSubtotal(e.target.value === '' ? null : parseFloat(e.target.value))}
-                className="input text-sm w-24 text-right p-1" 
-                step="0.01"
-              />
-            ) : (
-              <span className="font-medium">{formatCurrency(subtotal)}</span>
-            )}
+            <input 
+              type="number" 
+              value={manualSubtotal !== null ? manualSubtotal : subtotal.toFixed(2)} 
+              onChange={(e) => setManualSubtotal(e.target.value === '' ? null : parseFloat(e.target.value))}
+              className="input text-sm w-24 text-right p-1" 
+              step="0.01"
+            />
           </div>
           
           <div className="flex justify-between items-center text-sm">
@@ -709,175 +561,6 @@ export default function POSPage() {
           )}
         </div>
       </div>
-
-      {/* Add Product Modal */}
-      {showAddProductModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Add New Product</h2>
-              <button onClick={() => setShowAddProductModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="label">Product Name *</label>
-                <input 
-                  type="text" 
-                  value={newProductForm.name} 
-                  onChange={(e) => setNewProductForm({...newProductForm, name: e.target.value})}
-                  className="input" 
-                  placeholder="e.g., Blue Light Glasses"
-                />
-              </div>
-              
-              <div>
-                <label className="label">SKU *</label>
-                <input 
-                  type="text" 
-                  value={newProductForm.sku} 
-                  onChange={(e) => setNewProductForm({...newProductForm, sku: e.target.value})}
-                  className="input" 
-                  placeholder="e.g., BLG-001"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="label">Cost Price</label>
-                  <input 
-                    type="number" 
-                    value={newProductForm.costPrice} 
-                    onChange={(e) => setNewProductForm({...newProductForm, costPrice: e.target.value})}
-                    className="input" 
-                    placeholder="0"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <label className="label">Selling Price *</label>
-                  <input 
-                    type="number" 
-                    value={newProductForm.sellingPrice} 
-                    onChange={(e) => setNewProductForm({...newProductForm, sellingPrice: e.target.value})}
-                    className="input" 
-                    placeholder="0"
-                    step="0.01"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="label">Category</label>
-                <select 
-                  value={newProductForm.categoryId} 
-                  onChange={(e) => setNewProductForm({...newProductForm, categoryId: e.target.value})}
-                  className="input"
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              
-              <div>
-                <label className="label">Brand</label>
-                <select 
-                  value={newProductForm.brandId} 
-                  onChange={(e) => setNewProductForm({...newProductForm, brandId: e.target.value})}
-                  className="input"
-                >
-                  <option value="">Select Brand</option>
-                  {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </div>
-            </div>
-            
-            <div className="flex gap-2 mt-6">
-              <button 
-                onClick={() => setShowAddProductModal(false)} 
-                className="btn-secondary flex-1"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleAddProduct} 
-                className="btn-primary flex-1"
-              >
-                Add Product
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Product Variations Modal */}
-      {showVariationModal && selectedProductForVariation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Select Variations</h2>
-              <button onClick={() => { setShowVariationModal(false); setSelectedProductForVariation(null); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-4">{selectedProductForVariation.name}</p>
-
-            <div className="space-y-4">
-              {productVariations.length > 0 ? (
-                // Group variations by attribute type
-                Object.entries(
-                  productVariations.reduce((acc: { [key: string]: ProductVariation[] }, v: ProductVariation) => {
-                    if (!acc[v.attributeType]) acc[v.attributeType] = [];
-                    acc[v.attributeType].push(v);
-                    return acc;
-                  }, {})
-                ).map(([attributeType, variations]: [string, ProductVariation[]]) => (
-                  <div key={attributeType}>
-                    <label className="label capitalize">{attributeType}</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {variations.map((v: ProductVariation) => (
-                        <button
-                          key={v.id}
-                          onClick={() => setSelectedVariations(prev => ({ ...prev, [attributeType]: v.value }))}
-                          className={cn(
-                            "p-2 rounded border-2 text-sm font-medium transition",
-                            selectedVariations[attributeType] === v.value
-                              ? "border-primary-600 bg-primary-50 text-primary-700"
-                              : "border-gray-200 text-gray-700 hover:border-gray-300"
-                          )}
-                        >
-                          {v.imageUrl && <img src={v.imageUrl} alt={v.name} className="w-full h-6 object-cover mb-1 rounded" />}
-                          {v.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm">No variations available</p>
-              )}
-            </div>
-
-            <div className="flex gap-2 mt-6">
-              <button 
-                onClick={() => { setShowVariationModal(false); setSelectedProductForVariation(null); }} 
-                className="btn-secondary flex-1"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => {
-                  if (selectedProductForVariation) {
-                    addProductToCart(selectedProductForVariation, selectedVariations);
-                  }
-                }}
-                className="btn-primary flex-1"
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

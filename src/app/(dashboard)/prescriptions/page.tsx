@@ -22,7 +22,6 @@ export default async function PrescriptionsPage() {
     expiryDate: p.expiryDate ?? "",
     odSphere: p.odSphere, odCylinder: p.odCylinder, odAxis: p.odAxis, odAdd: p.odAdd,
     osSphere: p.osSphere, osCylinder: p.osCylinder, osAxis: p.osAxis, osAdd: p.osAdd,
-    photoUrl: p.photoUrl ?? null,
   }));
 
   const custList = customers.map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName ?? ""}`.trim(), no: c.customerNo }));

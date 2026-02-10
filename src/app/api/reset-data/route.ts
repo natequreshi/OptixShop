@@ -46,131 +46,131 @@ export async function POST() {
     const brandTomFord = await prisma.brand.create({ data: { name: "Tom Ford" } });
     const brandGucci = await prisma.brand.create({ data: { name: "Gucci" } });
 
-    // ── 10 Products with images ──
+    // ── 10 Products with varied stock levels ──
     const p1 = await prisma.product.create({
       data: {
-        sku: "FRM-001", barcode: "8901234001", name: "Ray-Ban Aviator Classic",
+        sku: "FRM-001", barcode: "8901234001", name: "Ray-Ban Aviator Gold",
         categoryId: catFrames.id, brandId: brandRayBan.id, productType: "frame",
         costPrice: 4500, sellingPrice: 8999, mrp: 9500, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400",
         isActive: true,
-        inventory: { create: { quantity: 12, location: "main" } },
+        inventory: { create: { quantity: 25, location: "main" } }, // High stock
       },
     });
     const p2 = await prisma.product.create({
       data: {
-        sku: "FRM-002", barcode: "8901234002", name: "Oakley Holbrook Rectangle",
+        sku: "FRM-002", barcode: "8901234002", name: "Oakley Holbrook Matte Black",
         categoryId: catFrames.id, brandId: brandOakley.id, productType: "frame",
         costPrice: 3800, sellingPrice: 7500, mrp: 8000, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400",
         isActive: true,
-        inventory: { create: { quantity: 8, location: "main" } },
+        inventory: { create: { quantity: 3, location: "main" } }, // Low stock
       },
     });
     const p3 = await prisma.product.create({
       data: {
-        sku: "FRM-003", barcode: "8901234003", name: "Tom Ford Cat Eye FT5639",
+        sku: "FRM-003", barcode: "8901234003", name: "Tom Ford Cat Eye Tortoise",
         categoryId: catFrames.id, brandId: brandTomFord.id, productType: "frame",
         costPrice: 6200, sellingPrice: 12500, mrp: 13000, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=400",
         isActive: true,
-        inventory: { create: { quantity: 5, location: "main" } },
+        inventory: { create: { quantity: 0, location: "main" } }, // Out of stock
       },
     });
     const p4 = await prisma.product.create({
       data: {
-        sku: "LNS-001", barcode: "8901234004", name: "Essilor Crizal Sapphire UV Lenses",
+        sku: "LNS-001", barcode: "8901234004", name: "Essilor Crizal Sapphire",
         categoryId: catLenses.id, brandId: brandEssilor.id, productType: "lens",
         costPrice: 2800, sellingPrice: 5500, mrp: 6000, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1616444536069-a13e1423e839?w=400",
         isActive: true,
-        inventory: { create: { quantity: 30, location: "main" } },
+        inventory: { create: { quantity: 50, location: "main" } }, // High stock
       },
     });
     const p5 = await prisma.product.create({
       data: {
-        sku: "LNS-002", barcode: "8901234005", name: "Essilor Blue Cut Computer Lenses",
+        sku: "LNS-002", barcode: "8901234005", name: "Blue Light Blocking Lenses",
         categoryId: catLenses.id, brandId: brandEssilor.id, productType: "lens",
         costPrice: 1800, sellingPrice: 3500, mrp: 4000, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1577401239170-897942555fb3?w=400",
         isActive: true,
-        inventory: { create: { quantity: 25, location: "main" } },
+        inventory: { create: { quantity: 15, location: "main" } }, // Medium stock
       },
     });
     const p6 = await prisma.product.create({
       data: {
-        sku: "SUN-001", barcode: "8901234006", name: "Ray-Ban Wayfarer Sunglasses",
+        sku: "SUN-001", barcode: "8901234006", name: "Ray-Ban Wayfarer Classic",
         categoryId: catSunglasses.id, brandId: brandRayBan.id, productType: "frame",
         costPrice: 5000, sellingPrice: 9999, mrp: 10500, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1508296695146-257a814070b4?w=400",
         isActive: true,
-        inventory: { create: { quantity: 3, location: "main" } },
+        inventory: { create: { quantity: 1, location: "main" } }, // Critical low
       },
     });
     const p7 = await prisma.product.create({
       data: {
-        sku: "SUN-002", barcode: "8901234007", name: "Gucci GG0036SN Oversized",
+        sku: "SUN-002", barcode: "8901234007", name: "Gucci Oversized Sunglasses",
         categoryId: catSunglasses.id, brandId: brandGucci.id, productType: "frame",
         costPrice: 8500, sellingPrice: 16999, mrp: 18000, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=400",
         isActive: true,
-        inventory: { create: { quantity: 2, location: "main" } },
+        inventory: { create: { quantity: 8, location: "main" } }, // Medium stock
       },
     });
     const p8 = await prisma.product.create({
       data: {
-        sku: "CL-001", barcode: "8901234008", name: "Acuvue Oasys Daily (30 Pack)",
+        sku: "CL-001", barcode: "8901234008", name: "Acuvue Oasys Daily 30pk",
         categoryId: catContacts.id, brandId: brandAcuvue.id, productType: "contact_lens",
         costPrice: 1200, sellingPrice: 2500, mrp: 2800, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?w=400",
         isActive: true,
-        inventory: { create: { quantity: 20, location: "main" } },
+        inventory: { create: { quantity: 35, location: "main" } }, // High stock
       },
     });
     const p9 = await prisma.product.create({
       data: {
-        sku: "CL-002", barcode: "8901234009", name: "Acuvue Vita Monthly (6 Pack)",
+        sku: "CL-002", barcode: "8901234009", name: "Acuvue Vita Monthly 6pk",
         categoryId: catContacts.id, brandId: brandAcuvue.id, productType: "contact_lens",
         costPrice: 2000, sellingPrice: 3800, mrp: 4200, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400",
         isActive: true,
-        inventory: { create: { quantity: 4, location: "main" } },
+        inventory: { create: { quantity: 0, location: "main" } }, // Out of stock
       },
     });
     const p10 = await prisma.product.create({
       data: {
-        sku: "ACC-001", barcode: "8901234010", name: "Premium Microfiber Cleaning Kit",
+        sku: "ACC-001", barcode: "8901234010", name: "Microfiber Cleaning Kit",
         categoryId: catAccessories.id, productType: "accessory",
         costPrice: 200, sellingPrice: 499, mrp: 599, taxRate: 18,
         imageUrl: "https://images.unsplash.com/photo-1556015048-4d3aa10df74c?w=400",
         isActive: true,
-        inventory: { create: { quantity: 50, location: "main" } },
+        inventory: { create: { quantity: 5, location: "main" } }, // Low stock
       },
     });
 
-    // ── Customer ──
+    // ── 2 Customers from Pakistan ──
     const customer = await prisma.customer.create({
       data: {
-        customerNo: "CUST00001", firstName: "Nasir", lastName: "Qureshi",
+        customerNo: "CUST00001", firstName: "Ahmed", lastName: "Hassan",
         phone: "+92-300-1234567", whatsapp: "+92-300-1234567",
-        email: "nasir.qureshi@example.com", address: "123 Main Street",
+        email: "ahmed.hassan@example.com", address: "Block 15, Gulistan-e-Johar",
         city: "Karachi", state: "Sindh", country: "Pakistan",
-        gender: "male", dateOfBirth: "1985-05-15",
-        isActive: true, loyaltyPoints: 0, totalPurchases: 0,
+        gender: "male", dateOfBirth: "1988-03-22",
+        isActive: true, loyaltyPoints: 150, totalPurchases: 0,
       },
     });
     const customer2 = await prisma.customer.create({
       data: {
-        customerNo: "CUST00002", firstName: "Ayesha", lastName: "Khan",
+        customerNo: "CUST00002", firstName: "Fatima", lastName: "Ali",
         phone: "+92-321-9876543", whatsapp: "+92-321-9876543",
-        email: "ayesha.khan@example.com", address: "45 Garden Town",
-        city: "Lahore", state: "Punjab", country: "Pakistan",
-        gender: "female", dateOfBirth: "1992-08-20",
-        isActive: true, loyaltyPoints: 0, totalPurchases: 0,
+        email: "fatima.ali@example.com", address: "Sector F-7, Street 45",
+        city: "Islamabad", state: "Islamabad Capital Territory", country: "Pakistan",
+        gender: "female", dateOfBirth: "1995-11-08",
+        isActive: true, loyaltyPoints: 80, totalPurchases: 0,
       },
     });
 
-    // ── Prescriptions ──
+    // ── Prescriptions with images ──
     const rx1 = await prisma.prescription.create({
       data: {
         prescriptionNo: "RX00001", customerId: customer.id,
@@ -178,6 +178,7 @@ export async function POST() {
         prescribedBy: "Dr. Ahmed Khan",
         odSphere: -2.5, odCylinder: -0.75, odAxis: 180, odAdd: 0, odPd: 32,
         osSphere: -2.75, osCylinder: -0.5, osAxis: 175, osAdd: 0, osPd: 32,
+        photoUrl: "https://images.unsplash.com/photo-1631248055579-7e8c9c3c5c0e?w=400",
       },
     });
     const rx2 = await prisma.prescription.create({
@@ -187,6 +188,7 @@ export async function POST() {
         prescribedBy: "Dr. Sara Ali",
         odSphere: -3.0, odCylinder: -1.0, odAxis: 180, odAdd: 1.5, odPd: 31,
         osSphere: -3.25, osCylinder: -0.75, osAxis: 170, osAdd: 1.5, osPd: 31,
+        photoUrl: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400",
       },
     });
 
@@ -198,7 +200,7 @@ export async function POST() {
         taxAmount: 2519.82, cgstAmount: 1259.91, sgstAmount: 1259.91,
         totalAmount: 16518.82, paidAmount: 16518.82, balanceAmount: 0,
         status: "completed", paymentStatus: "paid",
-        notes: "Complete eyeglass set with prescription lenses",
+        notes: "Complete eyeglass set with prescription",
         items: {
           create: [
             { productId: p1.id, quantity: 1, unitPrice: 8999, costPrice: 4500, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 1619.82, cgst: 809.91, sgst: 809.91, total: 10618.82 },
@@ -215,115 +217,46 @@ export async function POST() {
     const sale2 = await prisma.sale.create({
       data: {
         invoiceNo: "INV00002", customerId: customer2.id,
-        saleDate: "2026-02-07", subtotal: 9999, discountAmount: 0,
-        taxAmount: 1799.82, cgstAmount: 899.91, sgstAmount: 899.91,
-        totalAmount: 11798.82, paidAmount: 11798.82, balanceAmount: 0,
+        saleDate: "2026-02-08", subtotal: 16999, discountAmount: 1000,
+        taxAmount: 2879.82, cgstAmount: 1439.91, sgstAmount: 1439.91,
+        totalAmount: 18878.82, paidAmount: 18878.82, balanceAmount: 0,
         status: "completed", paymentStatus: "paid",
-        notes: "Sunglasses purchase",
+        notes: "Designer sunglasses with 10% discount",
         items: {
           create: [
-            { productId: p6.id, quantity: 1, unitPrice: 9999, costPrice: 5000, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 1799.82, cgst: 899.91, sgst: 899.91, total: 11798.82 },
+            { productId: p7.id, quantity: 1, unitPrice: 16999, costPrice: 8500, discountPct: 0, discountAmount: 1000, taxRate: 18, taxAmount: 2879.82, cgst: 1439.91, sgst: 1439.91, total: 18878.82 },
           ],
         },
       },
     });
     await prisma.payment.create({
-      data: { paymentNo: "PAY00002", paymentType: "receipt", saleId: sale2.id, customerId: customer2.id, paymentDate: "2026-02-07", amount: 11798.82, paymentMethod: "card" },
+      data: { paymentNo: "PAY00002", paymentType: "receipt", saleId: sale2.id, customerId: customer2.id, paymentDate: "2026-02-08", amount: 18878.82, paymentMethod: "card" },
     });
 
-    // ── Sale 3: Pending with partial payment ──
+    // ── Sale 3: Pending ──
     const sale3 = await prisma.sale.create({
       data: {
-        invoiceNo: "INV00003", customerId: customer.id, prescriptionId: rx1.id,
-        saleDate: "2026-02-08", subtotal: 16000, discountAmount: 0,
-        taxAmount: 2880, cgstAmount: 1440, sgstAmount: 1440,
-        totalAmount: 18880, paidAmount: 10000, balanceAmount: 8880,
+        invoiceNo: "INV00003", customerId: customer.id,
+        saleDate: "2026-02-09", subtotal: 8999, discountAmount: 0,
+        taxAmount: 1619.82, cgstAmount: 809.91, sgstAmount: 809.91,
+        totalAmount: 10618.82, paidAmount: 5000, balanceAmount: 5618.82,
         status: "pending", paymentStatus: "partial",
-        notes: "Pending - customer will pay balance on delivery",
-        items: {
-          create: [
-            { productId: p3.id, quantity: 1, unitPrice: 12500, costPrice: 6200, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 2250, cgst: 1125, sgst: 1125, total: 14750 },
-            { productId: p5.id, quantity: 1, unitPrice: 3500, costPrice: 1800, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 630, cgst: 315, sgst: 315, total: 4130 },
-          ],
-        },
-      },
-    });
-    await prisma.payment.create({
-      data: { paymentNo: "PAY00003", paymentType: "receipt", saleId: sale3.id, customerId: customer.id, paymentDate: "2026-02-08", amount: 10000, paymentMethod: "cash" },
-    });
-
-    // ── Sale 4: Draft ──
-    await prisma.sale.create({
-      data: {
-        invoiceNo: "INV00004", customerId: customer2.id, prescriptionId: rx2.id,
-        saleDate: "2026-02-09", subtotal: 7500, discountAmount: 0,
-        taxAmount: 1350, cgstAmount: 675, sgstAmount: 675,
-        totalAmount: 8850, paidAmount: 0, balanceAmount: 8850,
-        status: "draft", paymentStatus: "unpaid",
-        notes: "Draft - customer is deciding on lenses",
+        notes: "Pending balance payment",
         items: {
           create: [
             { productId: p2.id, quantity: 1, unitPrice: 7500, costPrice: 3800, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 1350, cgst: 675, sgst: 675, total: 8850 },
+            { productId: p10.id, quantity: 3, unitPrice: 499, costPrice: 200, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 269.82, cgst: 134.91, sgst: 134.91, total: 1768.82 },
           ],
         },
       },
     });
-
-    // ── Sale 5: Draft ──
-    await prisma.sale.create({
-      data: {
-        invoiceNo: "INV00005",
-        saleDate: "2026-02-09", subtotal: 2500, discountAmount: 0,
-        taxAmount: 450, cgstAmount: 225, sgstAmount: 225,
-        totalAmount: 2950, paidAmount: 0, balanceAmount: 2950,
-        status: "draft", paymentStatus: "unpaid",
-        notes: "Walk-in customer draft for contacts",
-        items: {
-          create: [
-            { productId: p8.id, quantity: 1, unitPrice: 2500, costPrice: 1200, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 450, cgst: 225, sgst: 225, total: 2950 },
-          ],
-        },
-      },
-    });
-
-    // ── Sale 6: Cancelled ──
-    await prisma.sale.create({
-      data: {
-        invoiceNo: "INV00006", customerId: customer.id,
-        saleDate: "2026-02-03", subtotal: 16999, discountAmount: 0,
-        taxAmount: 3059.82, cgstAmount: 1529.91, sgstAmount: 1529.91,
-        totalAmount: 20058.82, paidAmount: 0, balanceAmount: 0,
-        status: "cancelled", paymentStatus: "unpaid",
-        notes: "Cancelled by customer",
-        items: {
-          create: [
-            { productId: p7.id, quantity: 1, unitPrice: 16999, costPrice: 8500, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 3059.82, cgst: 1529.91, sgst: 1529.91, total: 20058.82 },
-          ],
-        },
-      },
-    });
-
-    // ── Sale 7: Pending unpaid ──
-    await prisma.sale.create({
-      data: {
-        invoiceNo: "INV00007", customerId: customer2.id,
-        saleDate: "2026-02-10", subtotal: 4299, discountAmount: 0,
-        taxAmount: 773.82, cgstAmount: 386.91, sgstAmount: 386.91,
-        totalAmount: 5072.82, paidAmount: 0, balanceAmount: 5072.82,
-        status: "pending", paymentStatus: "unpaid",
-        notes: "Pending payment — will pay on pickup",
-        items: {
-          create: [
-            { productId: p9.id, quantity: 1, unitPrice: 3800, costPrice: 2000, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 684, cgst: 342, sgst: 342, total: 4484 },
-            { productId: p10.id, quantity: 1, unitPrice: 499, costPrice: 200, discountPct: 0, discountAmount: 0, taxRate: 18, taxAmount: 89.82, cgst: 44.91, sgst: 44.91, total: 588.82 },
-          ],
-        },
-      },
+    await prisma.payment.create({
+      data: { paymentNo: "PAY00003", paymentType: "receipt", saleId: sale3.id, customerId: customer.id, paymentDate: "2026-02-09", amount: 5000, paymentMethod: "cash" },
     });
 
     // Update customer totals
-    await prisma.customer.update({ where: { id: customer.id }, data: { totalPurchases: 16518.82 } });
-    await prisma.customer.update({ where: { id: customer2.id }, data: { totalPurchases: 11798.82 } });
+    await prisma.customer.update({ where: { id: customer.id }, data: { totalPurchases: 16518.82 + 5000 } });
+    await prisma.customer.update({ where: { id: customer2.id }, data: { totalPurchases: 18878.82 } });
 
     return NextResponse.json({
       success: true,
@@ -334,8 +267,8 @@ export async function POST() {
         products: 10,
         customers: 2,
         prescriptions: 2,
-        sales: 7,
-        summary: "2 completed, 2 pending, 2 draft, 1 cancelled",
+        sales: 3,
+        summary: "Stock levels: 2 out of stock, 3 low stock, 5 in stock | 2 completed sales, 1 pending",
       },
     });
   } catch (error: any) {

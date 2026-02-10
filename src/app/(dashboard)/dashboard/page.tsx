@@ -101,6 +101,7 @@ export default async function DashboardPage() {
     monthSalesCount: monthSales._count,
     monthSalesAmount: monthSales._sum.totalAmount ?? 0,
     lowStockCount,
+    pendingLabOrders,
     totalSales: totalSalesAmount,
     netSales,
     invoiceDue: invoiceDue._sum.balanceAmount ?? 0,

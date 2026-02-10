@@ -107,28 +107,8 @@ model Product {
   returnItems        ReturnItem[]
   labOrderFrames     LabOrder[] @relation("labFrame")
   labOrderLenses     LabOrder[] @relation("labLens")
-  variations         ProductVariation[]
 
   @@map("products")
-}
-
-// ─── PRODUCT VARIATIONS ───────────────────────────────
-model ProductVariation {
-  id          String   @id @default(cuid())
-  productId   String   @map("product_id")
-  name        String   // e.g., "Red", "Blue", "Large", "Small"
-  value       String   // e.g., the actual color code or size value
-  attributeType String @map("attribute_type") // e.g., "color", "size", "material"
-  imageUrl    String?  @map("image_url")
-  sortOrder   Int      @default(0) @map("sort_order")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, attributeType, value])
-  @@map("product_variations")
 }
 
 // ─── PRODUCT ATTRIBUTES ───────────────────────────────
@@ -267,7 +247,6 @@ model Prescription {
   osAxis          Int?    @map("os_axis")
   osAdd           Float?  @map("os_add")
   osPd            Float?  @map("os_pd")
-  photoUrl        String? @map("photo_url")
   notes           String?
   createdAt       DateTime @default(now()) @map("created_at")
 

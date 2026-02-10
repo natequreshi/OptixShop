@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useMemo } from "react";
+import * as React from "react";
 import {
   DollarSign,
   Package,
@@ -25,53 +26,33 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import DateFilter from "@/components/DateFilter";
-
-interface Stats {
-  totalProducts: number;
-  totalCustomers: number;
-  todaySalesCount: number;
-  todaySalesAmount: number;
-  monthSalesCount: number;
-  monthSalesAmount: number;
-  lowStockCount: number;
-  totalSales: number;
-  netSales: number;
-  invoiceDue: number;
-  totalSellReturn: number;
-  totalPurchase: number;
-  purchaseDue: number;
-  totalPurchaseReturn: number;
-  totalExpense: number;
-}
 
 interface Props {
-  stats: Stats;
+  stats: {
+    totalProducts: number;
+    totalCustomers: number;
+    todaySalesCount: number;
+    todaySalesAmount: number;
+    monthSalesCount: number;
+    monthSalesAmount: number;
+    lowStockCount: number;
+    pendingLabOrders: number;
+    totalSales: number;
+    netSales: number;
+    invoiceDue: number;
+    totalSellReturn: number;
+    totalPurchase: number;
+    purchaseDue: number;
+    totalPurchaseReturn: number;
+    totalExpense: number;
+  };
   salesLast30Days: { date: string; amount: number }[];
   salesByMonth: { month: string; amount: number }[];
 }
 
-export default function DashboardClient({ stats: initialStats, salesLast30Days: initialChart, salesByMonth: initialMonthly }: Props) {
-  const [stats, setStats] = useState<Stats>(initialStats);
-  const [salesChart, setSalesChart] = useState(initialChart);
-  const [salesByMonth, setSalesByMonth] = useState(initialMonthly);
-  const [loading, setLoading] = useState(false);
+export default function DashboardClient({ stats, salesLast30Days, salesByMonth }: Props) {
 
-  const fetchData = useCallback(async (from: string, to: string) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (from) params.set("from", from);
-      if (to) params.set("to", to);
-      const res = await fetch(`/api/dashboard?${params}`);
-      const data = await res.json();
-      setStats(data.stats);
-      setSalesChart(data.salesChart);
-      setSalesByMonth(data.salesByMonth);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, []);
-
+  /* ─── Top 8 Summary Cards (matching reference image) ─── */
   const summaryCards = [
     {
       title: "Total Sales",
@@ -158,11 +139,17 @@ export default function DashboardClient({ stats: initialStats, salesLast30Days: 
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Welcome back! Here&apos;s your overview</p>
+          <p className="text-sm text-gray-500 mt-1">Welcome back! Here's your overview</p>
         </div>
-        <div className="flex items-center gap-3">
-          <DateFilter onDateChange={fetchData} />
-          {loading && <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />}
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-gray-500">
+            {new Date().toLocaleDateString("en-IN", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
         </div>
       </div>
 
@@ -183,15 +170,14 @@ export default function DashboardClient({ stats: initialStats, salesLast30Days: 
         ))}
       </div>
 
-      {/* ── Sales Trend (Line Chart) ── */}
+      {/* ── Sales Last 30 Days (Line Chart) ── */}
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 size={18} className="text-primary-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Sales Trend</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Sales Last 30 Days</h3>
         </div>
-        {salesChart.length > 0 ? (
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={salesChart}>
+          <AreaChart data={salesLast30Days}>
             <defs>
               <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.15} />
@@ -199,7 +185,7 @@ export default function DashboardClient({ stats: initialStats, salesLast30Days: 
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={formatChartDate} interval={Math.max(0, Math.floor(salesChart.length / 10))} />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={formatChartDate} interval={2} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
             <Tooltip
               formatter={(value: number) => [formatCurrency(value), "Sales"]}
@@ -209,17 +195,13 @@ export default function DashboardClient({ stats: initialStats, salesLast30Days: 
             <Area type="monotone" dataKey="amount" stroke="#4F46E5" strokeWidth={2} fill="url(#salesGradient)" dot={{ r: 2, fill: "#4F46E5" }} />
           </AreaChart>
         </ResponsiveContainer>
-        ) : (
-          <div className="text-center py-12 text-gray-400 text-sm">No sales data for selected period</div>
-        )}
       </div>
 
-      {/* ── Monthly Breakdown ── */}
-      {salesByMonth.length > 0 && (
+      {/* ── Sales Current Financial Year (Line Chart) ── */}
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp size={18} className="text-primary-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Monthly Breakdown</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Sales Current Financial Year</h3>
         </div>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={salesByMonth}>
@@ -240,7 +222,6 @@ export default function DashboardClient({ stats: initialStats, salesLast30Days: 
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      )}
     </div>
   );
 }
