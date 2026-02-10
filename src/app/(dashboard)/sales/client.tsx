@@ -37,7 +37,7 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [viewingSale, setViewingSale] = useState<Sale | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [printingSale, setPrintingSale] = useState<Sale | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -95,8 +95,7 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
                 <SaleRow
                   key={s.id}
                   sale={s}
-                  expanded={expandedId === s.id}
-                  onToggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                  onView={() => setViewingSale(s)}
                   onEdit={() => setEditingSale(s)}
                   onPrint={() => setPrintingSale(s)}
                   onDelete={async () => {
@@ -112,6 +111,10 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
           </table>
         </div>
       </div>
+
+      {viewingSale && (
+        <ViewSaleModal sale={viewingSale} onClose={() => setViewingSale(null)} onEdit={() => { setEditingSale(viewingSale); setViewingSale(null); }} onPrint={() => { setPrintingSale(viewingSale); setViewingSale(null); }} />
+      )}
 
       {editingSale && (
         <EditSaleModal sale={editingSale} onClose={() => setEditingSale(null)} onSaved={() => { setEditingSale(null); router.refresh(); }} />
@@ -132,18 +135,15 @@ export default function SalesClient({ sales }: { sales: Sale[] }) {
   );
 }
 
-/* ── Sale Row with Accordion ─────────────────── */
-function SaleRow({ sale: s, expanded, onToggleExpand, onEdit, onPrint, onDelete }: {
-  sale: Sale; expanded: boolean; onToggleExpand: () => void; onEdit: () => void; onPrint: () => void; onDelete: () => void;
+/* ── Sale Row ─────────────────── */
+function SaleRow({ sale: s, onView, onEdit, onPrint, onDelete }: {
+  sale: Sale; onView: () => void; onEdit: () => void; onPrint: () => void; onDelete: () => void;
 }) {
   return (
-    <>
-      <tr className="hover:bg-gray-50">
-        <td className="px-3 py-3">
-          <button onClick={onToggleExpand} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors">
-            {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
-        </td>
+    <tr className="hover:bg-gray-50">
+      <td className="px-3 py-3">
+        <span className="w-4 h-4 block" />
+      </td>
         <td className="px-4 py-3 text-sm font-mono text-primary-600">{s.invoiceNo}</td>
         <td className="px-4 py-3 text-sm font-medium text-gray-800">{s.customerName}</td>
         <td className="px-4 py-3 text-sm text-gray-600">{formatDate(s.saleDate)}</td>
@@ -166,7 +166,7 @@ function SaleRow({ sale: s, expanded, onToggleExpand, onEdit, onPrint, onDelete 
         </td>
         <td className="px-4 py-3 text-center">
           <div className="flex items-center justify-center gap-1">
-            <button onClick={onToggleExpand} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View Invoice">
+            <button onClick={onView} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View Invoice">
               <Eye size={15} />
             </button>
             <button onClick={onEdit} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600" title="Edit Sale">
@@ -181,80 +181,139 @@ function SaleRow({ sale: s, expanded, onToggleExpand, onEdit, onPrint, onDelete 
           </div>
         </td>
       </tr>
+  );
+}
 
-      {/* Accordion Invoice Detail */}
-      {expanded && (
-        <tr>
-          <td colSpan={12} className="bg-gray-50/80 px-4 py-0">
-            <div className="py-4 pl-10 space-y-4">
-              {/* Sale Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-white rounded-lg border border-gray-100 p-3">
-                  <p className="text-xs text-gray-500 mb-1">Subtotal</p>
-                  <p className="text-sm font-semibold">{formatCurrency(s.subtotal)}</p>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-100 p-3">
-                  <p className="text-xs text-gray-500 mb-1">Discount</p>
-                  <p className="text-sm font-semibold text-red-600">{s.discountAmount > 0 ? `-${formatCurrency(s.discountAmount)}` : "—"}</p>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-100 p-3">
-                  <p className="text-xs text-gray-500 mb-1">Tax</p>
-                  <p className="text-sm font-semibold">{formatCurrency(s.taxAmount)}</p>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-100 p-3">
-                  <p className="text-xs text-gray-500 mb-1">Payment Method</p>
-                  <p className="text-sm font-semibold capitalize">{s.paymentMethods || "—"}</p>
-                </div>
+/* ── View Sale Modal ─────────────────────────── */
+function ViewSaleModal({ sale: s, onClose, onEdit, onPrint }: { sale: Sale; onClose: () => void; onEdit: () => void; onPrint: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Sale Invoice</h2>
+            <p className="text-sm text-gray-500 font-mono mt-1">{s.invoiceNo}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={onEdit} className="btn-secondary flex items-center gap-2 text-sm">
+              <Edit2 size={14} /> Edit
+            </button>
+            <button onClick={onPrint} className="btn-primary flex items-center gap-2 text-sm">
+              <Printer size={14} /> Print
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Customer</p>
+              <p className="text-sm font-medium text-gray-900">{s.customerName}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Date</p>
+              <p className="text-sm font-medium text-gray-900">{formatDate(s.saleDate)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Cashier</p>
+              <p className="text-sm font-medium text-gray-900">{s.cashierName}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Payment Method</p>
+              <p className="text-sm font-medium text-gray-900 capitalize">{s.paymentMethods || "—"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Sale Status</p>
+              <span className={cn("text-xs px-3 py-1.5 rounded-full font-medium", statusColors[s.status])}>{s.status}</span>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Payment Status</p>
+              <span className={cn("text-xs px-3 py-1.5 rounded-full font-medium", statusColors[s.paymentStatus])}>{s.paymentStatus}</span>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Package size={16} /> Items ({s.items.length})
+            </h3>
+            <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-100 text-xs text-gray-600 uppercase">
+                    <th className="px-4 py-3 text-left">Product</th>
+                    <th className="px-4 py-3 text-center">Qty</th>
+                    <th className="px-4 py-3 text-right">Unit Price</th>
+                    <th className="px-4 py-3 text-right">Discount</th>
+                    <th className="px-4 py-3 text-right">Tax</th>
+                    <th className="px-4 py-3 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {s.items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-800 flex items-center gap-2">
+                        <Package size={14} className="text-gray-400" /> {item.productName}
+                      </td>
+                      <td className="px-4 py-3 text-center font-medium">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="px-4 py-3 text-right text-red-600">{item.discount > 0 ? `-${formatCurrency(item.discount)}` : "—"}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(item.taxAmount)}</td>
+                      <td className="px-4 py-3 text-right font-semibold">{formatCurrency(item.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium">{formatCurrency(s.subtotal)}</span>
               </div>
-
-              {/* Items Table */}
-              {s.items.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-                    <Package size={14} /> Items ({s.items.length})
-                  </h4>
-                  <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-gray-50 text-xs text-gray-500 uppercase">
-                          <th className="px-3 py-2 text-left">Product</th>
-                          <th className="px-3 py-2 text-center">Qty</th>
-                          <th className="px-3 py-2 text-right">Unit Price</th>
-                          <th className="px-3 py-2 text-right">Discount</th>
-                          <th className="px-3 py-2 text-right">Tax</th>
-                          <th className="px-3 py-2 text-right">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {s.items.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50/50">
-                            <td className="px-3 py-2 text-gray-800 flex items-center gap-1.5">
-                              <Package size={12} className="text-gray-400" /> {item.productName}
-                            </td>
-                            <td className="px-3 py-2 text-center">{item.quantity}</td>
-                            <td className="px-3 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                            <td className="px-3 py-2 text-right text-red-600">{item.discount > 0 ? formatCurrency(item.discount) : "—"}</td>
-                            <td className="px-3 py-2 text-right">{formatCurrency(item.taxAmount)}</td>
-                            <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              {s.discountAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Discount</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(s.discountAmount)}</span>
                 </div>
               )}
-
-              {s.notes && (
-                <div className="bg-white rounded-lg border border-gray-100 p-3">
-                  <p className="text-xs text-gray-500 mb-1">Notes</p>
-                  <p className="text-sm text-gray-700">{s.notes}</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Tax</span>
+                <span className="font-medium">{formatCurrency(s.taxAmount)}</span>
+              </div>
+              <div className="border-t border-gray-300 pt-3 flex justify-between text-lg font-bold">
+                <span>Total Amount</span>
+                <span className="text-primary-600">{formatCurrency(s.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
+                <span className="text-gray-600">Paid Amount</span>
+                <span className="font-medium text-green-600">{formatCurrency(s.paidAmount)}</span>
+              </div>
+              {s.balanceAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Balance</span>
+                  <span className="font-semibold text-red-600">{formatCurrency(s.balanceAmount)}</span>
                 </div>
               )}
             </div>
-          </td>
-        </tr>
-      )}
-    </>
+          </div>
+
+          {s.notes && (
+            <div className="bg-blue-50 rounded-lg border border-blue-100 p-4">
+              <p className="text-xs text-blue-600 font-semibold mb-2">Notes</p>
+              <p className="text-sm text-gray-700">{s.notes}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

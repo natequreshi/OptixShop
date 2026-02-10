@@ -324,19 +324,19 @@ export default function POSPage() {
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-8rem)] w-full overflow-x-hidden">
       {/* Products Panel */}
       <div className="w-full lg:flex-1 flex flex-col min-h-[400px] lg:min-h-0">
-        <div className="mb-4 space-y-3">
-          <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products by name or SKU..." className="input pl-10 text-base" />
-          </div>
-          
-          <div className="flex items-center gap-2 flex-wrap">
-            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="input text-sm py-2 flex-1 min-w-[140px]">
+        <div className="mb-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="input pl-9 text-sm py-2" />
+            </div>
+            
+            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="input text-sm py-2 w-auto min-w-[140px]">
               <option value="">All Categories</option>
               {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
             </select>
             
-            <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="input text-sm py-2 flex-1 min-w-[140px]">
+            <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="input text-sm py-2 w-auto min-w-[120px]">
               <option value="">All Brands</option>
               {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
             </select>

@@ -114,7 +114,10 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
     if (k === "loyalty" && !loyaltyEnabled) return false;
     return visibleCols.includes(k);
   };
-  const colCount = 2 + visibleCols.length + 1;
+  
+  // Filter out loyalty column if disabled
+  const activeVisibleCols = visibleCols.filter(col => col !== "loyalty" || loyaltyEnabled);
+  const colCount = 2 + activeVisibleCols.length + 1;
 
   return (
     <div className="space-y-6">
