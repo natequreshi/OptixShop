@@ -12,6 +12,7 @@ import {
   FileWarning,
   CircleDollarSign,
   BarChart3,
+  AlertTriangle,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import {

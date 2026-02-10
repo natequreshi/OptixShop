@@ -3,10 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -26,12 +30,23 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 sticky top-0 z-30">
-      <div>
-        <h2 className="text-sm font-medium text-gray-400 dark:text-gray-500">Welcome back,</h2>
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          {session?.user?.name ?? "User"}
-        </p>
+    <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+      <div className="flex items-center gap-3">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          aria-label="Open menu"
+        >
+          <Menu size={20} />
+        </button>
+        
+        <div>
+          <h2 className="text-sm font-medium text-gray-400 dark:text-gray-500">Welcome back,</h2>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+            {session?.user?.name ?? "User"}
+          </p>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

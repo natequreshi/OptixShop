@@ -47,7 +47,12 @@ const navItems = [
   { href: "/settings",           icon: Settings,        label: "Settings", module: null },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
@@ -82,8 +87,11 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-screen bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-200 sticky top-0",
-        collapsed ? "w-[68px]" : "w-[250px]"
+        "h-screen bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-200",
+        "fixed lg:sticky top-0 z-50",
+        collapsed ? "w-[68px]" : "w-[250px]",
+        // Mobile: slide in from left
+        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
     >
       {/* Logo */}
@@ -103,6 +111,7 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               title={item.label}
+              onClick={() => onClose?.()}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 active
@@ -117,10 +126,10 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Collapse button */}
+      {/* Collapse button - hide on mobile */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="h-12 flex items-center justify-center border-t border-gray-100 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+        className="hidden lg:flex h-12 items-center justify-center border-t border-gray-100 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
       >
         <ChevronLeft
           size={20}
