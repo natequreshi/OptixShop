@@ -41,6 +41,8 @@ export async function POST(req: Request) {
 
   const totalAmount = subtotal - totalDiscount + totalTax;
   const paidAmount = body.amountTendered ?? totalAmount;
+  const actualPaidAmount = Math.min(paidAmount, totalAmount);
+  const balanceAmount = Math.max(0, totalAmount - paidAmount);
 
   const sale = await prisma.sale.create({
     data: {
@@ -53,9 +55,9 @@ export async function POST(req: Request) {
       cgstAmount: totalTax / 2,
       sgstAmount: totalTax / 2,
       totalAmount,
-      paidAmount: Math.min(paidAmount, totalAmount),
-      balanceAmount: Math.max(0, totalAmount - paidAmount),
-      status: "completed",
+      paidAmount: actualPaidAmount,
+      balanceAmount: balanceAmount,
+      status: paidAmount >= totalAmount ? "completed" : "pending",
       paymentStatus: paidAmount >= totalAmount ? "paid" : "partial",
       cashierId: (session?.user as any)?.id || null,
       items: { create: itemsData },
@@ -71,7 +73,7 @@ export async function POST(req: Request) {
       saleId: sale.id,
       customerId: body.customerId || null,
       paymentDate: today,
-      amount: Math.min(paidAmount, totalAmount),
+      amount: actualPaidAmount,
       paymentMethod: body.paymentMethod ?? "cash",
     },
   });
