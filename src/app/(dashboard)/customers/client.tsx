@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, Search, Edit2, Trash2, ChevronDown, ChevronRight,
   Phone, Mail, MapPin, Columns, MessageCircle, Globe,
@@ -64,9 +64,10 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [visibleCols, setVisibleCols] = useState<ColumnKey[]>(getInitialColumns(settings));
   const [showColPicker, setShowColPicker] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyCustomerId, setHistoryCustomerId] = useState<string | null>(null);
   
   const loyaltyEnabled = settings.loyalty_enabled === "true";
   
@@ -102,6 +103,11 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ customer_visible_columns: JSON.stringify(cols) }),
     });
+  }
+
+  function openHistory(customerId: string) {
+    setHistoryCustomerId(customerId);
+    setShowHistoryModal(true);
   }
 
   const isCol = (k: ColumnKey) => {
@@ -179,10 +185,9 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
                   customer={c}
                   visibleCols={visibleCols}
                   colCount={colCount}
-                  expanded={expandedId === c.id}
-                  onToggleExpand={() => setExpandedId(expandedId === c.id ? null : c.id)}
                   onEdit={() => { setEditing(c); setShowModal(true); }}
                   onDelete={() => handleDelete(c.id)}
+                  onViewHistory={() => openHistory(c.id)}
                 />
               ))}
               {filtered.length === 0 && (
@@ -196,14 +201,18 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
       {showModal && (
         <CustomerModal customer={editing} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); router.refresh(); }} />
       )}
+
+      {showHistoryModal && historyCustomerId && (
+        <CustomerHistoryModal customerId={historyCustomerId} onClose={() => { setShowHistoryModal(false); setHistoryCustomerId(null); }} />
+      )}
     </div>
   );
 }
 
 /* ── Customer Row ──────────────────────────────── */
-function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExpand, onEdit, onDelete }: {
+function CustomerRow({ customer: c, visibleCols, colCount, onEdit, onDelete, onViewHistory }: {
   customer: Customer; visibleCols: ColumnKey[]; colCount: number;
-  expanded: boolean; onToggleExpand: () => void; onEdit: () => void; onDelete: () => void;
+  onEdit: () => void; onDelete: () => void; onViewHistory: () => void;
 }) {
   const isCol = (k: ColumnKey) => visibleCols.includes(k);
   const rx = c.latestRx;
@@ -211,13 +220,9 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
   return (
     <>
       <tr className="hover:bg-gray-50 group">
-        {/* Expand toggle */}
+        {/* Expand toggle - removed, now using modal */}
         <td className="px-3 py-3">
-          {c.salesCount > 0 ? (
-            <button onClick={onToggleExpand} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors">
-              {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </button>
-          ) : <span className="w-6 h-6 block" />}
+          <span className="w-6 h-6 block" />
         </td>
         {/* Customer */}
         <td className="px-4 py-3">
@@ -297,12 +302,11 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
         {/* Purchases */}
         {isCol("purchases") && (
           <td className="px-4 py-3 text-center">
-            <button onClick={c.salesCount > 0 ? onToggleExpand : undefined}
-              className={cn("inline-flex items-center gap-1 text-sm font-medium rounded-full px-2.5 py-0.5",
-                c.salesCount > 0 ? "bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer" : "bg-gray-50 text-gray-400"
+            <span className={cn("inline-flex items-center gap-1 text-sm font-medium rounded-full px-2.5 py-0.5",
+                c.salesCount > 0 ? "bg-blue-50 text-blue-700" : "bg-gray-50 text-gray-400"
               )}>
               <ShoppingBag size={13} /> {c.salesCount}
-            </button>
+            </span>
           </td>
         )}
         {/* Total Spent */}
@@ -318,7 +322,7 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
         {/* Actions */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
-            <button onClick={onToggleExpand} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View History">
+            <button onClick={onViewHistory} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View History">
               <Eye size={15} />
             </button>
             <button onClick={onEdit} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600" title="Edit"><Edit2 size={15} /></button>
@@ -326,91 +330,6 @@ function CustomerRow({ customer: c, visibleCols, colCount, expanded, onToggleExp
           </div>
         </td>
       </tr>
-
-      {/* Purchase History Accordion */}
-      {expanded && (
-        <tr>
-          <td colSpan={100} className="bg-gray-50/80 px-4 py-0">
-            <div className="py-4 pl-12 space-y-6">
-              {/* Prescription Details */}
-              {rx && (
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <FileText size={14} /> Latest Prescription
-                  </h4>
-                  <div className="bg-white rounded-lg border border-gray-100 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-mono text-primary-600 font-semibold">{rx.prescriptionNo}</span>
-                      <span className="text-xs text-gray-500">{formatDate(rx.date)}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 mb-2">OD (Right Eye)</p>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between"><span className="text-gray-500">Sphere:</span><span className="font-medium">{fmtRx(rx.odSph)}</span></div>
-                          <div className="flex justify-between"><span className="text-gray-500">Cylinder:</span><span className="font-medium">{fmtRx(rx.odCyl)}</span></div>
-                          <div className="flex justify-between"><span className="text-gray-500">Axis:</span><span className="font-medium">{rx.odAxis ?? "—"}°</span></div>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 mb-2">OS (Left Eye)</p>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between"><span className="text-gray-500">Sphere:</span><span className="font-medium">{fmtRx(rx.osSph)}</span></div>
-                          <div className="flex justify-between"><span className="text-gray-500">Cylinder:</span><span className="font-medium">{fmtRx(rx.osCyl)}</span></div>
-                          <div className="flex justify-between"><span className="text-gray-500">Axis:</span><span className="font-medium">{rx.osAxis ?? "—"}°</span></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Purchase History */}
-              {c.sales.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <ShoppingBag size={14} /> Purchase History
-                  </h4>
-              <div className="space-y-3">
-                {c.sales.map((sale) => (
-                  <div key={sale.id} className="bg-white rounded-lg border border-gray-100 p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-mono text-primary-600 font-semibold">{sale.invoiceNo}</span>
-                        <span className="flex items-center gap-1 text-xs text-gray-500">
-                          <Calendar size={12} /> {formatDate(sale.date)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium",
-                          sale.status === "completed" ? "bg-green-50 text-green-700" :
-                          sale.status === "refunded" ? "bg-red-50 text-red-700" : "bg-yellow-50 text-yellow-700"
-                        )}>{sale.status}</span>
-                        <span className="text-sm font-semibold text-gray-800">{formatCurrency(sale.totalAmount)}</span>
-                      </div>
-                    </div>
-                    {sale.items.length > 0 && (
-                      <div className="border-t border-gray-50 pt-2 mt-2 space-y-1">
-                        {sale.items.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs text-gray-500">
-                            <span className="flex items-center gap-1.5">
-                              <Package size={11} className="text-gray-400" />
-                              {item.productName} <span className="text-gray-400">× {item.quantity}</span>
-                            </span>
-                            <span className="font-medium text-gray-600">{formatCurrency(item.total)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-                </div>
-              )}
-            </div>
-          </td>
-        </tr>
-      )}
     </>
   );
 }
@@ -650,6 +569,295 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+/* ── Customer History Modal ────────────────────────── */
+interface HistoryPrescription {
+  id: string; prescriptionNo: string; date: string;
+  odSphere: number | null; odCylinder: number | null; odAxis: number | null;
+  odAdd: number | null; odPd: number | null;
+  osSphere: number | null; osCylinder: number | null; osAxis: number | null;
+  osAdd: number | null; osPd: number | null;
+  photoUrl: string | null; notes: string | null; prescribedBy: string | null;
+}
+
+interface HistorySale {
+  id: string; invoiceNo: string; date: string; totalAmount: number; status: string;
+  items: { productName: string; quantity: number; unitPrice: number; total: number; }[];
+}
+
+interface CustomerHistoryData {
+  customer: { id: string; customerNo: string; firstName: string; lastName: string | null; phone: string | null; whatsapp: string | null; email: string | null; };
+  prescriptions: HistoryPrescription[];
+  sales: HistorySale[];
+}
+
+function CustomerHistoryModal({ customerId, onClose }: { customerId: string; onClose: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<CustomerHistoryData | null>(null);
+
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const res = await fetch(`/api/customers/${customerId}/history`);
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        } else {
+          toast.error("Failed to load customer history");
+        }
+      } catch (error) {
+        console.error("Error fetching history:", error);
+        toast.error("Error loading history");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHistory();
+  }, [customerId]);
+
+  if (loading || !data) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto p-8" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-400">Loading customer history...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { customer, prescriptions, sales } = data;
+
+  // Merge prescriptions and sales into timeline
+  const timelineItems: Array<{ type: 'prescription' | 'sale'; date: string; data: HistoryPrescription | HistorySale }> = [
+    ...prescriptions.map(p => ({ type: 'prescription' as const, date: p.date, data: p })),
+    ...sales.map(s => ({ type: 'sale' as const, date: s.date, data: s }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center text-primary-700 font-semibold text-lg">
+              {customer.firstName.charAt(0)}{customer.lastName?.charAt(0) || ''}
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{customer.firstName} {customer.lastName}</h2>
+              <p className="text-sm text-gray-500">{customer.customerNo}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Timeline */}
+        <div className="p-6">
+          {timelineItems.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <FileText size={48} className="mx-auto mb-3 opacity-20" />
+              <p>No history available for this customer</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {timelineItems.map((item, idx) => (
+                <div key={idx} className="flex gap-4">
+                  {/* Timeline Line */}
+                  <div className="flex flex-col items-center">
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                      item.type === 'prescription' ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600"
+                    )}>
+                      {item.type === 'prescription' ? <FileText size={18} /> : <ShoppingBag size={18} />}
+                    </div>
+                    {idx < timelineItems.length - 1 && (
+                      <div className="w-0.5 bg-gray-200 flex-1 my-2 min-h-[20px]" />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 pb-6">
+                    {item.type === 'prescription' ? (
+                      <PrescriptionCard prescription={item.data as HistoryPrescription} />
+                    ) : (
+                      <SaleCard sale={item.data as HistorySale} />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Prescription Card in Timeline ───────────────── */
+function PrescriptionCard({ prescription: rx }: { prescription: HistoryPrescription }) {
+  const [showImage, setShowImage] = useState(false);
+
+  return (
+    <div className="bg-white border border-blue-100 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-mono font-semibold text-blue-600">{rx.prescriptionNo}</span>
+            <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">Prescription</span>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(rx.date)}</span>
+            {rx.prescribedBy && <span className="flex items-center gap-1"><User size={12} /> Dr. {rx.prescribedBy}</span>}
+          </div>
+        </div>
+        {rx.photoUrl && (
+          <button onClick={() => setShowImage(true)} className="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
+            <Eye size={14} /> View Image
+          </button>
+        )}
+      </div>
+
+      {/* Rx Values */}
+      <div className="grid grid-cols-2 gap-4 mt-3">
+        <div>
+          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">OD — Right Eye</p>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Sphere:</span>
+              <span className="font-medium font-mono">{fmtRx(rx.odSphere)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Cylinder:</span>
+              <span className="font-medium font-mono">{fmtRx(rx.odCylinder)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Axis:</span>
+              <span className="font-medium font-mono">{rx.odAxis ?? "—"}°</span>
+            </div>
+            {rx.odAdd !== null && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Add:</span>
+                <span className="font-medium font-mono">{fmtRx(rx.odAdd)}</span>
+              </div>
+            )}
+            {rx.odPd !== null && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">PD:</span>
+                <span className="font-medium font-mono">{rx.odPd} mm</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">OS — Left Eye</p>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Sphere:</span>
+              <span className="font-medium font-mono">{fmtRx(rx.osSphere)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Cylinder:</span>
+              <span className="font-medium font-mono">{fmtRx(rx.osCylinder)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Axis:</span>
+              <span className="font-medium font-mono">{rx.osAxis ?? "—"}°</span>
+            </div>
+            {rx.osAdd !== null && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Add:</span>
+                <span className="font-medium font-mono">{fmtRx(rx.osAdd)}</span>
+              </div>
+            )}
+            {rx.osPd !== null && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">PD:</span>
+                <span className="font-medium font-mono">{rx.osPd} mm</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Notes */}
+      {rx.notes && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <p className="text-xs text-gray-500 font-semibold mb-1">Notes:</p>
+          <p className="text-sm text-gray-700">{rx.notes}</p>
+        </div>
+      )}
+
+      {/* Image Modal */}
+      {showImage && rx.photoUrl && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70" onClick={() => setShowImage(false)}>
+          <div className="relative max-w-4xl max-h-[90vh] p-4">
+            <button onClick={() => setShowImage(false)} className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img src={rx.photoUrl} alt="Prescription" className="max-w-full max-h-[85vh] rounded-lg shadow-2xl" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Sale Card in Timeline ───────────────────────── */
+function SaleCard({ sale }: { sale: HistorySale }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-white border border-green-100 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-mono font-semibold text-green-600">{sale.invoiceNo}</span>
+            <span className={cn(
+              "text-xs px-2 py-0.5 rounded-full font-medium",
+              sale.status === "completed" ? "bg-green-50 text-green-700" :
+              sale.status === "refunded" ? "bg-red-50 text-red-700" : "bg-yellow-50 text-yellow-700"
+            )}>{sale.status}</span>
+          </div>
+          <span className="flex items-center gap-1 text-xs text-gray-500">
+            <Calendar size={12} /> {formatDate(sale.date)}
+          </span>
+        </div>
+        <span className="text-lg font-semibold text-gray-800">{formatCurrency(sale.totalAmount)}</span>
+      </div>
+
+      {/* Items */}
+      {sale.items.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 font-medium mb-2">
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {sale.items.length} item{sale.items.length > 1 ? 's' : ''}
+          </button>
+          {expanded && (
+            <div className="space-y-2">
+              {sale.items.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2">
+                  <span className="flex items-center gap-2 text-gray-700">
+                    <Package size={13} className="text-gray-400" />
+                    {item.productName}
+                    <span className="text-xs text-gray-400">× {item.quantity}</span>
+                  </span>
+                  <span className="font-medium text-gray-800">{formatCurrency(item.total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

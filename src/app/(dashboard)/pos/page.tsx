@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 interface Product {
   id: string; sku: string; name: string; sellingPrice: number;
   taxRate: number; productType: string; stock: number; imageUrl: string | null;
+  categoryId?: string | null; brandId?: string | null;
 }
 
 interface CartItem extends Product {
@@ -31,6 +32,11 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [custSearch, setCustSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedBrand, setSelectedBrand] = useState<string>("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [showAddProduct, setShowAddProduct] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -60,9 +66,13 @@ export default function POSPage() {
         taxRate: p.taxRate, productType: p.productType,
         stock: p.inventory?.quantity ?? 0,
         imageUrl: p.imageUrl || null,
+        categoryId: p.categoryId || null,
+        brandId: p.brandId || null,
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
+    fetch("/api/categories").then(r => r.json()).then(setCategories);
+    fetch("/api/brands").then(r => r.json()).then(setBrands);
     fetch("/api/settings").then(r => r.json()).then((settings: Record<string, string>) => {
       setTaxEnabled(settings['tax_enabled'] === 'true');
       setPrintTemplate((settings['print_template'] as any) || '80mm');
@@ -77,10 +87,13 @@ export default function POSPage() {
     searchRef.current?.focus();
   }, []);
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = !selectedCategory || (p as any).categoryId === selectedCategory;
+    const matchesBrand = !selectedBrand || (p as any).brandId === selectedBrand;
+    return matchesSearch && matchesCategory && matchesBrand;
+  });
 
   const filteredCustomers = customers.filter(c =>
     `${c.firstName} ${c.lastName}`.toLowerCase().includes(custSearch.toLowerCase()) ||
@@ -311,10 +324,26 @@ export default function POSPage() {
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-8rem)] w-full overflow-x-hidden">
       {/* Products Panel */}
       <div className="w-full lg:flex-1 flex flex-col min-h-[400px] lg:min-h-0">
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           <div className="relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products by name or SKU..." className="input pl-10 text-base" />
+          </div>
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="input text-sm py-2 flex-1 min-w-[140px]">
+              <option value="">All Categories</option>
+              {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+            </select>
+            
+            <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="input text-sm py-2 flex-1 min-w-[140px]">
+              <option value="">All Brands</option>
+              {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+            </select>
+            
+            <button onClick={() => setShowAddProduct(true)} className="btn-primary flex items-center gap-2 py-2 px-4 whitespace-nowrap" title="Add New Product">
+              <Plus size={18} /> Add Product
+            </button>
           </div>
         </div>
 
@@ -325,7 +354,7 @@ export default function POSPage() {
               className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
               <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                 {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain" />
                 ) : (
                   <Package size={32} className="text-gray-300" />
                 )}
@@ -560,6 +589,155 @@ export default function POSPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Quick Add Product Modal */}
+      {showAddProduct && (
+        <QuickAddProductModal 
+          onClose={() => setShowAddProduct(false)} 
+          onProductAdded={(product) => {
+            addToCart(product);
+            setShowAddProduct(false);
+            toast.success("Product added to cart!");
+          }}
+          categories={categories}
+          brands={brands}
+        />
+      )}
+    </div>
+  );
+}
+
+/* Quick Add Product Modal */
+function QuickAddProductModal({ onClose, onProductAdded, categories, brands }: { 
+  onClose: () => void; 
+  onProductAdded: (product: any) => void;
+  categories: any[];
+  brands: any[];
+}) {
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    sku: "",
+    sellingPrice: "",
+    categoryId: "",
+    brandId: "",
+    productType: "frame",
+  });
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name || !form.sellingPrice) {
+      toast.error("Name and price are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          sku: form.sku || `SKU${Date.now()}`,
+          sellingPrice: parseFloat(form.sellingPrice),
+          costPrice: parseFloat(form.sellingPrice) * 0.7, // default cost
+          categoryId: form.categoryId || null,
+          brandId: form.brandId || null,
+          productType: form.productType,
+          taxRate: 18,
+          isActive: true,
+        }),
+      });
+
+      if (res.ok) {
+        const product = await res.json();
+        onProductAdded({
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          sellingPrice: product.sellingPrice,
+          taxRate: product.taxRate,
+          productType: product.productType,
+          stock: 0,
+          imageUrl: null,
+        });
+      } else {
+        toast.error("Failed to create product");
+      }
+    } catch (error) {
+      toast.error("Error creating product");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center">
+              <Plus size={20} className="text-primary-600" />
+            </div>
+            <h2 className="text-lg font-semibold">Quick Add Product</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="label">Product Name *</label>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} className="input" placeholder="Enter product name" required />
+          </div>
+
+          <div>
+            <label className="label">SKU (Optional)</label>
+            <input value={form.sku} onChange={(e) => set("sku", e.target.value)} className="input" placeholder="Auto-generated if empty" />
+          </div>
+
+          <div>
+            <label className="label">Selling Price *</label>
+            <input type="number" step="0.01" value={form.sellingPrice} onChange={(e) => set("sellingPrice", e.target.value)} className="input" placeholder="0.00" required />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Category</label>
+              <select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)} className="input">
+                <option value="">— Select —</option>
+                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Brand</label>
+              <select value={form.brandId} onChange={(e) => set("brandId", e.target.value)} className="input">
+                <option value="">— Select —</option>
+                {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Product Type</label>
+            <select value={form.productType} onChange={(e) => set("productType", e.target.value)} className="input">
+              <option value="frame">Frame</option>
+              <option value="lens">Lens</option>
+              <option value="sunglasses">Sunglasses</option>
+              <option value="contact_lens">Contact Lens</option>
+              <option value="accessory">Accessory</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="submit" disabled={loading} className="btn-primary">{loading ? "Adding..." : "Add & Use"}</button>
+          </div>
+        </form>
       </div>
     </div>
   );
