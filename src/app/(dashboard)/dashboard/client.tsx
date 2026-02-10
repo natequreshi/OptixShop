@@ -14,6 +14,7 @@ import {
   BarChart3,
   AlertTriangle,
   ShoppingBag,
+  TrendingUp,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import {
