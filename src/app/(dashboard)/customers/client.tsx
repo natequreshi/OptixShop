@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, Search, Edit2, Trash2, ChevronDown, ChevronRight,
   Phone, Mail, MapPin, Columns, MessageCircle, Globe,
@@ -438,7 +438,7 @@ function CustomerHistoryModal({ customer, onClose }: { customer: Customer; onClo
   const [loading, setLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     setLoading(true);
     fetch(`/api/customers/${customer.id}/history`)
       .then(r => r.json())
@@ -448,7 +448,7 @@ function CustomerHistoryModal({ customer, onClose }: { customer: Customer; onClo
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  });
+  }, [customer.id]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
