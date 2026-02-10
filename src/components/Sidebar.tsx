@@ -53,20 +53,27 @@ export default function Sidebar() {
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    fetch("/api/settings").then(r => r.json()).then((settings) => {
-      const modules: Record<string, boolean> = {};
-      settings.forEach((s: any) => {
-        if (s.key.startsWith('module_')) {
-          modules[s.key] = s.value === 'true';
-        }
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then((settings: Record<string, string>) => {
+        const modules: Record<string, boolean> = {};
+        Object.entries(settings).forEach(([key, value]) => {
+          if (key.startsWith('module_')) {
+            modules[key] = value === 'true';
+          }
+        });
+        setEnabledModules(modules);
+      })
+      .catch(err => {
+        console.error("Failed to load settings:", err);
       });
-      setEnabledModules(modules);
-    });
   }, []);
 
   const visibleNavItems = navItems.filter(item => {
     if (!item.module) return true; // Always show items without module requirement
-    return enabledModules[item.module] !== false; // Show if enabled or not yet loaded
+    // Show only if module is explicitly true (or undefined means default enabled)
+    const moduleValue = enabledModules[item.module];
+    return moduleValue === undefined || moduleValue === true;
   });
 
   return (
