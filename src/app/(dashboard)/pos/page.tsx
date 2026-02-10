@@ -38,6 +38,10 @@ export default function POSPage() {
   const [loading, setLoading] = useState(false);
   const [manualSubtotal, setManualSubtotal] = useState<number | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
+  const [discountValue, setDiscountValue] = useState(0);
+  const [customerSales, setCustomerSales] = useState<any[]>([]);
+  const [showCustomerSales, setShowCustomerSales] = useState(false);
   const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});  const [transactionId, setTransactionId] = useState("");  const [taxEnabled, setTaxEnabled] = useState(true);
   const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const [currency, setCurrency] = useState("Rs.");
@@ -145,7 +149,7 @@ export default function POSPage() {
         
         setCart([]); setSelectedCustomer(null);
         setShowPayment(false); setAmountTendered("");
-        setManualSubtotal(null); setDiscountPercent(0);
+        setManualSubtotal(null); setDiscountPercent(0); setDiscountValue(0); setDiscountType('percent');
         setCashDenominations({});
         setTransactionId("");
         router.refresh();
@@ -362,15 +366,39 @@ export default function POSPage() {
         {/* Customer Selection */}
         <div className="p-3 sm:p-4 border-b border-gray-100">
           {selectedCustomer ? (
-            <div className="flex items-center justify-between bg-primary-50 rounded-lg p-2">
-              <div className="flex items-center gap-2">
-                <User size={16} className="text-primary-600" />
-                <div>
-                  <p className="text-sm font-medium text-primary-700">{selectedCustomer.firstName} {selectedCustomer.lastName}</p>
-                  <p className="text-xs text-primary-500">{selectedCustomer.phone}</p>
+            <div className="relative"
+              onMouseEnter={() => {
+                setShowCustomerSales(true);
+                fetch(`/api/sales?customerId=${selectedCustomer.id}`).then(r => r.json()).then(data => setCustomerSales(Array.isArray(data) ? data.slice(0, 5) : data.sales ? data.sales.slice(0, 5) : []));
+              }}
+              onMouseLeave={() => setShowCustomerSales(false)}
+            >
+              <div className="flex items-center justify-between bg-primary-50 rounded-lg p-2">
+                <div className="flex items-center gap-2">
+                  <User size={16} className="text-primary-600" />
+                  <div>
+                    <p className="text-sm font-medium text-primary-700">{selectedCustomer.firstName} {selectedCustomer.lastName}</p>
+                    <p className="text-xs text-primary-500">{selectedCustomer.phone}</p>
+                  </div>
                 </div>
+                <button onClick={() => { setSelectedCustomer(null); setCustomerSales([]); }} className="text-primary-400 hover:text-primary-600"><X size={16} /></button>
               </div>
-              <button onClick={() => setSelectedCustomer(null)} className="text-primary-400 hover:text-primary-600"><X size={16} /></button>
+              {showCustomerSales && customerSales.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-20 p-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Purchases</p>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {customerSales.map((s: any) => (
+                      <div key={s.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{s.invoiceNo}</span>
+                          <span className="text-gray-400 ml-2">{new Date(s.saleDate).toLocaleDateString()}</span>
+                        </div>
+                        <span className="font-semibold text-primary-600">{formatCurrency(s.totalAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="relative">
@@ -431,11 +459,26 @@ export default function POSPage() {
           </div>
           
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-500">Discount %</span>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">Discount</span>
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden ml-1">
+                <button type="button" onClick={() => { setDiscountType('percent'); setDiscountValue(0); setDiscountPercent(0); }} className={cn("px-1.5 py-0.5 text-[10px] font-medium transition", discountType === 'percent' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700')}>%</button>
+                <button type="button" onClick={() => { setDiscountType('fixed'); setDiscountValue(0); setDiscountPercent(0); }} className={cn("px-1.5 py-0.5 text-[10px] font-medium transition", discountType === 'fixed' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700')}>Rs.</button>
+              </div>
+            </div>
             <input 
               type="number" 
-              value={discountPercent} 
-              onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)}
+              value={discountValue} 
+              onChange={(e) => {
+                const val = parseFloat(e.target.value) || 0;
+                setDiscountValue(val);
+                if (discountType === 'percent') {
+                  setDiscountPercent(val);
+                } else {
+                  // Convert fixed to percentage
+                  setDiscountPercent(subtotal > 0 ? (val / subtotal) * 100 : 0);
+                }
+              }}
               className="input text-sm w-24 text-right p-1" 
               step="0.1"
               placeholder="0"

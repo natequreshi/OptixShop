@@ -1,8 +1,22 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendWhatsAppNotification, formatCurrencyPlain } from "@/lib/whatsapp";
+
+export async function GET(req: NextRequest) {
+  const customerId = req.nextUrl.searchParams.get("customerId");
+  if (!customerId) {
+    return NextResponse.json([]);
+  }
+  const sales = await prisma.sale.findMany({
+    where: { customerId },
+    orderBy: { saleDate: "desc" },
+    take: 10,
+    select: { id: true, invoiceNo: true, saleDate: true, totalAmount: true, status: true },
+  });
+  return NextResponse.json(sales);
+}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);

@@ -661,6 +661,10 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
   });
   
   const [productSearch, setProductSearch] = useState<string[]>(form.items.map(() => ""));
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
+  const [discountValue, setDiscountValue] = useState(0);
+  const [customerSales, setCustomerSales] = useState<any[]>([]);
+  const [showCustomerSales, setShowCustomerSales] = useState(false);
   
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
@@ -696,11 +700,16 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setForm({...form, items});
   };
 
-  const subtotal = form.items.reduce((sum, item) => {
+  const rawSubtotal = form.items.reduce((sum, item) => {
     const product = products.find(p => p.id === item.productId);
     if (!product) return sum;
     return sum + (item.unitPrice * item.quantity) - item.discount;
   }, 0);
+  
+  const globalDiscountAmount = discountType === 'percent' 
+    ? (rawSubtotal * form.globalDiscount) / 100 
+    : form.globalDiscount;
+  const subtotal = rawSubtotal - globalDiscountAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -729,6 +738,8 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
         }
       }
       
+      const discountPct = discountType === 'percent' ? form.globalDiscount : (subtotal > 0 ? (form.globalDiscount / subtotal) * 100 : 0);
+      
       const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -738,6 +749,7 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
           paymentStatus: form.paymentStatus,
           amountTendered: form.amountTendered,
           transactionId: form.transactionId || undefined,
+          discountPercent: discountPct,
           notes: form.notes || null,
           items: form.items.map(item => {
             const product = products.find(p => p.id === item.productId);
@@ -783,12 +795,38 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 </button>
               </div>
               {!showNewCustomer ? (
-                <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input">
-                  <option value="">Walk-in Customer</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.firstName} {c.lastName} ({c.phone})</option>
-                  ))}
-                </select>
+                <div className="relative"
+                  onMouseEnter={() => {
+                    if (form.customerId) {
+                      setShowCustomerSales(true);
+                      fetch(`/api/sales?customerId=${form.customerId}`).then(r => r.json()).then(data => setCustomerSales(Array.isArray(data) ? data.slice(0, 5) : data.sales ? data.sales.slice(0, 5) : []));
+                    }
+                  }}
+                  onMouseLeave={() => setShowCustomerSales(false)}
+                >
+                  <select value={form.customerId} onChange={(e) => { setForm({...form, customerId: e.target.value}); setCustomerSales([]); }} className="input">
+                    <option value="">Walk-in Customer</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>{c.firstName} {c.lastName} ({c.phone})</option>
+                    ))}
+                  </select>
+                  {showCustomerSales && form.customerId && customerSales.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-30 p-3">
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Purchases</p>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {customerSales.map((s: any) => (
+                          <div key={s.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                            <div>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{s.invoiceNo}</span>
+                              <span className="text-gray-400 ml-2">{new Date(s.saleDate).toLocaleDateString()}</span>
+                            </div>
+                            <span className="font-semibold text-primary-600">{formatCurrency(s.totalAmount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-sm text-primary-700 dark:text-primary-300">
                   Fill customer details below
@@ -824,9 +862,26 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </div>
           </div>
 
-          <div>
-            <label className="label">Transaction ID (Optional)</label>
-            <input type="text" value={form.transactionId} onChange={(e) => setForm({...form, transactionId: e.target.value})} className="input" placeholder="Enter transaction reference" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Transaction ID (Optional)</label>
+              <input type="text" value={form.transactionId} onChange={(e) => setForm({...form, transactionId: e.target.value})} className="input" placeholder="Enter transaction reference" />
+            </div>
+            <div>
+              <label className="label">Discount</label>
+              <div className="flex gap-1">
+                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                  <button type="button" onClick={() => { setDiscountType('percent'); setDiscountValue(0); setForm({...form, globalDiscount: 0}); }} className={cn("px-3 py-2 text-sm font-medium transition", discountType === 'percent' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700')}>%</button>
+                  <button type="button" onClick={() => { setDiscountType('fixed'); setDiscountValue(0); setForm({...form, globalDiscount: 0}); }} className={cn("px-3 py-2 text-sm font-medium transition", discountType === 'fixed' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700')}>Rs.</button>
+                </div>
+                <input type="number" value={discountValue} onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  setDiscountValue(val);
+                  // globalDiscount will be converted to percent for API
+                  setForm({...form, globalDiscount: val});
+                }} className="input" step="0.1" placeholder="0" />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -990,9 +1045,13 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </div>
           </div>
 
-          <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <span className="font-semibold dark:text-white">Total:</span>
-            <span className="text-xl font-bold text-primary-600">{formatCurrency(subtotal)}</span>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1">
+            <div className="flex justify-between text-sm"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(rawSubtotal)}</span></div>
+            {globalDiscountAmount > 0 && <div className="flex justify-between text-sm"><span className="text-gray-500">Discount ({discountType === 'percent' ? `${form.globalDiscount}%` : `Rs. ${form.globalDiscount}`})</span><span className="text-red-600">-{formatCurrency(globalDiscountAmount)}</span></div>}
+            <div className="flex justify-between items-center pt-1 border-t border-gray-200 dark:border-gray-600">
+              <span className="font-semibold dark:text-white">Total:</span>
+              <span className="text-xl font-bold text-primary-600">{formatCurrency(subtotal)}</span>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">
