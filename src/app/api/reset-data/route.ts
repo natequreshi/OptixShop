@@ -7,13 +7,14 @@ export async function POST() {
 
     // Delete in correct order to respect foreign key constraints
     await prisma.saleItem.deleteMany({});
-    await prisma.sale.deleteMany({});
     await prisma.payment.deleteMany({});
     await prisma.returnItem.deleteMany({});
     await prisma.return.deleteMany({});
+    await prisma.sale.deleteMany({});
     await prisma.prescription.deleteMany({});
     await prisma.labOrder.deleteMany({});
     await prisma.grnItem.deleteMany({});
+    await prisma.goodsReceiptNote.deleteMany({});
     await prisma.purchaseInvoiceItem.deleteMany({});
     await prisma.purchaseInvoice.deleteMany({});
     await prisma.purchaseOrderItem.deleteMany({});
@@ -21,11 +22,11 @@ export async function POST() {
     await prisma.inventoryMovement.deleteMany({});
     await prisma.inventory.deleteMany({});
     await prisma.product.deleteMany({});
-    await prisma.category.deleteMany({});
+    await prisma.productCategory.deleteMany({});
+    await prisma.brand.deleteMany({});
     await prisma.customer.deleteMany({});
     await prisma.vendor.deleteMany({});
     await prisma.expense.deleteMany({});
-    await prisma.expenseCategory.deleteMany({});
     await prisma.loyaltyTransaction.deleteMany({});
 
     console.log('✅ All records cleared');
@@ -52,10 +53,9 @@ export async function POST() {
     });
 
     console.log('👓 Creating category and products...');
-    const category = await prisma.category.create({
+    const category = await prisma.productCategory.create({
       data: {
         name: 'Eyeglasses',
-        description: 'Prescription eyeglasses and frames',
         isActive: true,
       },
     });
@@ -67,17 +67,14 @@ export async function POST() {
           name: 'Ray-Ban Classic Frames',
           categoryId: category.id,
           productType: 'frame',
-          purchasePrice: 1500,
+          costPrice: 1500,
           sellingPrice: 2999,
           taxRate: 18,
-          unit: 'pcs',
-          reorderLevel: 5,
           isActive: true,
-          imageUrl: null,
           inventory: {
             create: {
               quantity: 10,
-              location: 'Main Store',
+              location: 'main',
             },
           },
         },
@@ -88,17 +85,14 @@ export async function POST() {
           name: 'John Jacobs Cat Eye',
           categoryId: category.id,
           productType: 'frame',
-          purchasePrice: 1200,
+          costPrice: 1200,
           sellingPrice: 2500,
           taxRate: 18,
-          unit: 'pcs',
-          reorderLevel: 5,
           isActive: true,
-          imageUrl: null,
           inventory: {
             create: {
               quantity: 15,
-              location: 'Main Store',
+              location: 'main',
             },
           },
         },
@@ -109,17 +103,14 @@ export async function POST() {
           name: 'Essilor Prescription Lenses',
           categoryId: category.id,
           productType: 'lens',
-          purchasePrice: 800,
+          costPrice: 800,
           sellingPrice: 1500,
           taxRate: 18,
-          unit: 'pair',
-          reorderLevel: 10,
           isActive: true,
-          imageUrl: null,
           inventory: {
             create: {
               quantity: 25,
-              location: 'Main Store',
+              location: 'main',
             },
           },
         },
@@ -138,11 +129,12 @@ export async function POST() {
         odCylinder: -0.75,
         odAxis: 180,
         odAdd: 0,
+        odPd: 32,
         osSphere: -2.75,
         osCylinder: -0.5,
         osAxis: 175,
         osAdd: 0,
-        pupillaryDistance: 64,
+        osPd: 32,
       },
     });
 
@@ -157,11 +149,12 @@ export async function POST() {
         odCylinder: -1.0,
         odAxis: 180,
         odAdd: 1.5,
+        odPd: 32,
         osSphere: -3.25,
         osCylinder: -0.75,
         osAxis: 170,
         osAdd: 1.5,
-        pupillaryDistance: 64,
+        osPd: 32,
       },
     });
 
