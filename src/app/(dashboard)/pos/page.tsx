@@ -40,6 +40,7 @@ export default function POSPage() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});  const [transactionId, setTransactionId] = useState("");  const [taxEnabled, setTaxEnabled] = useState(true);
   const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
+  const [currency, setCurrency] = useState("Rs.");
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,9 +53,10 @@ export default function POSPage() {
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
-    fetch("/api/settings").then(r => r.json()).then((settings) => {
-      setTaxEnabled(settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true');
-      setPrintTemplate(settings.find((s: any) => s.key === 'print_template')?.value || '80mm');
+    fetch("/api/settings").then(r => r.json()).then((settings: Record<string, string>) => {
+      setTaxEnabled(settings['tax_enabled'] === 'true');
+      setPrintTemplate((settings['print_template'] as any) || '80mm');
+      setCurrency(settings['currency'] || 'Rs.');
     });
     searchRef.current?.focus();
   }, []);
@@ -411,7 +413,7 @@ export default function POSPage() {
           
           {taxEnabled && <div className="flex justify-between text-sm"><span className="text-gray-500">Tax</span><span>{formatCurrency(taxAmount)}</span></div>}
           <div className="flex justify-between text-lg font-bold border-t border-gray-100 pt-2">
-            <span>Total</span><span className="text-primary-600">{formatCurrency(grandTotal)}</span>
+            <span>Total</span><span className="text-primary-600">Rs. {grandTotal.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
           </div>
         </div>
 
@@ -440,7 +442,7 @@ export default function POSPage() {
                     <div className="grid grid-cols-4 gap-2">
                       {[2000, 1000, 500, 200, 100, 50, 20, 10].map(denom => (
                         <div key={denom} className="flex flex-col items-center">
-                          <span className="text-xs text-gray-500 mb-1">₹{denom}</span>
+                          <span className="text-xs text-gray-500 mb-1">{currency}{denom}</span>
                           <input
                             type="number"
                             min="0"
@@ -474,7 +476,8 @@ export default function POSPage() {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setShowPayment(false)} className="btn-secondary flex-1">Cancel</button>
-                <button onClick={completeSale} disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">\n                  <Receipt size={16} /> {loading ? "Processing..." : "Complete"}
+                <button onClick={completeSale} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  <Receipt size={16} /> {loading ? "Processing..." : "Complete"}
                 </button>
               </div>
             </div>
