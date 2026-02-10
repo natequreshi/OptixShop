@@ -15,9 +15,21 @@ interface Product {
   categoryId: string | null; brandId: string | null;
 }
 
+interface ProductVariation {
+  id: string;
+  productId: string;
+  name: string;
+  value: string;
+  attributeType: string;
+  imageUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 interface CartItem extends Product {
   qty: number;
   discount: number;
+  selectedVariations?: { [attributeType: string]: string }; // e.g., { "color": "Red", "size": "Large" }
 }
 
 interface Customer {
@@ -60,6 +72,10 @@ export default function POSPage() {
   const [allowOversell, setAllowOversell] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [newProductForm, setNewProductForm] = useState({ name: '', sku: '', sellingPrice: '', costPrice: '', categoryId: '', brandId: '' });
+  const [showVariationModal, setShowVariationModal] = useState(false);
+  const [selectedProductForVariation, setSelectedProductForVariation] = useState<Product | null>(null);
+  const [productVariations, setProductVariations] = useState<ProductVariation[]>([]);
+  const [selectedVariations, setSelectedVariations] = useState<{ [attributeType: string]: string }>({});
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -110,11 +126,39 @@ export default function POSPage() {
       toast.error(`${product.name} is out of stock`);
       return;
     }
+    
+    // Check if product has variations
+    setSelectedProductForVariation(product);
+    setSelectedVariations({});
+    
+    // Fetch variations for this product
+    fetch(`/api/product-variations?productId=${product.id}`)
+      .then(r => r.json())
+      .then((variations: ProductVariation[]) => {
+        setProductVariations(variations);
+        
+        // If product has variations, show modal; otherwise add directly
+        if (variations.length > 0) {
+          setShowVariationModal(true);
+        } else {
+          addProductToCart(product, {});
+        }
+      })
+      .catch(() => {
+        // If variations fetch fails, add directly
+        addProductToCart(product, {});
+      });
+  }
+
+  function addProductToCart(product: Product, variations: { [key: string]: string }) {
     setCart(prev => {
-      const existing = prev.find(i => i.id === product.id);
-      if (existing) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...product, qty: 1, discount: 0 }];
+      const existing = prev.find(i => i.id === product.id && JSON.stringify(i.selectedVariations || {}) === JSON.stringify(variations));
+      if (existing) return prev.map(i => i.id === product.id && JSON.stringify(i.selectedVariations || {}) === JSON.stringify(variations) ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...product, qty: 1, discount: 0, selectedVariations: variations }];
     });
+    setShowVariationModal(false);
+    setSelectedProductForVariation(null);
+    setSelectedVariations({});
   }
 
   function updateQty(id: string, delta: number) {
@@ -521,9 +565,16 @@ export default function POSPage() {
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+              <div key={`${item.id}-${JSON.stringify(item.selectedVariations || {})}`} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
+                  {item.selectedVariations && Object.keys(item.selectedVariations).length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      {Object.entries(item.selectedVariations)
+                        .map(([type, value]) => `${type}: ${value}`)
+                        .join(", ")}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-400">{formatCurrency(item.sellingPrice)} × {item.qty}</p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -753,6 +804,75 @@ export default function POSPage() {
                 className="btn-primary flex-1"
               >
                 Add Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Variations Modal */}
+      {showVariationModal && selectedProductForVariation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Select Variations</h2>
+              <button onClick={() => { setShowVariationModal(false); setSelectedProductForVariation(null); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">{selectedProductForVariation.name}</p>
+
+            <div className="space-y-4">
+              {productVariations.length > 0 ? (
+                // Group variations by attribute type
+                Object.entries(
+                  productVariations.reduce((acc: { [key: string]: ProductVariation[] }, v: ProductVariation) => {
+                    if (!acc[v.attributeType]) acc[v.attributeType] = [];
+                    acc[v.attributeType].push(v);
+                    return acc;
+                  }, {})
+                ).map(([attributeType, variations]: [string, ProductVariation[]]) => (
+                  <div key={attributeType}>
+                    <label className="label capitalize">{attributeType}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {variations.map((v: ProductVariation) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setSelectedVariations(prev => ({ ...prev, [attributeType]: v.value }))}
+                          className={cn(
+                            "p-2 rounded border-2 text-sm font-medium transition",
+                            selectedVariations[attributeType] === v.value
+                              ? "border-primary-600 bg-primary-50 text-primary-700"
+                              : "border-gray-200 text-gray-700 hover:border-gray-300"
+                          )}
+                        >
+                          {v.imageUrl && <img src={v.imageUrl} alt={v.name} className="w-full h-6 object-cover mb-1 rounded" />}
+                          {v.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No variations available</p>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button 
+                onClick={() => { setShowVariationModal(false); setSelectedProductForVariation(null); }} 
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  if (selectedProductForVariation) {
+                    addProductToCart(selectedProductForVariation, selectedVariations);
+                  }
+                }}
+                className="btn-primary flex-1"
+              >
+                Add to Cart
               </button>
             </div>
           </div>

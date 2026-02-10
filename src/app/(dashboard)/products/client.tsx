@@ -6,6 +6,7 @@ import { Plus, Search, Package, Edit2, Trash2, Copy, Check, X, Image as ImageIco
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import ProductVariationsManager from "@/components/ProductVariationsManager";
 
 interface Product {
   id: string; sku: string; name: string; productType: string;
@@ -429,6 +430,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<'details' | 'variations'>('details');
   const [imagePreview, setImagePreview] = useState<string | null>(product?.imageUrl ?? null);
   const [form, setForm] = useState({
     sku: product?.sku ?? "",
@@ -477,97 +479,137 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{product ? "Edit Product" : "Add Product"}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{product ? "Edit Product" : "Add Product"}</h2>
+          {product && (
+            <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setTab('details')}
+                className={cn(
+                  "pb-3 px-2 font-medium text-sm border-b-2 transition-colors",
+                  tab === 'details'
+                    ? "border-primary-600 text-primary-600"
+                    : "border-transparent text-gray-600 hover:text-gray-800"
+                )}
+              >
+                Product Details
+              </button>
+              <button
+                onClick={() => setTab('variations')}
+                className={cn(
+                  "pb-3 px-2 font-medium text-sm border-b-2 transition-colors",
+                  tab === 'variations'
+                    ? "border-primary-600 text-primary-600"
+                    : "border-transparent text-gray-600 hover:text-gray-800"
+                )}
+              >
+                Variations
+              </button>
+            </div>
+          )}
         </div>
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">SKU</label>
-              <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="input" required />
-            </div>
-            <div>
-              <label className="label">Type</label>
-              <select value={form.productType} onChange={(e) => setForm({ ...form, productType: e.target.value })} className="input">
-                <option value="frame">Frame</option>
-                <option value="lens">Lens</option>
-                <option value="contact_lens">Contact Lens</option>
-                <option value="sunglasses">Sunglasses</option>
-                <option value="accessory">Accessory</option>
-                <option value="solution">Solution</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="label">Product Name</label>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" required />
-          </div>
-          <div>
-            <label className="label">Product Image</label>
-            <div className="space-y-3">
-              {imagePreview && (
-                <div className="relative w-full h-48 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
-                  <button type="button" onClick={() => { setImagePreview(null); setForm({ ...form, imageUrl: "" }); }}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600">
-                    <X size={14} />
-                  </button>
+
+        {tab === 'details' ? (
+          <>
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">SKU</label>
+                  <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="input" required />
                 </div>
-              )}
-              <div className="flex gap-2">
-                <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-400 transition">
-                    <ImageIcon size={18} className="text-gray-400" />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Upload Image</span>
-                  </div>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
+                <div>
+                  <label className="label">Type</label>
+                  <select value={form.productType} onChange={(e) => setForm({ ...form, productType: e.target.value })} className="input">
+                    <option value="frame">Frame</option>
+                    <option value="lens">Lens</option>
+                    <option value="contact_lens">Contact Lens</option>
+                    <option value="sunglasses">Sunglasses</option>
+                    <option value="accessory">Accessory</option>
+                    <option value="solution">Solution</option>
+                  </select>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">Recommended: Square image, max 2MB (JPG, PNG, WebP)</p>
+              <div>
+                <label className="label">Product Name</label>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" required />
+              </div>
+              <div>
+                <label className="label">Product Image</label>
+                <div className="space-y-3">
+                  {imagePreview && (
+                    <div className="relative w-full h-48 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
+                      <button type="button" onClick={() => { setImagePreview(null); setForm({ ...form, imageUrl: "" }); }}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <label className="flex-1 cursor-pointer">
+                      <div className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-400 transition">
+                        <ImageIcon size={18} className="text-gray-400" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Upload Image</span>
+                      </div>
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">Recommended: Square image, max 2MB (JPG, PNG, WebP)</p>
+                </div>
+              </div>
+              <div>
+                <label className="label">Description</label>
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[60px]" placeholder="Product description..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Category</label>
+                  <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="input">
+                    <option value="">Select...</option>
+                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Brand</label>
+                  <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })} className="input">
+                    <option value="">Select...</option>
+                    {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="label">Cost Price</label>
+                  <input type="number" step="0.01" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: +e.target.value })} className="input" />
+                </div>
+                <div>
+                  <label className="label">Selling Price</label>
+                  <input type="number" step="0.01" value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: +e.target.value })} className="input" />
+                </div>
+                <div>
+                  <label className="label">MRP</label>
+                  <input type="number" step="0.01" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: +e.target.value })} className="input" />
+                </div>
+              </div>
+              <div className="w-1/3">
+                <label className="label">Tax Rate %</label>
+                <input type="number" step="0.01" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: +e.target.value })} className="input" />
+              </div>
+            </form>
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700">
+              <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+              <button type="submit" onClick={handleSubmit} disabled={loading} className="btn-primary">{loading ? "Saving..." : "Save"}</button>
             </div>
-          </div>
-          <div>
-            <label className="label">Description</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[60px]" placeholder="Product description..." />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Category</label>
-              <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="input">
-                <option value="">Select...</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+          </>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto p-6">
+              {product && <ProductVariationsManager productId={product.id} productName={product.name} />}
             </div>
-            <div>
-              <label className="label">Brand</label>
-              <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })} className="input">
-                <option value="">Select...</option>
-                {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700">
+              <button type="button" onClick={onClose} className="btn-secondary">Close</button>
             </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="label">Cost Price</label>
-              <input type="number" step="0.01" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: +e.target.value })} className="input" />
-            </div>
-            <div>
-              <label className="label">Selling Price</label>
-              <input type="number" step="0.01" value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: +e.target.value })} className="input" />
-            </div>
-            <div>
-              <label className="label">MRP</label>
-              <input type="number" step="0.01" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: +e.target.value })} className="input" />
-            </div>
-          </div>
-          <div className="w-1/3">
-            <label className="label">Tax Rate %</label>
-            <input type="number" step="0.01" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: +e.target.value })} className="input" />
-          </div>
-        </form>
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700">
-          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-          <button type="submit" onClick={handleSubmit} disabled={loading} className="btn-primary">{loading ? "Saving..." : "Save"}</button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
