@@ -14,7 +14,6 @@ export async function POST() {
     await prisma.prescription.deleteMany({});
     await prisma.labOrder.deleteMany({});
     await prisma.grnItem.deleteMany({});
-    await prisma.grn.deleteMany({});
     await prisma.purchaseInvoiceItem.deleteMany({});
     await prisma.purchaseInvoice.deleteMany({});
     await prisma.purchaseOrderItem.deleteMany({});
