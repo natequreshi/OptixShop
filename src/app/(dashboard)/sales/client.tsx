@@ -625,14 +625,6 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [products, setProducts] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [productSearch, setProductSearch] = useState<string[]>(form.items.map(() => ""));
-  
-  const [showNewCustomer, setShowNewCustomer] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({
-    firstName: "", lastName: "", email: "", phone: "", whatsapp: "",
-    address: "", city: "", country: "",
-    rxOd: "", rxOs: "", rxPd: "", rxAdd: ""
-  });
   
   const [form, setForm] = useState({
     customerId: "",
@@ -643,6 +635,15 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
     transactionId: "",
     globalDiscount: 0,
     notes: "",
+  });
+  
+  const [productSearch, setProductSearch] = useState<string[]>(form.items.map(() => ""));
+  
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    firstName: "", lastName: "", email: "", phone: "", whatsapp: "",
+    address: "", city: "", country: "",
+    rxOd: "", rxOs: "", rxPd: "", rxAdd: ""
   });
 
   useEffect(() => {
