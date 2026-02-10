@@ -57,6 +57,9 @@ export default function POSPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
   const [allowSubtotalEdit, setAllowSubtotalEdit] = useState(true);
+  const [allowOversell, setAllowOversell] = useState(false);
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [newProductForm, setNewProductForm] = useState({ name: '', sku: '', sellingPrice: '', costPrice: '', categoryId: '', brandId: '' });
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -79,6 +82,7 @@ export default function POSPage() {
       setCurrency(settings['currency'] || 'Rs.');
       setShowDenominations(settings['pos_show_denominations'] !== 'false');
       setAllowSubtotalEdit(settings['pos_allow_subtotal_edit'] !== 'false');
+      setAllowOversell(settings['pos_allow_oversell'] === 'true');
       setStoreName(settings['store_name'] || 'OPTICS SHOP');
       setStoreAddress(settings['store_address'] || '');
       setStorePhone(settings['store_phone'] || '');
@@ -102,6 +106,10 @@ export default function POSPage() {
   );
 
   function addToCart(product: Product) {
+    if (product.stock <= 0 && !allowOversell) {
+      toast.error(`${product.name} is out of stock`);
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(i => i.id === product.id);
       if (existing) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
@@ -130,6 +138,52 @@ export default function POSPage() {
   const grandTotal = taxableAmount + taxAmount;
   const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
   const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : denominationsTotal > 0 ? Math.max(0, denominationsTotal - grandTotal) : 0;
+
+  async function handleAddProduct() {
+    if (!newProductForm.name || !newProductForm.sku || !newProductForm.sellingPrice) {
+      return toast.error("Please fill in all required fields");
+    }
+    
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newProductForm.name,
+          sku: newProductForm.sku,
+          sellingPrice: parseFloat(newProductForm.sellingPrice),
+          costPrice: parseFloat(newProductForm.costPrice) || 0,
+          categoryId: newProductForm.categoryId || null,
+          brandId: newProductForm.brandId || null,
+          productType: "product",
+          taxRate: 0,
+        }),
+      });
+      
+      if (res.ok) {
+        const newProduct = await res.json();
+        setProducts(prev => [...prev, {
+          id: newProduct.id,
+          sku: newProduct.sku,
+          name: newProduct.name,
+          sellingPrice: newProduct.sellingPrice,
+          taxRate: newProduct.taxRate,
+          productType: newProduct.productType,
+          stock: 0,
+          imageUrl: newProduct.imageUrl,
+          categoryId: newProduct.categoryId,
+          brandId: newProduct.brandId,
+        }]);
+        setShowAddProductModal(false);
+        setNewProductForm({ name: '', sku: '', sellingPrice: '', costPrice: '', categoryId: '', brandId: '' });
+        toast.success("Product added successfully");
+      } else {
+        toast.error("Failed to add product");
+      }
+    } catch (err) {
+      toast.error("Error adding product");
+    }
+  }
 
   async function completeSale() {
     if (cart.length === 0) return toast.error("Cart is empty");
@@ -326,30 +380,12 @@ export default function POSPage() {
       {/* Products Panel */}
       <div className="w-full lg:flex-1 flex flex-col min-h-[400px] lg:min-h-0">
         <div className="mb-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <ScanBarcode size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Enter Product name / SKU / Scan bar code" className="input pl-10 pr-10 text-base" />
-              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16} /></button>}
-            </div>
-            <button
-              onClick={() => {
-                const match = filteredProducts[0];
-                if (match) addToCart(match);
-                else toast.error("No product found");
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition"
-              title="Add first matching product"
-            >
-              <Plus size={20} />
-            </button>
-          </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input text-xs py-1.5 px-2 w-auto min-w-[120px]">
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input text-xs py-2 px-2 w-auto min-w-[140px]">
               <option value="">All Categories</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="input text-xs py-1.5 px-2 w-auto min-w-[120px]">
+            <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="input text-xs py-2 px-2 w-auto min-w-[140px]">
               <option value="">All Brands</option>
               {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
@@ -358,6 +394,20 @@ export default function POSPage() {
                 <X size={12} /> Clear
               </button>
             )}
+            <button
+              onClick={() => setShowAddProductModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 shrink-0 transition text-xs font-medium ml-auto"
+              title="Add new product"
+            >
+              <Plus size={16} /> Add Product
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <ScanBarcode size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Enter Product name / SKU / Scan bar code" className="input pl-10 pr-10 text-base" />
+              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16} /></button>}
+            </div>
           </div>
         </div>
 
@@ -608,6 +658,106 @@ export default function POSPage() {
           )}
         </div>
       </div>
+
+      {/* Add Product Modal */}
+      {showAddProductModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Add New Product</h2>
+              <button onClick={() => setShowAddProductModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="label">Product Name *</label>
+                <input 
+                  type="text" 
+                  value={newProductForm.name} 
+                  onChange={(e) => setNewProductForm({...newProductForm, name: e.target.value})}
+                  className="input" 
+                  placeholder="e.g., Blue Light Glasses"
+                />
+              </div>
+              
+              <div>
+                <label className="label">SKU *</label>
+                <input 
+                  type="text" 
+                  value={newProductForm.sku} 
+                  onChange={(e) => setNewProductForm({...newProductForm, sku: e.target.value})}
+                  className="input" 
+                  placeholder="e.g., BLG-001"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">Cost Price</label>
+                  <input 
+                    type="number" 
+                    value={newProductForm.costPrice} 
+                    onChange={(e) => setNewProductForm({...newProductForm, costPrice: e.target.value})}
+                    className="input" 
+                    placeholder="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="label">Selling Price *</label>
+                  <input 
+                    type="number" 
+                    value={newProductForm.sellingPrice} 
+                    onChange={(e) => setNewProductForm({...newProductForm, sellingPrice: e.target.value})}
+                    className="input" 
+                    placeholder="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="label">Category</label>
+                <select 
+                  value={newProductForm.categoryId} 
+                  onChange={(e) => setNewProductForm({...newProductForm, categoryId: e.target.value})}
+                  className="input"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                <label className="label">Brand</label>
+                <select 
+                  value={newProductForm.brandId} 
+                  onChange={(e) => setNewProductForm({...newProductForm, brandId: e.target.value})}
+                  className="input"
+                >
+                  <option value="">Select Brand</option>
+                  {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 mt-6">
+              <button 
+                onClick={() => setShowAddProductModal(false)} 
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleAddProduct} 
+                className="btn-primary flex-1"
+              >
+                Add Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
