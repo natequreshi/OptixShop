@@ -241,14 +241,36 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
           </div>
           <div>
             <label className="label">Prescription Photo (Optional)</label>
-            <input 
-              type="text" 
-              value={form.photoUrl} 
-              onChange={(e) => setForm({...form, photoUrl: e.target.value})} 
-              className="input" 
-              placeholder="Enter image URL or upload link"
-            />
-            <p className="text-xs text-gray-500 mt-1">Paste image URL or use image hosting service</p>
+            <div className="flex items-start gap-4">
+              {form.photoUrl && (
+                <div className="relative group">
+                  <img src={form.photoUrl} alt="Prescription" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                  <button type="button" onClick={() => setForm({...form, photoUrl: ""})} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                </div>
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 1048576) { alert("File must be less than 1MB"); return; }
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    const res = await fetch("/api/upload-image", { method: "POST", body: fd });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setForm({...form, photoUrl: data.url});
+                    } else {
+                      alert("Failed to upload image");
+                    }
+                  }}
+                  className="input text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                />
+                <p className="text-xs text-gray-500 mt-1">Upload prescription photo (max 1MB)</p>
+              </div>
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>

@@ -57,6 +57,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
   const [visibleNavItems, setVisibleNavItems] = useState(navItems);
+  const [storeName, setStoreName] = useState("OptixShop");
+  const [logoUrl, setLogoUrl] = useState("");
 
   useEffect(() => {
     fetch("/api/settings")
@@ -69,11 +71,12 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           }
         });
         setEnabledModules(modules);
+        if (settings.store_name) setStoreName(settings.store_name);
+        if (settings.logo_url) setLogoUrl(settings.logo_url);
         
         // Build visible nav items array - only include enabled modules
         const visible = navItems.filter(item => {
-          if (!item.module) return true; // Always include items without module requirement
-          // Only include if module is enabled (or undefined means default enabled)
+          if (!item.module) return true;
           const moduleValue = modules[item.module];
           return moduleValue === undefined || moduleValue === true;
         });
@@ -96,10 +99,24 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     >
       {/* Logo */}
       <div className="h-16 flex items-center gap-3 px-4 border-b border-gray-100 dark:border-gray-700">
-        <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Glasses className="w-5 h-5 text-white" />
-        </div>
-        {!collapsed && <span className="text-lg font-bold text-gray-900 dark:text-white">OptixShop</span>}
+        {logoUrl ? (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img src={logoUrl} alt={storeName} className="w-9 h-9 rounded-lg object-contain flex-shrink-0" />
+            {!collapsed && (
+              <div className="min-w-0">
+                <span className="text-base font-bold text-gray-900 dark:text-white block truncate leading-tight">{storeName}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-none">Optics & Eyewear</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Glasses className="w-5 h-5 text-white" />
+            </div>
+            {!collapsed && <span className="text-lg font-bold text-gray-900 dark:text-white">{storeName}</span>}
+          </>
+        )}
       </div>
 
       {/* Nav */}
