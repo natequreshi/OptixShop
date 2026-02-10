@@ -67,6 +67,13 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [visibleCols, setVisibleCols] = useState<ColumnKey[]>(getInitialColumns(settings));
   const [showColPicker, setShowColPicker] = useState(false);
+  
+  const loyaltyEnabled = settings.loyalty_enabled === "true";
+  
+  // Filter available columns based on loyalty setting
+  const availableColumns = ALL_COLUMNS.filter(col => 
+    col.key !== "loyalty" || loyaltyEnabled
+  );
 
   const filtered = customers.filter((c) => {
     const term = search.toLowerCase();
@@ -97,7 +104,10 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
     });
   }
 
-  const isCol = (k: ColumnKey) => visibleCols.includes(k);
+  const isCol = (k: ColumnKey) => {
+    if (k === "loyalty" && !loyaltyEnabled) return false;
+    return visibleCols.includes(k);
+  };
   const colCount = 2 + visibleCols.length + 1;
 
   return (
@@ -114,7 +124,7 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
             {showColPicker && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 p-3 z-50">
                 <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Visible Columns</p>
-                {ALL_COLUMNS.map((col) => (
+                {availableColumns.map((col) => (
                   <label key={col.key} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
                     <input type="checkbox" checked={visibleCols.includes(col.key)} onChange={() => toggleColumn(col.key)}
                       className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
