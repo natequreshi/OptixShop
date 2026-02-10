@@ -653,10 +653,12 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   const addItem = () => {
     setForm({...form, items: [...form.items, { productId: "", quantity: 1, unitPrice: 0, discount: 0 }]});
+    setProductSearch([...productSearch, ""]);
   };
 
   const removeItem = (index: number) => {
     setForm({...form, items: form.items.filter((_, i) => i !== index)});
+    setProductSearch(productSearch.filter((_, i) => i !== index));
   };
 
   const updateItem = (index: number, field: string, value: any) => {
@@ -896,12 +898,64 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
               {form.items.map((item, index) => (
                 <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex-1 grid grid-cols-4 gap-2">
-                    <select value={item.productId} onChange={(e) => updateItem(index, "productId", e.target.value)} className="input col-span-2" required>
-                      <option value="">Select Product</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} - {formatCurrency(p.sellingPrice)}</option>
-                      ))}
-                    </select>
+                    <div className="col-span-2 relative">
+                      <input
+                        type="text"
+                        value={productSearch[index] || ""}
+                        onChange={(e) => {
+                          const newSearch = [...productSearch];
+                          newSearch[index] = e.target.value;
+                          setProductSearch(newSearch);
+                          // Clear selection if user edits text
+                          if (item.productId) {
+                            const items = [...form.items];
+                            items[index] = { ...items[index], productId: "", unitPrice: 0 };
+                            setForm({ ...form, items });
+                          }
+                        }}
+                        className="input w-full"
+                        placeholder="Search product by name or SKU..."
+                        required={!item.productId}
+                      />
+                      {/* Dropdown results */}
+                      {productSearch[index] && productSearch[index].length > 0 && !item.productId && (
+                        <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {products
+                            .filter(p => {
+                              const q = productSearch[index].toLowerCase();
+                              return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+                            })
+                            .slice(0, 8)
+                            .map((p: any) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => {
+                                  const newSearch = [...productSearch];
+                                  newSearch[index] = `${p.name} (${p.sku})`;
+                                  setProductSearch(newSearch);
+                                  updateItem(index, "productId", p.id);
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-primary-50 dark:hover:bg-gray-700 flex items-center gap-3 text-sm border-b border-gray-50 dark:border-gray-700 last:border-0"
+                              >
+                                {p.imageUrl && (
+                                  <img src={p.imageUrl} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{p.name}</p>
+                                  <p className="text-xs text-gray-400">{p.sku} · {formatCurrency(p.sellingPrice)}</p>
+                                </div>
+                              </button>
+                            ))}
+                          {products.filter(p => {
+                            const q = productSearch[index].toLowerCase();
+                            return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+                          }).length === 0 && (
+                            <div className="px-3 py-4 text-center text-sm text-gray-400">No products found</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <input type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)} className="input" placeholder="Qty" min="1" required />
                     <input type="number" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", parseFloat(e.target.value) || 0)} className="input" placeholder="Price" step="0.01" required />
                   </div>
