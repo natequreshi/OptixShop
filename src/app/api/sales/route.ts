@@ -15,15 +15,14 @@ export async function POST(req: Request) {
   // Calculate totals
   let subtotal = 0;
   let totalTax = 0;
-  let totalDiscount = 0;
+  let itemDiscountsTotal = 0;
+  
   const itemsData = body.items.map((item: any) => {
     const lineTotal = item.unitPrice * item.quantity;
-    const discountAmt = (item.discount ?? 0) * item.quantity;
-    totalDiscount += discountAmt;
-    const taxableAmt = lineTotal - discountAmt;
-    const taxAmt = taxableAmt * ((item.taxRate ?? 0) / 100);
+    const itemDiscount = (item.discount ?? 0) * item.quantity;
+    itemDiscountsTotal += itemDiscount;
     subtotal += lineTotal;
-    totalTax += taxAmt;
+    
     return {
       productId: item.productId,
       quantity: item.quantity,
@@ -32,14 +31,35 @@ export async function POST(req: Request) {
       discountPct: 0,
       discountAmount: item.discount ?? 0,
       taxRate: item.taxRate ?? 0,
-      taxAmount: taxAmt,
-      cgst: taxAmt / 2,
-      sgst: taxAmt / 2,
-      total: taxableAmt + taxAmt,
+      taxAmount: 0, // Will calculate after global discount
+      cgst: 0,
+      sgst: 0,
+      total: 0, // Will calculate after
     };
   });
 
-  const totalAmount = subtotal - totalDiscount + totalTax;
+  // Apply global discount percentage
+  const globalDiscountAmount = (subtotal * (body.discountPercent ?? 0)) / 100;
+  const afterGlobalDiscount = subtotal - globalDiscountAmount;
+  const afterAllDiscounts = afterGlobalDiscount - itemDiscountsTotal;
+  
+  // Calculate tax on the discounted amounts
+  body.items.forEach((item: any, index: number) => {
+    const lineTotal = item.unitPrice * item.quantity;
+    const itemDiscount = (item.discount ?? 0) * item.quantity;
+    const lineAfterItemDiscount = lineTotal - itemDiscount;
+    const lineAfterGlobalDiscount = lineAfterItemDiscount * (1 - (body.discountPercent ?? 0) / 100);
+    const taxAmt = lineAfterGlobalDiscount * ((item.taxRate ?? 0) / 100);
+    
+    totalTax += taxAmt;
+    itemsData[index].taxAmount = taxAmt;
+    itemsData[index].cgst = taxAmt / 2;
+    itemsData[index].sgst = taxAmt / 2;
+    itemsData[index].total = lineAfterGlobalDiscount + taxAmt;
+  });
+
+  const totalDiscount = globalDiscountAmount + itemDiscountsTotal;
+  const totalAmount = afterAllDiscounts + totalTax;
   const paidAmount = body.amountTendered ?? totalAmount;
   const actualPaidAmount = Math.min(paidAmount, totalAmount);
   const balanceAmount = Math.max(0, totalAmount - paidAmount);

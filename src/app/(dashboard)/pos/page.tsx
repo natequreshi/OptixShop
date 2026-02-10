@@ -92,11 +92,12 @@ export default function POSPage() {
   const subtotal = manualSubtotal !== null ? manualSubtotal : cart.reduce((s, i) => s + i.sellingPrice * i.qty, 0);
   const discountAmount = (subtotal * discountPercent) / 100;
   const afterDiscount = subtotal - discountAmount;
-  const totalDiscount = cart.reduce((s, i) => s + i.discount * i.qty, 0);
-  const taxableAmount = afterDiscount - totalDiscount;
+  const itemDiscounts = cart.reduce((s, i) => s + i.discount * i.qty, 0);
+  const taxableAmount = afterDiscount - itemDiscounts;
   const taxAmount = taxEnabled ? cart.reduce((s, i) => {
     const lineTotal = (i.sellingPrice - i.discount) * i.qty;
-    return s + lineTotal * (i.taxRate / 100);
+    const lineAfterGlobalDiscount = lineTotal * (1 - discountPercent / 100);
+    return s + lineAfterGlobalDiscount * (i.taxRate / 100);
   }, 0) : 0;
   const grandTotal = taxableAmount + taxAmount;
   const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
@@ -113,14 +114,14 @@ export default function POSPage() {
           customerId: selectedCustomer?.id || null,
           paymentMethod,
           transactionId: transactionId || undefined,
-          amountTendered: +amountTendered || grandTotal,
+          amountTendered: +amountTendered || denominationsTotal || grandTotal,
           discountPercent,
           items: cart.map(i => ({
             productId: i.id,
             quantity: i.qty,
             unitPrice: i.sellingPrice,
             discount: i.discount,
-            taxRate: i.taxRate,
+            taxRate: taxEnabled ? i.taxRate : 0,
           })),
         }),
       });
