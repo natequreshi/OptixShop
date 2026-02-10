@@ -13,6 +13,7 @@ import {
   CircleDollarSign,
   BarChart3,
   AlertTriangle,
+  ShoppingBag,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import {
