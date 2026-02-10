@@ -128,8 +128,40 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               </div>
 
               <SectionTitle icon={Palette} title="Branding" />
-              <Field label="Logo URL" value={val("logo_url")} onChange={(v) => set("logo_url", v)} placeholder="https://example.com/logo.png" />
-              <p className="text-xs text-gray-400">Enter a URL for your shop logo. It will appear on login and receipts.</p>
+              <div>
+                <label className="label">Store Logo</label>
+                <div className="flex items-center gap-4">
+                  {val("logo_url") && (
+                    <img src={val("logo_url")} alt="Logo" className="w-16 h-16 rounded-lg object-contain border border-gray-200 bg-white" />
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 512000) { toast.error("File must be less than 500KB"); return; }
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        const res = await fetch("/api/upload-logo", { method: "POST", body: fd });
+                        if (res.ok) {
+                          const data = await res.json();
+                          set("logo_url", data.url);
+                          toast.success("Logo uploaded!");
+                        } else {
+                          toast.error("Failed to upload logo");
+                        }
+                      }}
+                      className="input text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Upload your shop logo (max 500KB). Appears on receipts and invoices.</p>
+                  </div>
+                </div>
+                {val("logo_url") && (
+                  <button type="button" onClick={() => set("logo_url", "")} className="text-xs text-red-500 hover:text-red-700 mt-2">Remove logo</button>
+                )}
+              </div>
 
               <SectionTitle icon={MapPin} title="Google Maps Integration" />
               <Field label="Google Maps API Key" value={val("google_maps_api_key")} onChange={(v) => set("google_maps_api_key", v)} placeholder="AIzaSy..." />

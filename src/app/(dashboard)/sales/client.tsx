@@ -323,12 +323,13 @@ function EditSaleModal({ sale, onClose, onSaved }: { sale: Sale; onClose: () => 
 function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
   const [template, setTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const [taxEnabled, setTaxEnabled] = useState(true);
+  const [storeSettings, setStoreSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch("/api/settings").then(r => r.json()).then((settings) => {
-      const printTemplate = settings.find((s: any) => s.key === 'print_template')?.value || '80mm';
-      setTemplate(printTemplate as any);
-      setTaxEnabled(settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true');
+    fetch("/api/settings").then(r => r.json()).then((settings: Record<string, string>) => {
+      setStoreSettings(settings);
+      setTemplate((settings.print_template as any) || '80mm');
+      setTaxEnabled(settings.tax_enabled === 'true');
     });
   }, []);
 
@@ -355,7 +356,7 @@ function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void 
           </div>
         </div>
         <div className="p-8 overflow-y-auto max-h-[calc(90vh-80px)]">
-          <InvoiceTemplate sale={sale} template={template} taxEnabled={taxEnabled} />
+          <InvoiceTemplate sale={sale} template={template} taxEnabled={taxEnabled} settings={storeSettings} />
         </div>
       </div>
     </div>
@@ -363,7 +364,15 @@ function PrintInvoiceModal({ sale, onClose }: { sale: Sale; onClose: () => void 
 }
 
 /* ── Invoice Templates ─────────────────── */
-function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template: "80mm" | "modern" | "classic" | "minimal"; taxEnabled: boolean }) {
+function InvoiceTemplate({ sale, template, taxEnabled, settings }: { sale: Sale; template: "80mm" | "modern" | "classic" | "minimal"; taxEnabled: boolean; settings: Record<string, string> }) {
+  const storeName = settings.store_name || "OptixShop";
+  const storePhone = settings.store_phone || "";
+  const storeEmail = settings.store_email || "";
+  const storeAddress = settings.store_address || "";
+  const storeCity = settings.store_city || "";
+  const logoUrl = settings.logo_url || "";
+  const currency = settings.currency || "Rs.";
+
   if (template === "80mm") {
     return (
       <div style={{ width: '80mm', margin: '0 auto', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.4' }}>
@@ -374,8 +383,10 @@ function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template:
           }
         `}</style>
         
-        <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>OPTICS SHOP</div>
-        <div style={{ textAlign: 'center', marginBottom: '8px' }}>POS Receipt</div>
+        {logoUrl && <div style={{ textAlign: 'center', marginBottom: '4px' }}><img src={logoUrl} alt="" style={{ maxHeight: '40px', margin: '0 auto' }} /></div>}
+        <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>{storeName}</div>
+        {storeAddress && <div style={{ textAlign: 'center', fontSize: '10px' }}>{storeAddress}{storeCity ? `, ${storeCity}` : ''}</div>}
+        {storePhone && <div style={{ textAlign: 'center', fontSize: '10px' }}>{storePhone}</div>}
         <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }}></div>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
@@ -456,8 +467,11 @@ function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template:
             <p className="text-sm text-gray-500">Date: {formatDate(sale.saleDate)}</p>
           </div>
           <div className="text-right">
-            <h2 className="text-xl font-bold">OptixShop</h2>
-            <p className="text-sm text-gray-600 mt-1">Optics & Eyewear</p>
+            {logoUrl && <img src={logoUrl} alt="" className="ml-auto mb-2" style={{ maxHeight: '50px' }} />}
+            <h2 className="text-xl font-bold">{storeName}</h2>
+            {storeAddress && <p className="text-sm text-gray-600">{storeAddress}{storeCity ? `, ${storeCity}` : ''}</p>}
+            {storePhone && <p className="text-sm text-gray-600">{storePhone}</p>}
+            {storeEmail && <p className="text-sm text-gray-600">{storeEmail}</p>}
           </div>
         </div>
 
@@ -506,7 +520,7 @@ function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template:
         {/* Footer */}
         <div className="mt-12 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
           <p>Thank you for your business!</p>
-          <p className="mt-1">For inquiries, contact us at info@optixshop.com</p>
+          {(storePhone || storeEmail) && <p className="mt-1">For inquiries, contact us at {storeEmail || storePhone}</p>}
         </div>
       </div>
     );
@@ -516,8 +530,10 @@ function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template:
     return (
       <div className="bg-white text-gray-900 p-8 max-w-4xl mx-auto border-4 border-double border-gray-800">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-serif font-bold">OptixShop</h1>
-          <p className="text-sm mt-2">Optics & Eyewear Specialists</p>
+          {logoUrl && <img src={logoUrl} alt="" className="mx-auto mb-2" style={{ maxHeight: '60px' }} />}
+          <h1 className="text-4xl font-serif font-bold">{storeName}</h1>
+          {storeAddress && <p className="text-sm mt-2">{storeAddress}{storeCity ? `, ${storeCity}` : ''}</p>}
+          {storePhone && <p className="text-sm">{storePhone}</p>}
           <div className="mt-4 inline-block border-t-2 border-b-2 border-gray-800 py-2 px-6">
             <p className="text-lg font-semibold">INVOICE</p>
           </div>
@@ -565,7 +581,7 @@ function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template:
         </div>
 
         <div className="mt-8 text-center text-xs border-t border-gray-300 pt-4">
-          <p>Thank you for choosing OptixShop</p>
+          <p>Thank you for choosing {storeName}</p>
         </div>
       </div>
     );
@@ -574,9 +590,16 @@ function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template:
   // Minimal template
   return (
     <div className="bg-white text-gray-900 p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-light">Invoice {sale.invoiceNo}</h1>
-        <p className="text-sm text-gray-600 mt-1">{formatDate(sale.saleDate)}</p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-light">Invoice {sale.invoiceNo}</h1>
+          <p className="text-sm text-gray-600 mt-1">{formatDate(sale.saleDate)}</p>
+        </div>
+        <div className="text-right">
+          {logoUrl && <img src={logoUrl} alt="" className="ml-auto mb-1" style={{ maxHeight: '40px' }} />}
+          <p className="font-medium">{storeName}</p>
+          {storePhone && <p className="text-xs text-gray-500">{storePhone}</p>}
+        </div>
       </div>
 
       <div className="mb-6">
@@ -613,7 +636,7 @@ function InvoiceTemplate({ sale, template, taxEnabled }: { sale: Sale; template:
       </div>
 
       <div className="mt-12 text-sm text-gray-500">
-        <p>Thank you</p>
+        <p>Thank you for choosing {storeName}</p>
       </div>
     </div>
   );

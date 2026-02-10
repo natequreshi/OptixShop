@@ -42,6 +42,11 @@ export default function POSPage() {
   const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const [currency, setCurrency] = useState("Rs.");
   const [showDenominations, setShowDenominations] = useState(true);
+  const [storeName, setStoreName] = useState('OPTICS SHOP');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [storePhone, setStorePhone] = useState('');
+  const [storeCity, setStoreCity] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -59,6 +64,11 @@ export default function POSPage() {
       setPrintTemplate((settings['print_template'] as any) || '80mm');
       setCurrency(settings['currency'] || 'Rs.');
       setShowDenominations(settings['pos_show_denominations'] !== 'false');
+      setStoreName(settings['store_name'] || 'OPTICS SHOP');
+      setStoreAddress(settings['store_address'] || '');
+      setStorePhone(settings['store_phone'] || '');
+      setStoreCity(settings['store_city'] || '');
+      setLogoUrl(settings['logo_url'] || '');
     });
     searchRef.current?.focus();
   }, []);
@@ -181,8 +191,10 @@ export default function POSPage() {
         </style>
       </head>
       <body>
-        <div class="center large bold">OPTICS SHOP</div>
-        <div class="center">POS Receipt</div>
+        ${logoUrl ? `<div class="center"><img src="${logoUrl}" alt="" style="max-height:35px;margin:0 auto 4px;"></div>` : ''}
+        <div class="center large bold">${storeName}</div>
+        ${storeAddress ? `<div class="center" style="font-size:10px">${storeAddress}${storeCity ? ', ' + storeCity : ''}</div>` : ''}
+        ${storePhone ? `<div class="center" style="font-size:10px">${storePhone}</div>` : ''}
         <div class="separator"></div>
         
         <div class="row">
