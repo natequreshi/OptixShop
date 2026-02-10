@@ -11,6 +11,7 @@ interface Rx {
   prescribedBy: string; prescriptionDate: string; expiryDate: string;
   odSphere: number | null; odCylinder: number | null; odAxis: number | null; odAdd: number | null;
   osSphere: number | null; osCylinder: number | null; osAxis: number | null; osAdd: number | null;
+  photoUrl: string | null;
 }
 
 export default function PrescriptionsClient({ prescriptions, customers }: {
@@ -123,6 +124,12 @@ export default function PrescriptionsClient({ prescriptions, customers }: {
                 </div>
               </div>
             </div>
+            {viewing.photoUrl && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Prescription Image</p>
+                <img src={viewing.photoUrl} alt="Prescription" className="w-full rounded-lg border border-gray-200 object-contain max-h-64" />
+              </div>
+            )}
             <button onClick={() => setViewing(null)} className="btn-secondary w-full mt-4">Close</button>
           </div>
         </div>

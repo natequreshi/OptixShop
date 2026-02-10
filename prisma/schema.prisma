@@ -247,6 +247,7 @@ model Prescription {
   osAxis          Int?    @map("os_axis")
   osAdd           Float?  @map("os_add")
   osPd            Float?  @map("os_pd")
+  photoUrl        String? @map("photo_url")
   notes           String?
   createdAt       DateTime @default(now()) @map("created_at")
 
