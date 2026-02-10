@@ -9,6 +9,7 @@ import {
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import DateFilter from "@/components/DateFilter";
 
 interface Expense {
   id: string; expenseNo: string; category: string; description: string;
@@ -35,6 +36,8 @@ export default function ExpensesClient({ expenses, summary }: { expenses: Expens
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [filterCat, setFilterCat] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const filtered = expenses.filter((e) => {
     const term = search.toLowerCase();
@@ -42,8 +45,14 @@ export default function ExpensesClient({ expenses, summary }: { expenses: Expens
       e.expenseNo.toLowerCase().includes(term) ||
       e.category.toLowerCase().includes(term);
     const matchesCat = !filterCat || e.category.toLowerCase() === filterCat.toLowerCase();
-    return matchesSearch && matchesCat;
+    const matchesDate = (!dateFrom || e.expenseDate >= dateFrom) && (!dateTo || e.expenseDate <= dateTo);
+    return matchesSearch && matchesCat && matchesDate;
   });
+
+  const filteredSummary = {
+    totalAmount: filtered.reduce((s, e) => s + e.amount, 0),
+    totalCount: filtered.length,
+  };
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this expense?")) return;
@@ -69,19 +78,22 @@ export default function ExpensesClient({ expenses, summary }: { expenses: Expens
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-        <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-primary flex items-center gap-2">
-          <Plus size={18} /> Add Expense
-        </button>
+        <div className="flex items-center gap-3">
+          <DateFilter onDateChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
+          <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-primary flex items-center gap-2">
+            <Plus size={18} /> Add Expense
+          </button>
+        </div>
       </div>
 
-      {/* Summary Cards - Daily & Monthly side by side */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card p-5">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 flex items-center gap-1.5"><CalendarDays size={14} /> Today&apos;s Expenses</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(summary.dailyAmount)}</p>
-              <p className="text-xs text-gray-400 mt-1">{summary.dailyCount} transaction{summary.dailyCount !== 1 ? "s" : ""}</p>
+              <p className="text-sm text-gray-500 flex items-center gap-1.5"><CalendarDays size={14} /> {dateFrom || dateTo ? 'Filtered Period' : "Today's Expenses"}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(dateFrom || dateTo ? filteredSummary.totalAmount : summary.dailyAmount)}</p>
+              <p className="text-xs text-gray-400 mt-1">{dateFrom || dateTo ? filteredSummary.totalCount : summary.dailyCount} transaction{(dateFrom || dateTo ? filteredSummary.totalCount : summary.dailyCount) !== 1 ? "s" : ""}</p>
             </div>
             <div className="p-2.5 rounded-xl bg-red-50">
               <Wallet size={22} className="text-red-600" />

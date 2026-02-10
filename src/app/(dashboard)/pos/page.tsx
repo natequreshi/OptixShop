@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Banknote, Smartphone, User, X, Receipt, Package
+  Banknote, Smartphone, User, X, Receipt, Package, ScanBarcode, Filter
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 interface Product {
   id: string; sku: string; name: string; sellingPrice: number;
   taxRate: number; productType: string; stock: number; imageUrl: string | null;
+  categoryId: string | null; brandId: string | null;
 }
 
 interface CartItem extends Product {
@@ -51,6 +52,11 @@ export default function POSPage() {
   const [storePhone, setStorePhone] = useState('');
   const [storeCity, setStoreCity] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [categories, setCategories] = useState<{id: string; name: string}[]>([]);
+  const [brands, setBrands] = useState<{id: string; name: string}[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
+  const [allowSubtotalEdit, setAllowSubtotalEdit] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -60,14 +66,19 @@ export default function POSPage() {
         taxRate: p.taxRate, productType: p.productType,
         stock: p.inventory?.quantity ?? 0,
         imageUrl: p.imageUrl || null,
+        categoryId: p.categoryId || null,
+        brandId: p.brandId || null,
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
+    fetch("/api/categories").then(r => r.json()).then(setCategories).catch(() => {});
+    fetch("/api/brands").then(r => r.json()).then(setBrands).catch(() => {});
     fetch("/api/settings").then(r => r.json()).then((settings: Record<string, string>) => {
       setTaxEnabled(settings['tax_enabled'] === 'true');
       setPrintTemplate((settings['print_template'] as any) || '80mm');
       setCurrency(settings['currency'] || 'Rs.');
       setShowDenominations(settings['pos_show_denominations'] !== 'false');
+      setAllowSubtotalEdit(settings['pos_allow_subtotal_edit'] !== 'false');
       setStoreName(settings['store_name'] || 'OPTICS SHOP');
       setStoreAddress(settings['store_address'] || '');
       setStorePhone(settings['store_phone'] || '');
@@ -77,10 +88,13 @@ export default function POSPage() {
     searchRef.current?.focus();
   }, []);
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = !categoryFilter || (p as any).categoryId === categoryFilter;
+    const matchBrand = !brandFilter || (p as any).brandId === brandFilter;
+    return matchSearch && matchCategory && matchBrand;
+  });
 
   const filteredCustomers = customers.filter(c =>
     `${c.firstName} ${c.lastName}`.toLowerCase().includes(custSearch.toLowerCase()) ||
@@ -311,10 +325,39 @@ export default function POSPage() {
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-8rem)] w-full overflow-x-hidden">
       {/* Products Panel */}
       <div className="w-full lg:flex-1 flex flex-col min-h-[400px] lg:min-h-0">
-        <div className="mb-4">
-          <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products by name or SKU..." className="input pl-10 text-base" />
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <ScanBarcode size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Enter Product name / SKU / Scan bar code" className="input pl-10 pr-10 text-base" />
+              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16} /></button>}
+            </div>
+            <button
+              onClick={() => {
+                const match = filteredProducts[0];
+                if (match) addToCart(match);
+                else toast.error("No product found");
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition"
+              title="Add first matching product"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input text-xs py-1.5 px-2 w-auto min-w-[120px]">
+              <option value="">All Categories</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="input text-xs py-1.5 px-2 w-auto min-w-[120px]">
+              <option value="">All Brands</option>
+              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            {(categoryFilter || brandFilter) && (
+              <button onClick={() => { setCategoryFilter(''); setBrandFilter(''); }} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
+                <X size={12} /> Clear
+              </button>
+            )}
           </div>
         </div>
 
@@ -323,9 +366,9 @@ export default function POSPage() {
           {filteredProducts.slice(0, 50).map((p) => (
             <button key={p.id} onClick={() => addToCart(p)}
               className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
-              <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+              <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden" style={{ aspectRatio: '1/1' }}>
                 {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" style={{ aspectRatio: '1/1' }} />
                 ) : (
                   <Package size={32} className="text-gray-300" />
                 )}
@@ -449,13 +492,17 @@ export default function POSPage() {
         <div className="p-4 border-t border-gray-100 space-y-2">
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-500">Subtotal</span>
-            <input 
-              type="number" 
-              value={manualSubtotal !== null ? manualSubtotal : subtotal.toFixed(2)} 
-              onChange={(e) => setManualSubtotal(e.target.value === '' ? null : parseFloat(e.target.value))}
-              className="input text-sm w-24 text-right p-1" 
-              step="0.01"
-            />
+            {allowSubtotalEdit ? (
+              <input 
+                type="number" 
+                value={manualSubtotal !== null ? manualSubtotal : subtotal.toFixed(2)} 
+                onChange={(e) => setManualSubtotal(e.target.value === '' ? null : parseFloat(e.target.value))}
+                className="input text-sm w-24 text-right p-1" 
+                step="0.01"
+              />
+            ) : (
+              <span className="font-medium">{formatCurrency(subtotal)}</span>
+            )}
           </div>
           
           <div className="flex justify-between items-center text-sm">

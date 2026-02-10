@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Package, Edit2, Trash2, Copy, Check, X, Image as ImageIcon, Filter, FolderTree } from "lucide-react";
+import { Plus, Search, Package, Edit2, Trash2, Copy, Check, X, Image as ImageIcon, Filter, FolderTree, ArrowUpDown, ArrowUp, ArrowDown, DollarSign } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,13 @@ export default function ProductsClient({ products, categories, brands }: Props) 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [inlineEdit, setInlineEdit] = useState<{ id: string; field: "costPrice" | "sellingPrice"; value: string } | null>(null);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [showGlobalPrice, setShowGlobalPrice] = useState(false);
+  const [globalPriceType, setGlobalPriceType] = useState<"percent" | "fixed">("percent");
+  const [globalPriceValue, setGlobalPriceValue] = useState(0);
+  const [globalPriceField, setGlobalPriceField] = useState<"sellingPrice" | "costPrice">("sellingPrice");
+  const [globalPriceLoading, setGlobalPriceLoading] = useState(false);
 
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -39,6 +46,59 @@ export default function ProductsClient({ products, categories, brands }: Props) 
     const matchBrand = !brandFilter || p.brand === brandFilter;
     return matchSearch && matchType && matchCategory && matchBrand;
   });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortField) return 0;
+    let aVal: any, bVal: any;
+    switch (sortField) {
+      case "name": aVal = a.name.toLowerCase(); bVal = b.name.toLowerCase(); break;
+      case "sku": aVal = a.sku.toLowerCase(); bVal = b.sku.toLowerCase(); break;
+      case "costPrice": aVal = a.costPrice; bVal = b.costPrice; break;
+      case "sellingPrice": aVal = a.sellingPrice; bVal = b.sellingPrice; break;
+      case "stock": aVal = a.stock; bVal = b.stock; break;
+      case "sold": aVal = a.sold; bVal = b.sold; break;
+      case "isActive": aVal = a.isActive ? 1 : 0; bVal = b.isActive ? 1 : 0; break;
+      default: return 0;
+    }
+    if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  function toggleSort(field: string) {
+    if (sortField === field) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  }
+
+  function SortIcon({ field }: { field: string }) {
+    if (sortField !== field) return <ArrowUpDown size={12} className="text-gray-300 ml-1" />;
+    return sortDir === "asc" ? <ArrowUp size={12} className="text-primary-600 ml-1" /> : <ArrowDown size={12} className="text-primary-600 ml-1" />;
+  }
+
+  async function handleGlobalPriceUpdate() {
+    if (globalPriceValue === 0) return toast.error("Enter a value");
+    setGlobalPriceLoading(true);
+    try {
+      const productIds = filtered.map(p => p.id);
+      const res = await fetch("/api/products/global-price", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds, field: globalPriceField, type: globalPriceType, value: globalPriceValue }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Updated ${data.count} products`);
+        setShowGlobalPrice(false);
+        setGlobalPriceValue(0);
+        router.refresh();
+      } else toast.error("Failed to update prices");
+    } catch { toast.error("Error"); }
+    setGlobalPriceLoading(false);
+  }
 
   async function handleDuplicate(product: Product) {
     const newProduct = {
@@ -89,6 +149,9 @@ export default function ProductsClient({ products, categories, brands }: Props) 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Products</h1>
         <div className="flex items-center gap-3">
+          <button onClick={() => setShowGlobalPrice(true)} className="btn-secondary flex items-center gap-2">
+            <DollarSign size={18} /> Global Price Update
+          </button>
           <Link href="/categories" className="btn-secondary flex items-center gap-2">
             <FolderTree size={18} /> Categories
           </Link>
@@ -145,21 +208,35 @@ export default function ProductsClient({ products, categories, brands }: Props) 
             <thead>
               <tr className="table-header">
                 <th className="px-4 py-3">Image</th>
-                <th className="px-4 py-3">SKU</th>
-                <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("sku")}>
+                  <span className="flex items-center">SKU <SortIcon field="sku" /></span>
+                </th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("name")}>
+                  <span className="flex items-center">Product <SortIcon field="name" /></span>
+                </th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Brand</th>
-                <th className="px-4 py-3 text-right">Cost</th>
-                <th className="px-4 py-3 text-right">Price</th>
-                <th className="px-4 py-3 text-center">Stock</th>
-                <th className="px-4 py-3 text-center">Sold</th>
-                <th className="px-4 py-3 text-center">Status</th>
+                <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("costPrice")}>
+                  <span className="flex items-center justify-end">Cost <SortIcon field="costPrice" /></span>
+                </th>
+                <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("sellingPrice")}>
+                  <span className="flex items-center justify-end">Price <SortIcon field="sellingPrice" /></span>
+                </th>
+                <th className="px-4 py-3 text-center cursor-pointer select-none" onClick={() => toggleSort("stock")}>
+                  <span className="flex items-center justify-center">Stock <SortIcon field="stock" /></span>
+                </th>
+                <th className="px-4 py-3 text-center cursor-pointer select-none" onClick={() => toggleSort("sold")}>
+                  <span className="flex items-center justify-center">Sold <SortIcon field="sold" /></span>
+                </th>
+                <th className="px-4 py-3 text-center cursor-pointer select-none" onClick={() => toggleSort("isActive")}>
+                  <span className="flex items-center justify-center">Status <SortIcon field="isActive" /></span>
+                </th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((p) => (
+              {sorted.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50">
                   {/* Image */}
                   <td className="px-4 py-3">
@@ -295,6 +372,50 @@ export default function ProductsClient({ products, categories, brands }: Props) 
           onClose={() => setShowModal(false)}
           onSaved={() => { setShowModal(false); router.refresh(); }}
         />
+      )}
+
+      {/* Global Price Update Modal */}
+      {showGlobalPrice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowGlobalPrice(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Global Price Update</h2>
+            <p className="text-sm text-gray-500">Update prices for {filtered.length} filtered product{filtered.length !== 1 ? 's' : ''}</p>
+            
+            <div>
+              <label className="label">Apply To</label>
+              <select value={globalPriceField} onChange={(e) => setGlobalPriceField(e.target.value as any)} className="input">
+                <option value="sellingPrice">Selling Price</option>
+                <option value="costPrice">Cost Price</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="label">Update Type</label>
+              <div className="flex gap-2">
+                <button onClick={() => setGlobalPriceType("percent")} className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition", globalPriceType === "percent" ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>By Percentage (%)</button>
+                <button onClick={() => setGlobalPriceType("fixed")} className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition", globalPriceType === "fixed" ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>Fixed Amount (Rs.)</button>
+              </div>
+            </div>
+            
+            <div>
+              <label className="label">Value (+increase / −decrease)</label>
+              <input type="number" value={globalPriceValue} onChange={(e) => setGlobalPriceValue(parseFloat(e.target.value) || 0)} className="input" placeholder="e.g. 10 for +10%, -5 for -5%" />
+              <p className="text-xs text-gray-400 mt-1">
+                {globalPriceType === "percent" 
+                  ? `Each product's ${globalPriceField === 'sellingPrice' ? 'selling price' : 'cost price'} will change by ${globalPriceValue}%` 
+                  : `Rs. ${globalPriceValue} will be added to each product's ${globalPriceField === 'sellingPrice' ? 'selling price' : 'cost price'}`
+                }
+              </p>
+            </div>
+            
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setShowGlobalPrice(false)} className="btn-secondary flex-1">Cancel</button>
+              <button onClick={handleGlobalPriceUpdate} disabled={globalPriceLoading} className="btn-primary flex-1">
+                {globalPriceLoading ? "Updating..." : "Apply Update"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
