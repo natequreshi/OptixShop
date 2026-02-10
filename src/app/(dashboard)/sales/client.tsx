@@ -805,16 +805,6 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </div>
 
           <div>
-            <label className="label">Delivery Address (Optional)</label>
-            <textarea value={form.deliveryAddress} onChange={(e) => setForm({...form, deliveryAddress: e.target.value})} className="input" rows={2} placeholder="Enter delivery address if applicable"></textarea>
-          </div>
-
-          <div>
-            <label className="label">Delivery Date (Optional)</label>
-            <input type="date" value={form.deliveryDate} onChange={(e) => setForm({...form, deliveryDate: e.target.value})} className="input" />
-          </div>
-
-          <div>
             <label className="label">Notes (Optional)</label>
             <textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} className="input" rows={2} placeholder="Additional notes"></textarea>
           </div>
