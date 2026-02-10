@@ -16,6 +16,7 @@ export async function POST(req: Request) {
   let subtotal = 0;
   let totalTax = 0;
   let itemDiscountsTotal = 0;
+  const taxEnabled = body.taxEnabled !== false; // Default to true for backwards compatibility
   
   const itemsData = body.items.map((item: any) => {
     const lineTotal = item.unitPrice * item.quantity;
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
       costPrice: 0,
       discountPct: 0,
       discountAmount: item.discount ?? 0,
-      taxRate: item.taxRate ?? 0,
+      taxRate: taxEnabled ? (item.taxRate ?? 0) : 0,
       taxAmount: 0, // Will calculate after global discount
       cgst: 0,
       sgst: 0,
@@ -43,20 +44,32 @@ export async function POST(req: Request) {
   const afterGlobalDiscount = subtotal - globalDiscountAmount;
   const afterAllDiscounts = afterGlobalDiscount - itemDiscountsTotal;
   
-  // Calculate tax on the discounted amounts
-  body.items.forEach((item: any, index: number) => {
-    const lineTotal = item.unitPrice * item.quantity;
-    const itemDiscount = (item.discount ?? 0) * item.quantity;
-    const lineAfterItemDiscount = lineTotal - itemDiscount;
-    const lineAfterGlobalDiscount = lineAfterItemDiscount * (1 - (body.discountPercent ?? 0) / 100);
-    const taxAmt = lineAfterGlobalDiscount * ((item.taxRate ?? 0) / 100);
-    
-    totalTax += taxAmt;
-    itemsData[index].taxAmount = taxAmt;
-    itemsData[index].cgst = taxAmt / 2;
-    itemsData[index].sgst = taxAmt / 2;
-    itemsData[index].total = lineAfterGlobalDiscount + taxAmt;
-  });
+  // Calculate tax on the discounted amounts (only if tax is enabled)
+  if (taxEnabled) {
+    body.items.forEach((item: any, index: number) => {
+      const lineTotal = item.unitPrice * item.quantity;
+      const itemDiscount = (item.discount ?? 0) * item.quantity;
+      const lineAfterItemDiscount = lineTotal - itemDiscount;
+      const lineAfterGlobalDiscount = lineAfterItemDiscount * (1 - (body.discountPercent ?? 0) / 100);
+      const taxAmt = lineAfterGlobalDiscount * ((item.taxRate ?? 0) / 100);
+      
+      totalTax += taxAmt;
+      itemsData[index].taxAmount = taxAmt;
+      itemsData[index].cgst = taxAmt / 2;
+      itemsData[index].sgst = taxAmt / 2;
+      itemsData[index].total = lineAfterGlobalDiscount + taxAmt;
+    });
+  } else {
+    // Tax disabled - set totals without tax
+    body.items.forEach((item: any, index: number) => {
+      const lineTotal = item.unitPrice * item.quantity;
+      const itemDiscount = (item.discount ?? 0) * item.quantity;
+      const lineAfterItemDiscount = lineTotal - itemDiscount;
+      const lineAfterGlobalDiscount = lineAfterItemDiscount * (1 - (body.discountPercent ?? 0) / 100);
+      
+      itemsData[index].total = lineAfterGlobalDiscount;
+    });
+  }
 
   const totalDiscount = globalDiscountAmount + itemDiscountsTotal;
   const totalAmount = afterAllDiscounts + totalTax;

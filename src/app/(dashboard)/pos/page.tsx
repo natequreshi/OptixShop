@@ -116,6 +116,7 @@ export default function POSPage() {
           transactionId: transactionId || undefined,
           amountTendered: +amountTendered || denominationsTotal || grandTotal,
           discountPercent,
+          taxEnabled: taxEnabled,
           items: cart.map(i => ({
             productId: i.id,
             quantity: i.qty,
