@@ -5,11 +5,14 @@ import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const limit = searchParams.get("limit");
+  
   const sessions = await prisma.registerSession.findMany({
     include: { user: true, transactions: { orderBy: { createdAt: "desc" } } },
     orderBy: { openedAt: "desc" },
-    take: 20,
+    take: limit ? parseInt(limit) : 20,
   });
 
   const data = sessions.map(s => ({
