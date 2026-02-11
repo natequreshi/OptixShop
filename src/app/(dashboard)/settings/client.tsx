@@ -401,6 +401,30 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Field label="Primary Color" value={val("primary_color", "#4F46E5")} onChange={(v) => set("primary_color", v)} placeholder="#4F46E5" />
               <Toggle label="Compact Sidebar" checked={val("sidebar_compact", "false") === "true"} onToggle={() => toggle("sidebar_compact")} desc="Start with collapsed sidebar by default" />
               <Toggle label="Dark Mode" checked={val("dark_mode", "false") === "true"} onToggle={() => toggle("dark_mode")} desc="Toggle dark mode theme" />
+              
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">Dashboard Widgets</h4>
+                <p className="text-xs text-gray-500 mb-4">Toggle visibility of dashboard widgets</p>
+                
+                <div className="space-y-2">
+                  <Toggle label="Total Sales" checked={val("widget_total_sales", "true") === "true"} onToggle={() => toggle("widget_total_sales")} />
+                  <Toggle label="Net" checked={val("widget_net", "true") === "true"} onToggle={() => toggle("widget_net")} />
+                  <Toggle label="Invoice Due" checked={val("widget_invoice_due", "true") === "true"} onToggle={() => toggle("widget_invoice_due")} />
+                  <Toggle label="Total Sell Return" checked={val("widget_sell_return", "true") === "true"} onToggle={() => toggle("widget_sell_return")} />
+                  <Toggle label="Total Purchase" checked={val("widget_total_purchase", "true") === "true"} onToggle={() => toggle("widget_total_purchase")} />
+                  <Toggle label="Purchase Due" checked={val("widget_purchase_due", "true") === "true"} onToggle={() => toggle("widget_purchase_due")} />
+                  <Toggle label="Total Purchase Return" checked={val("widget_purchase_return", "true") === "true"} onToggle={() => toggle("widget_purchase_return")} />
+                  <Toggle label="Total Expense" checked={val("widget_total_expense", "true") === "true"} onToggle={() => toggle("widget_total_expense")} />
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3">Quick Stats Widgets</h4>
+                  <Toggle label="Today's Sales" checked={val("widget_today_sales", "true") === "true"} onToggle={() => toggle("widget_today_sales")} />
+                  <Toggle label="This Month" checked={val("widget_this_month", "true") === "true"} onToggle={() => toggle("widget_this_month")} />
+                  <Toggle label="Products" checked={val("widget_products", "true") === "true"} onToggle={() => toggle("widget_products")} />
+                  <Toggle label="Total Customers" checked={val("widget_customers", "true") === "true"} onToggle={() => toggle("widget_customers")} />
+                </div>
+              </div>
             </>
           )}
         </div>

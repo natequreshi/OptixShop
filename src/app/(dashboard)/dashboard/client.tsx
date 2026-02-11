@@ -83,9 +83,10 @@ interface Props {
   topProducts: { name: string; revenue: number; qty: number }[];
   salesLast30Days: { date: string; amount: number }[];
   salesByMonth: { month: string; amount: number }[];
+  settings: Record<string, string>;
 }
 
-export default function DashboardClient({ stats, recentSales, topProducts, salesLast30Days, salesByMonth }: Props) {
+export default function DashboardClient({ stats, recentSales, topProducts, salesLast30Days, salesByMonth, settings }: Props) {
   const [isLocked, setIsLocked] = useState(true);
   const [width, setWidth] = useState(1200);
   
@@ -142,49 +143,49 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       title: "TOTAL SALES",
       value: formatCurrency(stats.totalSales),
       icon: DollarSign,
-      gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
+      gradient: "bg-gradient-to-r from-blue-400 to-blue-500",
     },
     {
       title: "NET",
       value: formatCurrency(stats.netSales),
       icon: CircleDollarSign,
-      gradient: "bg-gradient-to-br from-green-400 to-green-600",
+      gradient: "bg-gradient-to-r from-green-400 to-green-500",
     },
     {
       title: "INVOICE DUE",
       value: formatCurrency(stats.invoiceDue),
       icon: FileWarning,
-      gradient: "bg-gradient-to-br from-orange-400 to-orange-600",
+      gradient: "bg-gradient-to-r from-orange-400 to-orange-500",
     },
     {
       title: "TOTAL SELL RETURN",
       value: formatCurrency(stats.totalSellReturn),
       icon: Undo2,
-      gradient: "bg-gradient-to-br from-red-400 to-red-600",
+      gradient: "bg-gradient-to-r from-red-400 to-red-500",
     },
     {
       title: "TOTAL PURCHASE",
       value: formatCurrency(stats.totalPurchase),
       icon: ShoppingCart,
-      gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
+      gradient: "bg-gradient-to-r from-purple-400 to-purple-500",
     },
     {
       title: "PURCHASE DUE",
       value: formatCurrency(stats.purchaseDue),
       icon: AlertTriangle,
-      gradient: "bg-gradient-to-br from-yellow-400 to-yellow-600",
+      gradient: "bg-gradient-to-r from-yellow-400 to-yellow-500",
     },
     {
       title: "TOTAL PURCHASE RETURN",
       value: formatCurrency(stats.totalPurchaseReturn),
       icon: ReceiptText,
-      gradient: "bg-gradient-to-br from-cyan-400 to-cyan-600",
+      gradient: "bg-gradient-to-r from-cyan-400 to-cyan-500",
     },
     {
       title: "TOTAL EXPENSE",
       value: formatCurrency(stats.totalExpense),
       icon: Wallet,
-      gradient: "bg-gradient-to-br from-pink-400 to-pink-600",
+      gradient: "bg-gradient-to-r from-pink-400 to-pink-500",
     },
   ];
 
@@ -195,6 +196,19 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
     { title: "Products", value: stats.totalProducts, sub: `${stats.lowStockCount} Low Stock`, icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
     { title: "Total Customers", value: stats.totalCustomers, sub: "Registered", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
   ];
+
+  // Widget visibility based on settings
+  const isWidgetVisible = (key: string) => settings[`widget_${key}`] !== 'false';
+  
+  const visibleSummaryCards = summaryCards.filter((_, idx) => {
+    const keys = ['total_sales', 'net', 'invoice_due', 'sell_return', 'total_purchase', 'purchase_due', 'purchase_return', 'total_expense'];
+    return isWidgetVisible(keys[idx]);
+  });
+  
+  const visibleQuickStats = quickStats.filter((_, idx) => {
+    const keys = ['today_sales', 'this_month', 'products', 'customers'];
+    return isWidgetVisible(keys[idx]);
+  });
 
   const formatChartDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -223,25 +237,28 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       </div>
 
       {/* ── Top Summary Cards (8 cards, 4 per row) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {summaryCards.map((card) => (
-          <div key={card.title} className={`relative overflow-hidden rounded-lg shadow-sm ${card.gradient} p-4`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-white/80 font-medium tracking-wide">{card.title}</p>
-                <p className="text-2xl font-bold text-white mt-2">{card.value}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-white/20">
-                <card.icon size={22} className="text-white" />
+      {visibleSummaryCards.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {visibleSummaryCards.map((card) => (
+            <div key={card.title} className={`relative overflow-hidden rounded-lg shadow-sm ${card.gradient} p-4`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-white/80 font-medium tracking-wide">{card.title}</p>
+                  <p className="text-2xl font-bold text-white mt-2">{card.value}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-white/20">
+                  <card.icon size={22} className="text-white" />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Quick Stats Row ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {quickStats.map((card) => (
+      {visibleQuickStats.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+{visibleQuickStats.map((card) => (
           <div key={card.title} className="card p-5">
             <div className="flex items-start justify-between">
               <div>
@@ -255,7 +272,8 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* ── Sales Last 30 Days (Line Chart) ── */}
       <div className="card p-5">

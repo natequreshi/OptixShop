@@ -156,6 +156,11 @@ export default async function DashboardPage() {
     qty: Number(p.totalQty),
   }));
 
+  // Fetch settings
+  const settingsData = await prisma.setting.findMany();
+  const settings: Record<string, string> = {};
+  settingsData.forEach(s => { settings[s.key] = s.value; });
+
   return (
     <DashboardClient
       stats={stats}
@@ -163,6 +168,7 @@ export default async function DashboardPage() {
       topProducts={topProducts}
       salesLast30Days={salesLast30Days}
       salesByMonth={salesByMonth}
+      settings={settings}
     />
   );
 }
