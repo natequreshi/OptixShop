@@ -14,6 +14,7 @@ interface Product {
   taxRate: number; productType: string; stock: number; imageUrl: string | null;
   categoryId?: string | null; brandId?: string | null;
   colorVariants?: {color: string; image: string}[];
+  colors?: string | null;
 }
 
 interface CartItem extends Product {
@@ -70,6 +71,7 @@ export default function POSPage() {
         categoryId: p.categoryId || null,
         brandId: p.brandId || null,
         colorVariants: p.colorVariants ? JSON.parse(p.colorVariants) : [],
+        colors: p.colors || null,
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
@@ -404,6 +406,53 @@ export default function POSPage() {
                     <div className="mb-1">
                       <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
                       <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">SKU: {p.sku}</p>
+                      
+                      {/* Color Variants/Colors Display */}
+                      {p.colorVariants && p.colorVariants.length > 0 ? (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {p.colorVariants.slice(0, 4).map((variant, idx) => (
+                            variant.image ? (
+                              <div key={idx} className="w-6 h-6 rounded border border-gray-200 overflow-hidden" title={variant.color}>
+                                <img src={variant.image} alt={variant.color} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <span key={idx} className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[9px] font-medium" title={variant.color}>
+                                {variant.color}
+                              </span>
+                            )
+                          ))}
+                          {p.colorVariants.length > 4 && (
+                            <span className="text-[9px] text-gray-500 font-medium self-center">+{p.colorVariants.length - 4}</span>
+                          )}
+                        </div>
+                      ) : p.colors ? (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {p.colors.split(',').slice(0, 4).map((color, idx) => {
+                            const colorName = color.trim().toLowerCase();
+                            const colorMap: Record<string, string> = {
+                              black: '#000000', white: '#FFFFFF', red: '#EF4444', blue: '#3B82F6',
+                              green: '#10B981', yellow: '#F59E0B', orange: '#F97316', purple: '#A855F7',
+                              pink: '#EC4899', gray: '#6B7280', grey: '#6B7280', brown: '#92400E',
+                              gold: '#D4AF37', silver: '#C0C0C0', bronze: '#CD7F32', navy: '#1E3A8A',
+                              maroon: '#7F1D1D', teal: '#14B8A6', cyan: '#06B6D4', lime: '#84CC16',
+                              indigo: '#6366F1', violet: '#8B5CF6', rose: '#F43F5E', amber: '#F59E0B',
+                              emerald: '#059669', sky: '#0EA5E9', slate: '#64748B'
+                            };
+                            const bgColor = colorMap[colorName] || '#9CA3AF';
+                            return (
+                              <div
+                                key={idx}
+                                className="w-5 h-5 rounded-full border-2 border-gray-200 shadow-sm"
+                                style={{ backgroundColor: bgColor }}
+                                title={color.trim()}
+                              />
+                            );
+                          })}
+                          {p.colors.split(',').length > 4 && (
+                            <span className="text-[9px] text-gray-500 font-medium self-center">+{p.colors.split(',').length - 4}</span>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
                       <div className="flex items-center justify-between">
