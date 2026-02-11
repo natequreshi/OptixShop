@@ -207,10 +207,10 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
 
   /* ─── Quick Stats Row ─── */
   const quickStats = [
-    { title: "Today's Sales", value: stats.todaySalesCount, sub: formatCurrency(stats.todaySalesAmount), icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "This Month", value: stats.monthSalesCount, sub: formatCurrency(stats.monthSalesAmount), icon: BarChart3, color: "text-green-600", bg: "bg-green-50" },
-    { title: "Products", value: stats.totalProducts, sub: `${stats.lowStockCount} Low Stock`, icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
-    { title: "Total Customers", value: stats.totalCustomers, sub: "Registered", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { title: "Today's Sales", value: stats.todaySalesCount, sub: formatCurrency(stats.todaySalesAmount), icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50", gradient: "bg-gradient-to-br from-blue-100 to-blue-200" },
+    { title: "This Month", value: stats.monthSalesCount, sub: formatCurrency(stats.monthSalesAmount), icon: BarChart3, color: "text-green-600", bg: "bg-green-50", gradient: "bg-gradient-to-br from-green-100 to-green-200" },
+    { title: "Products", value: stats.totalProducts, sub: `${stats.lowStockCount} Low Stock`, icon: Package, color: "text-purple-600", bg: "bg-purple-50", gradient: "bg-gradient-to-br from-purple-100 to-purple-200" },
+    { title: "Total Customers", value: stats.totalCustomers, sub: "Registered", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", gradient: "bg-gradient-to-br from-indigo-100 to-indigo-200" },
   ];
 
   // Widget visibility based on settings
@@ -275,12 +275,12 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       {visibleQuickStats.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 {visibleQuickStats.map((card) => (
-          <div key={card.title} className="card p-5">
+          <div key={card.title} className={`rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-5`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-gray-500">{card.title}</p>
+                <p className="text-xs text-gray-500 uppercase font-medium tracking-wide">{card.title}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{card.value}</p>
-                <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
+                <p className="text-xs text-gray-500 mt-1">{card.sub}</p>
               </div>
               <div className={`p-2.5 rounded-xl ${card.bg}`}>
                 <card.icon size={22} className={card.color} />
