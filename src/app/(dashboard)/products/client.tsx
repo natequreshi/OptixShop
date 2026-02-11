@@ -11,6 +11,7 @@ interface Product {
   categoryId: string; category: string; brandId: string; brand: string;
   costPrice: number; sellingPrice: number; mrp: number; taxRate: number;
   stock: number; sold: number; imageUrl: string; description: string;
+  colors: string;
   isActive: boolean;
 }
 
@@ -140,6 +141,7 @@ export default function ProductsClient({ products, categories, brands }: Props) 
               <tr className="table-header">
                 <th className="px-4 py-3">Image</th>
                 <th className="px-4 py-3">SKU</th>
+                <th className="px-4 py-3">Colors</th>
                 <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Category</th>
@@ -167,6 +169,41 @@ export default function ProductsClient({ products, categories, brands }: Props) 
                   </td>
                   {/* SKU */}
                   <td className="px-4 py-3 text-sm font-mono text-gray-600">{p.sku}</td>
+                  {/* Colors */}
+                  <td className="px-4 py-3">
+                    {p.colors ? (
+                      <div className="flex gap-1.5 items-center">
+                        {p.colors.split(',').slice(0, 5).map((color, i) => {
+                          const colorName = color.trim().toLowerCase();
+                          const colorMap: Record<string, string> = {
+                            black: '#000000', white: '#FFFFFF', red: '#EF4444', blue: '#3B82F6',
+                            green: '#10B981', yellow: '#F59E0B', orange: '#F97316', purple: '#A855F7',
+                            pink: '#EC4899', gray: '#6B7280', grey: '#6B7280', brown: '#92400E',
+                            gold: '#D4AF37', silver: '#C0C0C0', bronze: '#CD7F32', navy: '#1E3A8A',
+                            maroon: '#7F1D1D', teal: '#14B8A6', cyan: '#06B6D4', lime: '#84CC16',
+                            indigo: '#6366F1', violet: '#8B5CF6', rose: '#F43F5E', amber: '#F59E0B',
+                            emerald: '#059669', sky: '#0EA5E9', slate: '#64748B', transparent: 'transparent'
+                          };
+                          const bgColor = colorMap[colorName] || '#9CA3AF';
+                          return (
+                            <div
+                              key={i}
+                              className="w-6 h-6 rounded-md border-2 border-gray-200 shadow-sm"
+                              style={{ backgroundColor: bgColor }}
+                              title={color.trim()}
+                            />
+                          );
+                        })}
+                        {p.colors.split(',').length > 5 && (
+                          <span className="text-xs text-gray-500 font-medium">
+                            +{p.colors.split(',').length - 5}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </td>
                   {/* Product */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -312,10 +349,27 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     costPrice: product?.costPrice ?? 0,
     sellingPrice: product?.sellingPrice ?? 0,
     mrp: product?.mrp ?? 0,
-    taxRate: product?.taxRate ?? 18,
+    taxRate: product?.taxRate ?? 0,
     imageUrl: product?.imageUrl ?? "",
     description: product?.description ?? "",
+    colors: product?.colors ?? "",
   });
+
+  // Fetch tax settings only when adding a new product
+  useEffect(() => {
+    if (!product) {
+      fetch('/api/settings')
+        .then(res => res.json())
+        .then(settings => {
+          const taxEnabled = settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true';
+          const taxRateValue = parseFloat(settings.find((s: any) => s.key === 'tax_rate')?.value || '0');
+          if (taxEnabled) {
+            setForm(prev => ({ ...prev, taxRate: taxRateValue }));
+          }
+        })
+        .catch(err => console.error('Failed to fetch settings:', err));
+    }
+  }, [product]);
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -456,6 +510,16 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
           <div>
             <label className="label">Description</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[60px]" placeholder="Product description..." />
+          </div>
+          <div>
+            <label className="label">Colors (comma-separated)</label>
+            <input 
+              type="text" 
+              value={form.colors} 
+              onChange={(e) => setForm({ ...form, colors: e.target.value })} 
+              className="input" 
+              placeholder="Black, Gold, Silver, Blue"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

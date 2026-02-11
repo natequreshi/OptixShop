@@ -39,20 +39,54 @@ export default function Header({ onMenuClick }: HeaderProps) {
     price: "",
     stock: "",
     imageUrl: "",
+    colors: "",
   });
   
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
   const [uploadingProductImage, setUploadingProductImage] = useState(false);
+  const [showRegisterDropdown, setShowRegisterDropdown] = useState(false);
+  const [registerSessions, setRegisterSessions] = useState<any[]>([]);
+  const [loadingRegister, setLoadingRegister] = useState(false);
+  const [taxRate, setTaxRate] = useState(0);
   
   const ref = useRef<HTMLDivElement>(null);
+  const registerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (registerRef.current && !registerRef.current.contains(e.target as Node)) setShowRegisterDropdown(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  // Fetch register sessions and tax settings
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [regRes, taxRes] = await Promise.all([
+          fetch("/api/register?limit=7"),
+          fetch("/api/settings")
+        ]);
+        
+        if (regRes.ok) {
+          const data = await regRes.json();
+          setRegisterSessions(data.slice(0, 7));
+        }
+        
+        if (taxRes.ok) {
+          const settings = await taxRes.json();
+          const taxEnabled = settings.tax_enabled === "true";
+          const rate = parseFloat(settings.tax_rate || "0");
+          setTaxRate(taxEnabled ? rate : 0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data", err);
+      }
+    }
+    fetchData();
   }, []);
 
   return (
@@ -98,15 +132,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
         
         <button 
-          onClick={() => router.push("/register")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors shadow-sm"
-          title="Open Register"
-        >
-          <CreditCard size={18} />
-          <span className="text-xs font-medium hidden sm:inline">Register</span>
-        </button>
-        
-        <button 
           onClick={() => setShowNewProduct(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm"
           title="Add Product"
@@ -116,6 +141,118 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
         
         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+        
+        {/* Register Icon with Dropdown */}
+        <div ref={registerRef} className="relative">
+          <button 
+            onClick={() => setShowRegisterDropdown(!showRegisterDropdown)}
+            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
+            title={new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          >
+            <CreditCard size={20} />
+          </button>
+          
+          {/* Register Dropdown */}
+          {showRegisterDropdown && (
+            <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Register Sessions (Last 7 Days)</h3>
+              </div>
+              
+              <div className="max-h-80 overflow-y-auto">
+                {registerSessions.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <CreditCard size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm text-gray-400">No register sessions found</p>
+                    <button
+                      onClick={() => {
+                        setShowRegisterDropdown(false);
+                        router.push("/register");
+                      }}
+                      className="mt-3 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm"
+                    >
+                      Open Register Now
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {registerSessions.map((session: any) => (
+                      <div key={session.id} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-xs font-semibold",
+                              session.status === "open"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                            )}>
+                              {session.status}
+                            </span>
+                            <span className="text-xs text-gray-500">{session.user?.fullName || 'User'}</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-gray-400">Opened</p>
+                            <p className="font-medium text-gray-700 dark:text-gray-300">
+                              {new Date(session.openedAt).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Opening Cash</p>
+                            <p className="font-medium text-gray-700 dark:text-gray-300">
+                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PKR' }).format(session.openingCash)}
+                            </p>
+                          </div>
+                          {session.closedAt && (
+                            <>
+                              <div>
+                                <p className="text-gray-400">Closed</p>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">
+                                  {new Date(session.closedAt).toLocaleString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-gray-400">Closing Cash</p>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">
+                                  {session.closingCash !== null
+                                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PKR' }).format(session.closingCash)
+                                    : "—"}
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                <button
+                  onClick={() => {
+                    setShowRegisterDropdown(false);
+                    router.push("/register");
+                  }}
+                  className="w-full text-center text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                >
+                  View All Register Sessions →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         
         {/* Calculator */}
         <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Calculator">
@@ -473,6 +610,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   />
                 </div>
               </div>
+              <div>
+                <label className="label">Colors (comma-separated)</label>
+                <input 
+                  type="text" 
+                  value={productForm.colors}
+                  onChange={(e) => setProductForm({...productForm, colors: e.target.value})}
+                  className="input" 
+                  placeholder="Black, Gold, Silver"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">Price *</label>
@@ -522,11 +669,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         sellingPrice: parseFloat(productForm.price),
                         stockQuantity: parseInt(productForm.stock),
                         imageUrl: productForm.imageUrl || "",
+                        colors: productForm.colors || "",
+                        taxRate: taxRate,
                       }),
                     });
                     if (res.ok) {
                       toast.success("Product added successfully!");
-                      setProductForm({ name: "", sku: "", category: "", price: "", stock: "", imageUrl: "" });
+                      setProductForm({ name: "", sku: "", category: "", price: "", stock: "", imageUrl: "", colors: "" });
                       setShowNewProduct(false);
                       router.refresh();
                     } else {
