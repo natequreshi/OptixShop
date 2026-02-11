@@ -340,6 +340,12 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
 }) {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVariantImage, setUploadingVariantImage] = useState(false);
+  const [colorVariants, setColorVariants] = useState<{color: string; image: string}[]>(
+    product?.colorVariants ? JSON.parse(JSON.stringify(product.colorVariants)) : []
+  );
+  const [newVariantColor, setNewVariantColor] = useState("");
+  const [newVariantImage, setNewVariantImage] = useState("");
   const [form, setForm] = useState({
     sku: product?.sku ?? "",
     name: product?.name ?? "",
@@ -408,10 +414,58 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     setLoading(true);
     const url = product ? `/api/products/${product.id}` : "/api/products";
     const method = product ? "PUT" : "POST";
-    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    const payload = { ...form, colorVariants: colorVariants.length > 0 ? JSON.stringify(colorVariants) : null };
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (res.ok) { toast.success(product ? "Updated" : "Created"); onSaved(); }
     else toast.error("Failed to save");
     setLoading(false);
+  }
+
+  async function handleVariantImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    setUploadingVariantImage(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setNewVariantImage(data.url);
+        toast.success("Color image uploaded");
+      } else {
+        toast.error("Failed to upload image");
+      }
+    } catch (err) {
+      toast.error("Error uploading image");
+    }
+    setUploadingVariantImage(false);
+  }
+
+  function addColorVariant() {
+    if (!newVariantColor.trim()) {
+      toast.error("Please enter a color name");
+      return;
+    }
+    setColorVariants([...colorVariants, { color: newVariantColor.trim(), image: newVariantImage }]);
+    setNewVariantColor("");
+    setNewVariantImage("");
+    toast.success("Color variant added");
+  }
+
+  function removeColorVariant(index: number) {
+    setColorVariants(colorVariants.filter((_, i) => i !== index));
   }
 
   return (
@@ -512,7 +566,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[60px]" placeholder="Product description..." />
           </div>
           <div>
-            <label className="label">Colors (comma-separated)</label>
+            <label className="label">Colors (comma-separated for fallback)</label>
             <input 
               type="text" 
               value={form.colors} 
@@ -521,6 +575,90 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
               placeholder="Black, Gold, Silver, Blue"
             />
           </div>
+
+          {/* Color Variants Section */}
+          <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="label mb-0">Color Variants (with images)</label>
+              <span className="text-xs text-gray-500">{colorVariants.length} variants</span>
+            </div>
+            
+            {/* Existing Variants */}
+            {colorVariants.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {colorVariants.map((variant, index) => (
+                  <div key={index} className="relative border border-gray-200 rounded-lg p-2 group">
+                    <div className="flex items-center gap-2">
+                      {variant.image ? (
+                        <img src={variant.image} alt={variant.color} className="w-12 h-12 rounded object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center">
+                          <Package size={16} className="text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{variant.color}</p>
+                        <p className="text-xs text-gray-500 truncate">{variant.image ? 'Has image' : 'No image'}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeColorVariant(index)}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add New Variant */}
+            <div className="border-t border-gray-200 pt-3 space-y-2">
+              <input
+                type="text"
+                value={newVariantColor}
+                onChange={(e) => setNewVariantColor(e.target.value)}
+                className="input text-sm"
+                placeholder="Color name (e.g., Black Gold)"
+              />
+              
+              {newVariantImage && (
+                <div className="relative w-20 h-20 border-2 border-gray-200 rounded-lg overflow-hidden">
+                  <img src={newVariantImage} alt="Variant preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setNewVariantImage("")}
+                    className="absolute top-0.5 right-0.5 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <label className="flex-1 btn-secondary text-xs cursor-pointer text-center">
+                  {uploadingVariantImage ? "Uploading..." : newVariantImage ? "Change Image" : "Upload Image"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleVariantImageUpload}
+                    className="hidden"
+                    disabled={uploadingVariantImage}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={addColorVariant}
+                  disabled={!newVariantColor.trim()}
+                  className="flex-1 btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add Variant
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Category</label>

@@ -13,6 +13,7 @@ interface Product {
   id: string; sku: string; name: string; sellingPrice: number;
   taxRate: number; productType: string; stock: number; imageUrl: string | null;
   categoryId?: string | null; brandId?: string | null;
+  colorVariants?: {color: string; image: string}[];
 }
 
 interface CartItem extends Product {
@@ -68,6 +69,7 @@ export default function POSPage() {
         imageUrl: p.imageUrl || null,
         categoryId: p.categoryId || null,
         brandId: p.brandId || null,
+        colorVariants: p.colorVariants ? JSON.parse(p.colorVariants) : [],
       })));
     });
     fetch("/api/customers").then(r => r.json()).then(setCustomers);
@@ -349,34 +351,71 @@ export default function POSPage() {
 
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3">
-          {filteredProducts.slice(0, 50).map((p) => (
-            <button key={p.id} onClick={() => addToCart(p)}
-              className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
-              <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain" />
-                ) : (
-                  <Package size={32} className="text-gray-300" />
-                )}
-              </div>
-              <div className="p-2 flex-1 flex flex-col justify-between">
-                <div className="mb-1">
-                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">SKU: {p.sku}</p>
-                </div>
-                <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400">Price</span>
-                    <span className="text-xs font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
+          {filteredProducts.slice(0, 50).map((p) => {
+            const hasVariants = p.colorVariants && p.colorVariants.length > 0;
+            if (hasVariants) {
+              // Show each color variant as separate item
+              return p.colorVariants!.map((variant, idx) => (
+                <button key={`${p.id}-${idx}`} onClick={() => addToCart(p)}
+                  className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
+                  <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                    {variant.image ? (
+                      <img src={variant.image} alt={`${p.name} - ${variant.color}`} className="w-full h-full object-contain" />
+                    ) : (
+                      <Package size={32} className="text-gray-300" />
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400">Stock</span>
-                    <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock}</span>
+                  <div className="p-2 flex-1 flex flex-col justify-between">
+                    <div className="mb-1">
+                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
+                      <p className="text-[10px] text-primary-600 font-medium mt-0.5">{variant.color}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">SKU: {p.sku}</p>
+                    </div>
+                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Price</span>
+                        <span className="text-xs font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Stock</span>
+                        <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </button>
-          ))}
+                </button>
+              ));
+            } else {
+              // Show normal product
+              return (
+                <button key={p.id} onClick={() => addToCart(p)}
+                  className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
+                  <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <Package size={32} className="text-gray-300" />
+                    )}
+                  </div>
+                  <div className="p-2 flex-1 flex flex-col justify-between">
+                    <div className="mb-1">
+                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">SKU: {p.sku}</p>
+                    </div>
+                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Price</span>
+                        <span className="text-xs font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Stock</span>
+                        <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            }
+          })}
           {filteredProducts.length === 0 && (
             <div className="w-full text-center py-12 text-gray-400">No products found</div>
           )}
