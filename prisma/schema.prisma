@@ -255,6 +255,8 @@ model Prescription {
   sales     Sale[]
   labOrders LabOrder[]
 
+  @@index([customerId])
+  @@index([customerId, createdAt(sort: Desc)])
   @@map("prescriptions")
 }
 
@@ -459,6 +461,8 @@ model Sale {
   returns      Return[]
   labOrders    LabOrder[]
 
+  @@index([customerId])
+  @@index([customerId, createdAt(sort: Desc)])
   @@map("sales")
 }
 
