@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { sendWhatsAppNotification } from "@/lib/whatsapp";
+import { normalizePhone } from "@/lib/phoneUtils";
 
 export async function POST(req: Request) {
   try {
@@ -10,13 +11,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Phone or email required" }, { status: 400 });
     }
 
+    // Check if it's email or phone
+    const isEmail = phoneOrEmail.includes("@");
+    const normalizedPhone = isEmail ? null : normalizePhone(phoneOrEmail);
+
     // Find customer by phone or email
     const customer = await prisma.customer.findFirst({
       where: {
-        OR: [
+        OR: isEmail ? [
+          { email: phoneOrEmail },
+        ] : [
+          { phone: normalizedPhone },
+          { whatsapp: normalizedPhone },
           { phone: phoneOrEmail },
           { whatsapp: phoneOrEmail },
-          { email: phoneOrEmail },
         ],
         isActive: true,
       },
@@ -39,7 +47,10 @@ export async function POST(req: Request) {
     // Send OTP via WhatsApp or SMS
     const waNumber = customer.whatsapp || customer.phone;
     if (waNumber) {
-      const message = `Your OTP for customer portal login is: ${otp}\n\nValid for 10 minutes.\n\nDo not share this code with anyone.`;
+      // Format message for Web OTP API compatibility
+      // Format: @domain.com #code (for auto-fill to work)
+      const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "optixshop.com";
+      const message = `Your OTP for customer portal login is: ${otp}\n\nValid for 10 minutes.\n\n@${domain} #${otp}\n\nDo not share this code with anyone.`;
       
       // Try to send via WhatsApp (will log to console if not configured)
       await sendWhatsAppNotification(waNumber, "whatsapp_order_template", {

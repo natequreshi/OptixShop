@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Phone, Lock, Mail, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
@@ -14,6 +14,31 @@ export default function CustomerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Web OTP API - Auto-fill OTP from SMS
+  useEffect(() => {
+    if (!otpSent) return;
+
+    // Check if browser supports Web OTP API
+    if ('OTPCredential' in window) {
+      const abortController = new AbortController();
+
+      navigator.credentials.get({
+        // @ts-ignore - OTPCredential is not in TypeScript types yet
+        otp: { transport: ['sms'] },
+        signal: abortController.signal
+      }).then((otpCredential: any) => {
+        if (otpCredential?.code) {
+          setOtp(otpCredential.code);
+          toast.success("OTP auto-filled!");
+        }
+      }).catch((err) => {
+        console.log("OTP auto-fill not available:", err);
+      });
+
+      return () => abortController.abort();
+    }
+  }, [otpSent]);
 
   async function handleSendOtp() {
     if (!phoneOrEmail) {
@@ -182,17 +207,23 @@ export default function CustomerLoginPage() {
                     <input
                       type="text"
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                       placeholder="Enter 6-digit OTP"
                       maxLength={6}
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      pattern="\d{6}"
                       className="input text-center text-2xl tracking-widest"
                     />
+                    <p className="text-xs text-gray-500 mt-1 text-center">
+                      OTP will auto-fill if received via SMS
+                    </p>
                   </div>
 
                   <button
                     onClick={handleVerifyOtp}
-                    disabled={loading}
-                    className="btn-primary w-full py-3"
+                    disabled={loading || otp.length !== 6}
+                    className="btn-primary w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? "Verifying..." : "Verify & Login"}
                   </button>

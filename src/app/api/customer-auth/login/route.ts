@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
+import { normalizePhone } from "@/lib/phoneUtils";
 
 export async function POST(req: Request) {
   try {
@@ -11,13 +12,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Phone/email and password required" }, { status: 400 });
     }
 
+    // Check if it's email or phone
+    const isEmail = phoneOrEmail.includes("@");
+    const normalizedPhone = isEmail ? null : normalizePhone(phoneOrEmail);
+
     // Find customer
     const customer = await prisma.customer.findFirst({
       where: {
-        OR: [
+        OR: isEmail ? [
+          { email: phoneOrEmail },
+        ] : [
+          { phone: normalizedPhone },
+          { whatsapp: normalizedPhone },
           { phone: phoneOrEmail },
           { whatsapp: phoneOrEmail },
-          { email: phoneOrEmail },
         ],
         isActive: true,
       },
