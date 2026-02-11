@@ -139,68 +139,52 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
   /* ─── Top 8 Summary Cards (matching reference image) ─── */
   const summaryCards = [
     {
-      title: "Total Sales",
+      title: "TOTAL SALES",
       value: formatCurrency(stats.totalSales),
       icon: DollarSign,
-      iconColor: "text-blue-600",
-      iconBg: "bg-blue-50",
-      borderColor: "border-l-blue-500",
+      gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
     },
     {
-      title: "Net",
+      title: "NET",
       value: formatCurrency(stats.netSales),
       icon: CircleDollarSign,
-      iconColor: "text-green-600",
-      iconBg: "bg-green-50",
-      borderColor: "border-l-green-500",
+      gradient: "bg-gradient-to-br from-green-400 to-green-600",
     },
     {
-      title: "Invoice Due",
+      title: "INVOICE DUE",
       value: formatCurrency(stats.invoiceDue),
       icon: FileWarning,
-      iconColor: "text-orange-600",
-      iconBg: "bg-orange-50",
-      borderColor: "border-l-orange-500",
+      gradient: "bg-gradient-to-br from-orange-400 to-orange-600",
     },
     {
-      title: "Total Sell Return",
+      title: "TOTAL SELL RETURN",
       value: formatCurrency(stats.totalSellReturn),
       icon: Undo2,
-      iconColor: "text-red-600",
-      iconBg: "bg-red-50",
-      borderColor: "border-l-red-500",
+      gradient: "bg-gradient-to-br from-red-400 to-red-600",
     },
     {
-      title: "Total Purchase",
+      title: "TOTAL PURCHASE",
       value: formatCurrency(stats.totalPurchase),
       icon: ShoppingCart,
-      iconColor: "text-purple-600",
-      iconBg: "bg-purple-50",
-      borderColor: "border-l-purple-500",
+      gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
     },
     {
-      title: "Purchase Due",
+      title: "PURCHASE DUE",
       value: formatCurrency(stats.purchaseDue),
       icon: AlertTriangle,
-      iconColor: "text-yellow-600",
-      iconBg: "bg-yellow-50",
-      borderColor: "border-l-yellow-500",
+      gradient: "bg-gradient-to-br from-yellow-400 to-yellow-600",
     },
     {
-      title: "Total Purchase Return",
+      title: "TOTAL PURCHASE RETURN",
       value: formatCurrency(stats.totalPurchaseReturn),
       icon: ReceiptText,
-      iconColor: "text-cyan-600",
-      iconBg: "bg-cyan-50",
-      borderColor: "border-l-cyan-500",
+      gradient: "bg-gradient-to-br from-cyan-400 to-cyan-600",
     },
     {
-      title: "Total Expense",
+      title: "TOTAL EXPENSE",
       value: formatCurrency(stats.totalExpense),
       icon: Wallet,
-      iconColor: "text-pink-600",
-      iconBg: "bg-pink-50",
-      borderColor: "border-l-pink-500",
+      gradient: "bg-gradient-to-br from-pink-400 to-pink-600",
     },
   ];
 
@@ -209,6 +193,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
     { title: "Today's Sales", value: stats.todaySalesCount, sub: formatCurrency(stats.todaySalesAmount), icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
     { title: "This Month", value: stats.monthSalesCount, sub: formatCurrency(stats.monthSalesAmount), icon: BarChart3, color: "text-green-600", bg: "bg-green-50" },
     { title: "Products", value: stats.totalProducts, sub: `${stats.lowStockCount} Low Stock`, icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
+    { title: "Total Customers", value: stats.totalCustomers, sub: "Registered", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
   ];
 
   const formatChartDate = (dateStr: string) => {
@@ -240,14 +225,14 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       {/* ── Top Summary Cards (8 cards, 4 per row) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card) => (
-          <div key={card.title} className={`card p-4 border-l-4 ${card.borderColor}`}>
+          <div key={card.title} className={`relative overflow-hidden rounded-lg shadow-sm ${card.gradient} p-4`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">{card.title}</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{card.value}</p>
+                <p className="text-xs text-white/80 font-medium tracking-wide">{card.title}</p>
+                <p className="text-2xl font-bold text-white mt-2">{card.value}</p>
               </div>
-              <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
-                <card.icon size={20} className={card.iconColor} />
+              <div className="p-2 rounded-lg bg-white/20">
+                <card.icon size={22} className="text-white" />
               </div>
             </div>
           </div>
@@ -255,7 +240,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       </div>
 
       {/* ── Quick Stats Row ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {quickStats.map((card) => (
           <div key={card.title} className="card p-5">
             <div className="flex items-start justify-between">
@@ -270,74 +255,6 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
             </div>
           </div>
         ))}
-      </div>
-
-      {/* ── Top Products and Recent Sales (Side by Side) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Products Chart */}
-        <div className="card p-5">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Products by Revenue</h3>
-          {topProducts.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topProducts}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(v) => v.length > 15 ? v.slice(0, 15) + "…" : v}
-                />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }}
-                />
-                <Bar dataKey="revenue" fill="#4F46E5" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-gray-400 text-center py-12">No sales data yet</p>
-          )}
-        </div>
-
-        {/* Recent Sales */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Sales</h3>
-            <a
-              href="/sales"
-              className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
-            >
-              View all <ArrowUpRight size={14} />
-            </a>
-          </div>
-          <div className="space-y-3 max-h-[300px] overflow-y-auto">
-            {recentSales.length > 0 ? (
-              recentSales.slice(0, 6).map((sale) => (
-                <div
-                  key={sale.id}
-                  className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{sale.invoiceNo}</p>
-                    <p className="text-xs text-gray-400">
-                      {sale.customerName} · {sale.itemCount} item{sale.itemCount !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {formatCurrency(sale.totalAmount)}
-                    </p>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700">
-                      {sale.status}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-400 text-center py-8">No sales yet</p>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* ── Sales Last 30 Days (Line Chart) ── */}
