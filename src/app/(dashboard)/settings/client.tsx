@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Settings, Store, Receipt, Shield, ToggleLeft, ToggleRight,
+  Settings, Store, Receipt, Shield,
   CreditCard, Tag, Save, Palette, Globe, FileText, Award,
   MessageCircle, Users, Phone, Send, Key, Link, PenTool,
   Layout, Type, Grid, AlignLeft, AlignCenter, AlignRight,
@@ -12,7 +12,7 @@ import {
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "invoice_designer" | "appearance" | "notifications" | "customers" | "payment" | "customer_auth";
+type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment";
 
 const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "general", label: "General", icon: Store },
@@ -22,8 +22,7 @@ const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "modules", label: "Modules", icon: Shield },
   { key: "receipt", label: "Receipt / Invoice", icon: FileText },
   { key: "invoice_designer", label: "Invoice Designer", icon: PenTool },
-  { key: "notifications", label: "Notifications", icon: Send },
-  { key: "customer_auth", label: "Customer Login", icon: Key },
+  { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { key: "customers", label: "Customer Columns", icon: Users },
   { key: "appearance", label: "Appearance", icon: Palette },
 ];
@@ -129,40 +128,8 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               </div>
 
               <SectionTitle icon={Palette} title="Branding" />
-              <div>
-                <label className="label">Store Logo</label>
-                <div className="flex items-center gap-4">
-                  {val("logo_url") && (
-                    <img src={val("logo_url")} alt="Logo" className="w-16 h-16 rounded-lg object-contain border border-gray-200 bg-white" />
-                  )}
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 512000) { toast.error("File must be less than 500KB"); return; }
-                        const fd = new FormData();
-                        fd.append("file", file);
-                        const res = await fetch("/api/upload-logo", { method: "POST", body: fd });
-                        if (res.ok) {
-                          const data = await res.json();
-                          set("logo_url", data.url);
-                          toast.success("Logo uploaded!");
-                        } else {
-                          toast.error("Failed to upload logo");
-                        }
-                      }}
-                      className="input text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Upload your shop logo (max 500KB). Appears on receipts and invoices.</p>
-                  </div>
-                </div>
-                {val("logo_url") && (
-                  <button type="button" onClick={() => set("logo_url", "")} className="text-xs text-red-500 hover:text-red-700 mt-2">Remove logo</button>
-                )}
-              </div>
+              <Field label="Logo URL" value={val("logo_url")} onChange={(v) => set("logo_url", v)} placeholder="https://example.com/logo.png" />
+              <p className="text-xs text-gray-400">Enter a URL for your shop logo. It will appear on login and receipts.</p>
 
               <SectionTitle icon={MapPin} title="Google Maps Integration" />
               <Field label="Google Maps API Key" value={val("google_maps_api_key")} onChange={(v) => set("google_maps_api_key", v)} placeholder="AIzaSy..." />
@@ -275,7 +242,6 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Toggle label="Show Store Logo on Receipt" checked={val("receipt_show_logo", "true") === "true"} onToggle={() => toggle("receipt_show_logo")} />
               <Toggle label="Show Prescription on Receipt" checked={val("receipt_show_prescription", "true") === "true"} onToggle={() => toggle("receipt_show_prescription")} />
               <Toggle label="Auto-Print Receipt after Sale" checked={val("receipt_auto_print", "false") === "true"} onToggle={() => toggle("receipt_auto_print")} />
-              <Toggle label="Show Cash Denominations in POS" checked={val("pos_show_denominations", "true") === "true"} onToggle={() => toggle("pos_show_denominations")} desc="Display denomination counter in POS payment screen" />
             </>
           )}
 
@@ -385,126 +351,23 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
             </>
           )}
 
-          {tab === "notifications" && (
+          {tab === "whatsapp" && (
             <>
-              <SectionTitle icon={Send} title="Notification Channels" />
-              <p className="text-sm text-gray-500 mb-4">Configure which channels to use for sending notifications to customers.</p>
-              
-              {/* Email Notifications */}
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-blue-600 rounded-lg">
-                    <Globe size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-gray-900">Email Notifications</h4>
-                      <Toggle 
-                        label="" 
-                        checked={val("email_notifications_enabled", "false") === "true"} 
-                        onToggle={() => toggle("email_notifications_enabled")} 
-                      />
-                    </div>
-                    <p className="text-xs text-gray-600 mb-3">Send OTP and order notifications via email (FREE)</p>
-                    {val("email_notifications_enabled", "false") === "true" && (
-                      <div className="space-y-2 mt-3">
-                        <Field label="Email Address (Gmail)" value={val("email_user")} onChange={(v) => set("email_user", v)} placeholder="your-email@gmail.com" />
-                        <Field label="App Password" value={val("email_pass")} onChange={(v) => set("email_pass", v)} placeholder="16-character app password" type="password" />
-                        <p className="text-xs text-blue-600">Get app password: Google Account → Security → 2-Step Verification → App passwords</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <SectionTitle icon={MessageCircle} title="WhatsApp Integration" />
+              <Toggle label="Enable WhatsApp Notifications" checked={val("whatsapp_enabled", "false") === "true"} onToggle={() => toggle("whatsapp_enabled")} desc="Send order notifications to customers via WhatsApp" />
 
-              {/* WhatsApp Notifications */}
-              <div className="bg-green-50 border border-green-100 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-600 rounded-lg">
-                    <MessageCircle size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-gray-900">WhatsApp Notifications</h4>
-                      <Toggle 
-                        label="" 
-                        checked={val("whatsapp_enabled", "false") === "true"} 
-                        onToggle={() => toggle("whatsapp_enabled")} 
-                      />
-                    </div>
-                    <p className="text-xs text-gray-600 mb-3">Send notifications via WhatsApp Business API</p>
-                    {val("whatsapp_enabled", "false") === "true" && (
-                      <div className="space-y-2 mt-3">
-                        <Field label="API Provider" value={val("whatsapp_provider", "direct")} onChange={(v) => set("whatsapp_provider", v)} placeholder="direct / twilio / wati" />
-                        <Field label="API Endpoint / URL" value={val("whatsapp_api_url")} onChange={(v) => set("whatsapp_api_url", v)} placeholder="https://graph.facebook.com/v17.0/..." />
-                        <Field label="API Token / Auth Key" value={val("whatsapp_api_token")} onChange={(v) => set("whatsapp_api_token", v)} placeholder="Your API token" type="password" />
-                        <Field label="Phone Number ID" value={val("whatsapp_phone_id")} onChange={(v) => set("whatsapp_phone_id", v)} placeholder="WhatsApp Business phone number ID" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <SectionTitle icon={Key} title="WhatsApp Business API" />
+              <p className="text-xs text-gray-500 -mt-2 mb-3">Connect your WhatsApp Business account to send automated delivery notifications.</p>
+              <Field label="API Provider" value={val("whatsapp_provider", "direct")} onChange={(v) => set("whatsapp_provider", v)} placeholder="direct / twilio / wati" />
+              <Field label="API Endpoint / URL" value={val("whatsapp_api_url")} onChange={(v) => set("whatsapp_api_url", v)} placeholder="https://graph.facebook.com/v17.0/..." />
+              <Field label="API Token / Auth Key" value={val("whatsapp_api_token")} onChange={(v) => set("whatsapp_api_token", v)} placeholder="Your API token" />
+              <Field label="Phone Number ID" value={val("whatsapp_phone_id")} onChange={(v) => set("whatsapp_phone_id", v)} placeholder="WhatsApp Business phone number ID" />
 
-              {/* SMS OTP */}
-              <div className="bg-purple-50 border border-purple-100 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-600 rounded-lg">
-                    <Phone size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-gray-900">SMS OTP</h4>
-                      <Toggle 
-                        label="" 
-                        checked={val("sms_otp_enabled", "false") === "true"} 
-                        onToggle={() => toggle("sms_otp_enabled")} 
-                      />
-                    </div>
-                    <p className="text-xs text-gray-600 mb-3">Send OTP via SMS (Twilio, etc.)</p>
-                    {val("sms_otp_enabled", "false") === "true" && (
-                      <div className="space-y-2 mt-3">
-                        <Field label="SMS Provider" value={val("sms_provider", "twilio")} onChange={(v) => set("sms_provider", v)} placeholder="twilio / nexmo / other" />
-                        <Field label="API Endpoint / URL" value={val("sms_api_url")} onChange={(v) => set("sms_api_url", v)} placeholder="https://api.twilio.com/..." />
-                        <Field label="API Token" value={val("sms_api_token")} onChange={(v) => set("sms_api_token", v)} placeholder="Your API token" type="password" />
-                        <Field label="Sender ID / Phone" value={val("sms_sender_id")} onChange={(v) => set("sms_sender_id", v)} placeholder="+1234567890" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <SectionTitle icon={MessageCircle} title="Notification Templates" />
+              <SectionTitle icon={Send} title="Notification Templates" />
               <Field label="Order Confirmation Message" value={val("whatsapp_order_template", "Dear {customer_name}, your order #{invoice_no} has been confirmed. Total: {total_amount}. Thank you for choosing {store_name}!")} onChange={(v) => set("whatsapp_order_template", v)} multiline />
               <Field label="Delivery Ready Message" value={val("whatsapp_delivery_template", "Dear {customer_name}, your order #{invoice_no} is ready for delivery/pickup. Please visit {store_name} to collect. Thank you!")} onChange={(v) => set("whatsapp_delivery_template", v)} multiline />
               <Field label="Lab Order Ready Message" value={val("whatsapp_lab_ready_template", "Dear {customer_name}, your prescription glasses (Order #{order_no}) are ready! Please visit {store_name} to collect. Thank you!")} onChange={(v) => set("whatsapp_lab_ready_template", v)} multiline />
               <p className="text-xs text-gray-400">Available placeholders: {'{customer_name}'}, {'{invoice_no}'}, {'{order_no}'}, {'{total_amount}'}, {'{store_name}'}, {'{items}'}</p>
-            </>
-          )}
-
-          {tab === "customer_auth" && (
-            <>
-              <SectionTitle icon={Key} title="Customer Portal Login Methods" />
-              <p className="text-sm text-gray-500 mb-4">Enable login methods for customer portal access.</p>
-              
-              <Toggle 
-                label="Enable OTP Login" 
-                checked={val("customer_otp_login_enabled", "true") === "true"} 
-                onToggle={() => toggle("customer_otp_login_enabled")} 
-                desc="Allow customers to login using OTP sent via email/SMS/WhatsApp" 
-              />
-              
-              <Toggle 
-                label="Enable Password Login" 
-                checked={val("customer_password_login_enabled", "true") === "true"} 
-                onToggle={() => toggle("customer_password_login_enabled")} 
-                desc="Allow customers to login using email/phone and password" 
-              />
-
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-xs text-yellow-800">
-                  <strong>Note:</strong> At least one login method must be enabled. Configure notification channels above to send OTP.
-                </p>
-              </div>
             </>
           )}
 
@@ -580,12 +443,19 @@ function Toggle({ label, checked, onToggle, desc }: {
         <p className="text-sm font-medium text-gray-800">{label}</p>
         {desc && <p className="text-xs text-gray-400 mt-0.5">{desc}</p>}
       </div>
-      <button onClick={onToggle} className="flex-shrink-0">
-        {checked ? (
-          <ToggleRight size={28} className="text-primary-600" />
-        ) : (
-          <ToggleLeft size={28} className="text-gray-300" />
+      <button 
+        onClick={onToggle} 
+        className={cn(
+          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
+          checked ? "bg-primary-600" : "bg-gray-300"
         )}
+      >
+        <span
+          className={cn(
+            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm",
+            checked ? "translate-x-6" : "translate-x-1"
+          )}
+        />
       </button>
     </div>
   );

@@ -1,22 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendWhatsAppNotification, formatCurrencyPlain } from "@/lib/whatsapp";
-
-export async function GET(req: NextRequest) {
-  const customerId = req.nextUrl.searchParams.get("customerId");
-  if (!customerId) {
-    return NextResponse.json([]);
-  }
-  const sales = await prisma.sale.findMany({
-    where: { customerId },
-    orderBy: { saleDate: "desc" },
-    take: 10,
-    select: { id: true, invoiceNo: true, saleDate: true, totalAmount: true, status: true },
-  });
-  return NextResponse.json(sales);
-}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -29,15 +15,13 @@ export async function POST(req: Request) {
   // Calculate totals
   let subtotal = 0;
   let totalTax = 0;
-  let itemDiscountsTotal = 0;
-  const taxEnabled = body.taxEnabled !== false; // Default to true for backwards compatibility
-  
   const itemsData = body.items.map((item: any) => {
     const lineTotal = item.unitPrice * item.quantity;
-    const itemDiscount = (item.discount ?? 0) * item.quantity;
-    itemDiscountsTotal += itemDiscount;
+    const discountAmt = (item.discount ?? 0) * item.quantity;
+    const taxableAmt = lineTotal - discountAmt;
+    const taxAmt = taxableAmt * ((item.taxRate ?? 0) / 100);
     subtotal += lineTotal;
-    
+    totalTax += taxAmt;
     return {
       productId: item.productId,
       quantity: item.quantity,
@@ -45,58 +29,16 @@ export async function POST(req: Request) {
       costPrice: 0,
       discountPct: 0,
       discountAmount: item.discount ?? 0,
-      taxRate: taxEnabled ? (item.taxRate ?? 0) : 0,
-      taxAmount: 0, // Will calculate after global discount
-      cgst: 0,
-      sgst: 0,
-      total: 0, // Will calculate after
+      taxRate: item.taxRate ?? 0,
+      taxAmount: taxAmt,
+      cgst: taxAmt / 2,
+      sgst: taxAmt / 2,
+      total: taxableAmt + taxAmt,
     };
   });
 
-  // Apply global discount percentage
-  const globalDiscountAmount = (subtotal * (body.discountPercent ?? 0)) / 100;
-  const afterGlobalDiscount = subtotal - globalDiscountAmount;
-  const afterAllDiscounts = afterGlobalDiscount - itemDiscountsTotal;
-  
-  // Calculate tax on the discounted amounts (only if tax is enabled)
-  if (taxEnabled) {
-    body.items.forEach((item: any, index: number) => {
-      const lineTotal = item.unitPrice * item.quantity;
-      const itemDiscount = (item.discount ?? 0) * item.quantity;
-      const lineAfterItemDiscount = lineTotal - itemDiscount;
-      const lineAfterGlobalDiscount = lineAfterItemDiscount * (1 - (body.discountPercent ?? 0) / 100);
-      const taxAmt = lineAfterGlobalDiscount * ((item.taxRate ?? 0) / 100);
-      
-      totalTax += taxAmt;
-      itemsData[index].taxAmount = taxAmt;
-      itemsData[index].cgst = taxAmt / 2;
-      itemsData[index].sgst = taxAmt / 2;
-      itemsData[index].total = lineAfterGlobalDiscount + taxAmt;
-    });
-  } else {
-    // Tax disabled - set totals without tax
-    body.items.forEach((item: any, index: number) => {
-      const lineTotal = item.unitPrice * item.quantity;
-      const itemDiscount = (item.discount ?? 0) * item.quantity;
-      const lineAfterItemDiscount = lineTotal - itemDiscount;
-      const lineAfterGlobalDiscount = lineAfterItemDiscount * (1 - (body.discountPercent ?? 0) / 100);
-      
-      itemsData[index].total = lineAfterGlobalDiscount;
-    });
-  }
-
-  const totalDiscount = globalDiscountAmount + itemDiscountsTotal;
-  const totalAmount = afterAllDiscounts + totalTax;
+  const totalAmount = subtotal + totalTax;
   const paidAmount = body.amountTendered ?? totalAmount;
-  const actualPaidAmount = Math.min(paidAmount, totalAmount);
-  const balanceAmount = Math.max(0, totalAmount - paidAmount);
-
-  const userId = (session?.user as any)?.id;
-  let cashierId: string | null = null;
-  if (userId) {
-    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
-    if (userExists) cashierId = userId;
-  }
 
   const sale = await prisma.sale.create({
     data: {
@@ -104,17 +46,16 @@ export async function POST(req: Request) {
       customerId: body.customerId || null,
       saleDate: today,
       subtotal,
-      discountAmount: totalDiscount,
+      discountAmount: 0,
       taxAmount: totalTax,
       cgstAmount: totalTax / 2,
       sgstAmount: totalTax / 2,
       totalAmount,
-      paidAmount: actualPaidAmount,
-      balanceAmount: balanceAmount,
-      status: paidAmount >= totalAmount ? "completed" : "pending",
+      paidAmount: Math.min(paidAmount, totalAmount),
+      balanceAmount: Math.max(0, totalAmount - paidAmount),
+      status: "completed",
       paymentStatus: paidAmount >= totalAmount ? "paid" : "partial",
-      cashierId,
-      notes: body.notes || null,
+      cashierId: (session?.user as any)?.id || null,
       items: { create: itemsData },
     },
   });
@@ -128,7 +69,7 @@ export async function POST(req: Request) {
       saleId: sale.id,
       customerId: body.customerId || null,
       paymentDate: today,
-      amount: actualPaidAmount,
+      amount: Math.min(paidAmount, totalAmount),
       paymentMethod: body.paymentMethod ?? "cash",
     },
   });
@@ -157,40 +98,17 @@ export async function POST(req: Request) {
       data: { totalPurchases: { increment: totalAmount } },
     });
 
-    // Send WhatsApp notification if enabled
-    const whatsappSettings = await prisma.setting.findUnique({
-      where: { key: "whatsapp_enabled" },
-    });
-    const whatsappEnabled = whatsappSettings?.value === "true";
-
-    if (whatsappEnabled) {
-      const customer = await prisma.customer.findUnique({ where: { id: body.customerId } });
-      const waNumber = customer?.whatsapp || customer?.phone;
-      if (waNumber) {
-        const itemsList = body.items.map((i: any) => `${i.productName ?? "Item"} × ${i.quantity}`).join(", ");
-        const itemsDetailed = body.items.map((i: any) => 
-          `• ${i.productName ?? "Item"} × ${i.quantity} - ${formatCurrencyPlain(i.total)}`
-        ).join("\n");
-        
-        const paymentMethodDisplay = (body.paymentMethod ?? "cash").toUpperCase();
-        const paymentStatusDisplay = (paidAmount >= totalAmount ? "Paid" : actualPaidAmount > 0 ? "Partial" : "Unpaid").toUpperCase();
-        
-        sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
-          customerName: `${customer!.firstName} ${customer!.lastName ?? ""}`.trim(),
-          invoiceNo: invoiceNo,
-          orderDate: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-          totalAmount: formatCurrencyPlain(totalAmount),
-          items: itemsList,
-          itemsDetailed: itemsDetailed,
-          subtotal: formatCurrencyPlain(subtotal),
-          discount: formatCurrencyPlain(totalDiscount),
-          tax: formatCurrencyPlain(totalTax),
-          paidAmount: formatCurrencyPlain(actualPaidAmount),
-          balanceAmount: formatCurrencyPlain(balanceAmount),
-          paymentMethod: paymentMethodDisplay,
-          paymentStatus: paymentStatusDisplay,
-        }).catch((err) => console.error("[WhatsApp] notification error:", err));
-      }
+    // Send WhatsApp notification
+    const customer = await prisma.customer.findUnique({ where: { id: body.customerId } });
+    const waNumber = customer?.whatsapp || customer?.phone;
+    if (waNumber) {
+      const itemsList = body.items.map((i: any) => `${i.productName ?? "Item"} × ${i.quantity}`).join(", ");
+      sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
+        customerName: `${customer!.firstName} ${customer!.lastName ?? ""}`.trim(),
+        invoiceNo: invoiceNo,
+        totalAmount: formatCurrencyPlain(totalAmount),
+        items: itemsList,
+      }).catch((err) => console.error("[WhatsApp] notification error:", err));
     }
   }
 
