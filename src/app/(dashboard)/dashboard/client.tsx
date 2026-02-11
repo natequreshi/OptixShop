@@ -255,6 +255,22 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       {/* ── Dashboard Cards (12 cards total, 4 per row) ── */}
       {(visibleSummaryCards.length > 0 || visibleQuickStats.length > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {visibleQuickStats.map((card) => (
+          <div key={card.title} className={`rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-4`}>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs text-gray-500 uppercase font-medium tracking-wide mb-1">{card.title}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className="text-xs text-gray-500">{card.sub}</p>
+                </div>
+              </div>
+              <div className={`p-2.5 rounded-xl ${card.bg}`}>
+                <card.icon size={20} className={card.color} />
+              </div>
+            </div>
+          </div>
+        ))}
           {visibleSummaryCards.map((card) => (
             <div key={card.title} className={`relative overflow-hidden rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-4`}>
               <div className="flex items-center justify-between">
@@ -268,19 +284,6 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
               </div>
             </div>
           ))}
-          {visibleQuickStats.map((card) => (
-          <div key={card.title} className={`rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-4`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                <p className="text-xs text-gray-500 mt-1">{card.sub}</p>
-              </div>
-              <div className={`p-2.5 rounded-xl ${card.bg}`}>
-                <card.icon size={20} className={card.color} />
-              </div>
-            </div>
-          </div>
-        ))}
         </div>
       )}
 
