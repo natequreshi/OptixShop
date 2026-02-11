@@ -11,8 +11,9 @@ interface Product {
   categoryId: string; category: string; brandId: string; brand: string;
   costPrice: number; sellingPrice: number; mrp: number; taxRate: number;
   stock: number; sold: number; imageUrl: string; description: string;
-  colors: string;
+  colors: string; colorVariants?: {color: string; image: string}[];
   isActive: boolean;
+}
 }
 
 interface Props {
