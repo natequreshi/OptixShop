@@ -38,10 +38,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
     category: "",
     price: "",
     stock: "",
+    imageUrl: "",
   });
   
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [uploadingProductImage, setUploadingProductImage] = useState(false);
   
   const ref = useRef<HTMLDivElement>(null);
 
@@ -359,6 +361,96 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   placeholder="Ray-Ban Aviator"
                 />
               </div>
+              
+              {/* Image Upload Section */}
+              <div className="space-y-2">
+                <label className="label">Product Image</label>
+                
+                {/* Image Preview */}
+                {productForm.imageUrl && (
+                  <div className="relative w-24 h-24 border-2 border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                    <img 
+                      src={productForm.imageUrl} 
+                      alt="Product preview" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://via.placeholder.com/150?text=No+Image";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setProductForm({...productForm, imageUrl: ""})}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                
+                {/* Upload Button and URL Input */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast.error("Image size should be less than 5MB");
+                          return;
+                        }
+
+                        setUploadingProductImage(true);
+                        const formData = new FormData();
+                        formData.append("file", file);
+
+                        try {
+                          const res = await fetch("/api/upload-image", {
+                            method: "POST",
+                            body: formData,
+                          });
+                          
+                          if (res.ok) {
+                            const data = await res.json();
+                            setProductForm({...productForm, imageUrl: data.url});
+                            toast.success("Image uploaded");
+                          } else {
+                            toast.error("Upload failed");
+                          }
+                        } catch (err) {
+                          toast.error("Upload error");
+                        }
+                        setUploadingProductImage(false);
+                      }}
+                      className="hidden"
+                      id="product-image-upload"
+                      disabled={uploadingProductImage}
+                    />
+                    <label
+                      htmlFor="product-image-upload"
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 transition text-sm",
+                        uploadingProductImage && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Package size={14} />
+                      {uploadingProductImage ? "Uploading..." : "Upload"}
+                    </label>
+                    <span className="text-xs text-gray-400">or enter URL below</span>
+                  </div>
+                  
+                  <input 
+                    type="url"
+                    value={productForm.imageUrl} 
+                    onChange={(e) => setProductForm({...productForm, imageUrl: e.target.value})} 
+                    className="input text-sm" 
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+              </div>
+              
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">SKU *</label>
@@ -429,11 +521,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         category: productForm.category || "Uncategorized",
                         sellingPrice: parseFloat(productForm.price),
                         stockQuantity: parseInt(productForm.stock),
+                        imageUrl: productForm.imageUrl || "",
                       }),
                     });
                     if (res.ok) {
                       toast.success("Product added successfully!");
-                      setProductForm({ name: "", sku: "", category: "", price: "", stock: "" });
+                      setProductForm({ name: "", sku: "", category: "", price: "", stock: "", imageUrl: "" });
                       setShowNewProduct(false);
                       router.refresh();
                     } else {

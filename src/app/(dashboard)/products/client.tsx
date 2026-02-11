@@ -302,6 +302,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [form, setForm] = useState({
     sku: product?.sku ?? "",
     name: product?.name ?? "",
@@ -315,6 +316,38 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     imageUrl: product?.imageUrl ?? "",
     description: product?.description ?? "",
   });
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setForm({ ...form, imageUrl: data.url });
+        toast.success("Image uploaded successfully");
+      } else {
+        toast.error("Failed to upload image");
+      }
+    } catch (err) {
+      toast.error("Error uploading image");
+    }
+    setUploadingImage(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -355,10 +388,71 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
             <label className="label">Product Name</label>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" required />
           </div>
-          <div>
-            <label className="label">Image URL</label>
-            <input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="input" placeholder="https://example.com/image.jpg" />
+          
+          {/* Image Upload Section */}
+          <div className="space-y-3">
+            <label className="label">Product Image</label>
+            
+            {/* Image Preview */}
+            {form.imageUrl && (
+              <div className="relative w-32 h-32 border-2 border-gray-200 rounded-lg overflow-hidden">
+                <img 
+                  src={form.imageUrl} 
+                  alt="Product preview" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "https://via.placeholder.com/150?text=No+Image";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, imageUrl: "" })}
+                  className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            
+            {/* Upload Button */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
+                  disabled={uploadingImage}
+                />
+                <label
+                  htmlFor="image-upload"
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg cursor-pointer hover:bg-blue-100 transition",
+                    uploadingImage && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <ImageIcon size={16} />
+                  {uploadingImage ? "Uploading..." : "Upload Image"}
+                </label>
+                <span className="text-xs text-gray-400">Max 5MB</span>
+              </div>
+              
+              {/* Fallback URL Input */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">or</span>
+              </div>
+              <div>
+                <input 
+                  value={form.imageUrl} 
+                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} 
+                  className="input text-sm" 
+                  placeholder="Enter image URL (https://example.com/image.jpg)"
+                />
+              </div>
+            </div>
           </div>
+          
           <div>
             <label className="label">Description</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[60px]" placeholder="Product description..." />
