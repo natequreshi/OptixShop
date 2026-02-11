@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo } from "react";
 import * as React from "react";
 import {
   DollarSign,
@@ -15,10 +15,6 @@ import {
   AlertTriangle,
   ShoppingBag,
   TrendingUp,
-  Plus,
-  CreditCard,
-  ChevronDown,
-  UserPlus,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -55,51 +51,8 @@ interface Props {
   salesByMonth: { month: string; amount: number }[];
 }
 
-interface RegisterSession {
-  id: string;
-  openedAt: string;
-  closedAt: string | null;
-  openingCash: number;
-  closingCash: number | null;
-  status: string;
-  userName: string;
-}
-
 export default function DashboardClient({ stats, salesLast30Days, salesByMonth }: Props) {
   const router = useRouter();
-  const [showRegisterDropdown, setShowRegisterDropdown] = useState(false);
-  const [registerSessions, setRegisterSessions] = useState<RegisterSession[]>([]);
-  const [loadingRegister, setLoadingRegister] = useState(false);
-  const registerRef = useRef<HTMLDivElement>(null);
-
-  // Fetch register sessions on mount
-  useEffect(() => {
-    async function fetchRegisterSessions() {
-      setLoadingRegister(true);
-      try {
-        const res = await fetch("/api/register?limit=7");
-        if (res.ok) {
-          const data = await res.json();
-          setRegisterSessions(data.slice(0, 7)); // Last 7 days
-        }
-      } catch (error) {
-        console.error("Failed to fetch register sessions", error);
-      }
-      setLoadingRegister(false);
-    }
-    fetchRegisterSessions();
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (registerRef.current && !registerRef.current.contains(event.target as Node)) {
-        setShowRegisterDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   /* ─── Top 8 Summary Cards (matching reference image) ─── */
   const summaryCards = [

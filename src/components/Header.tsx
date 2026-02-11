@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, Menu, ShoppingCart, FileText, AlertTriangle, XCircle, Package, CreditCard } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, Menu, ShoppingCart, FileText, AlertTriangle, XCircle, Package, CreditCard, UserPlus } from "lucide-react";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface Notification {
   id: string;
@@ -14,6 +14,16 @@ interface Notification {
   count: number;
   color: string;
   route: string;
+}
+
+interface RegisterSession {
+  id: string;
+  openedAt: string;
+  closedAt: string | null;
+  openingCash: number;
+  closingCash: number | null;
+  status: string;
+  userName: string;
 }
 
 interface HeaderProps {
@@ -34,13 +44,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [notifCount, setNotifCount] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
   const [lowStockItems, setLowStockItems] = useState<{productName: string; sku: string; quantity: number}[]>([]);
+  const [showRegisterDropdown, setShowRegisterDropdown] = useState(false);
+  const [registerSessions, setRegisterSessions] = useState<RegisterSession[]>([]);
+  const [loadingRegister, setLoadingRegister] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const registerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false);
+      if (registerRef.current && !registerRef.current.contains(e.target as Node)) setShowRegisterDropdown(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -66,6 +81,24 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch register sessions
+  useEffect(() => {
+    async function fetchRegisterSessions() {
+      setLoadingRegister(true);
+      try {
+        const res = await fetch("/api/register?limit=7");
+        if (res.ok) {
+          const data = await res.json();
+          setRegisterSessions(data.slice(0, 7));
+        }
+      } catch (error) {
+        console.error("Failed to fetch register sessions", error);
+      }
+      setLoadingRegister(false);
+    }
+    fetchRegisterSessions();
+  }, []);
+
   return (
     <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
       <div className="flex items-center gap-3">
@@ -87,22 +120,156 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* New Sale */}
-        <button onClick={() => router.push("/pos")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg" title="New Sale">
-          <ShoppingCart size={20} />
+        {/* New Sale - POS */}
+        <button 
+          onClick={() => router.push("/pos")} 
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm"
+          title="New Sale (POS)"
+        >
+          <ShoppingCart size={18} />
+          <span className="text-xs font-medium hidden sm:inline">New Sale</span>
         </button>
+        
         {/* New Customer */}
-        <button onClick={() => router.push("/customers")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="New Customer">
-          <User size={20} />
+        <button 
+          onClick={() => router.push("/customers")} 
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+          title="New Customer"
+        >
+          <UserPlus size={18} />
+          <span className="text-xs font-medium hidden sm:inline">New Customer</span>
         </button>
-        {/* Open Register */}
-        <button onClick={() => router.push("/register")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg" title="Open Register">
-          <CreditCard size={20} />
-        </button>
+        
+        {/* Open Register with Dropdown */}
+        <div ref={registerRef} className="relative">
+          <button 
+            onClick={() => setShowRegisterDropdown(!showRegisterDropdown)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors shadow-sm"
+            title="Open Register"
+          >
+            <CreditCard size={18} />
+            <span className="text-xs font-medium hidden sm:inline">Register</span>
+            <ChevronDown size={14} className={`transition-transform hidden sm:block ${showRegisterDropdown ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Register Dropdown */}
+          {showRegisterDropdown && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Register Sessions (Last 7 Days)</h3>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto">
+                {loadingRegister ? (
+                  <div className="p-6 text-center text-gray-400">Loading...</div>
+                ) : registerSessions.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <CreditCard size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm text-gray-400">No register sessions found</p>
+                    <button
+                      onClick={() => {
+                        setShowRegisterDropdown(false);
+                        router.push("/register");
+                      }}
+                      className="mt-3 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm"
+                    >
+                      Open Register Now
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {registerSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                session.status === "open"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                              }`}
+                            >
+                              {session.status}
+                            </span>
+                            <span className="text-xs text-gray-500">{session.userName}</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-gray-400">Opened</p>
+                            <p className="font-medium text-gray-700 dark:text-gray-300">
+                              {new Date(session.openedAt).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Opening Cash</p>
+                            <p className="font-medium text-gray-700 dark:text-gray-300">
+                              {formatCurrency(session.openingCash)}
+                            </p>
+                          </div>
+                          {session.closedAt && (
+                            <>
+                              <div>
+                                <p className="text-gray-400">Closed</p>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">
+                                  {new Date(session.closedAt).toLocaleString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-gray-400">Closing Cash</p>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">
+                                  {session.closingCash !== null
+                                    ? formatCurrency(session.closingCash)
+                                    : "—"}
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                <button
+                  onClick={() => {
+                    setShowRegisterDropdown(false);
+                    router.push("/register");
+                  }}
+                  className="w-full text-center text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                >
+                  View All Register Sessions →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        
         {/* Add Product */}
-        <button onClick={() => router.push("/products")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg" title="Add Product">
-          <Package size={20} />
+        <button 
+          onClick={() => router.push("/products")} 
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm"
+          title="Add Product"
+        >
+          <Package size={18} />
+          <span className="text-xs font-medium hidden sm:inline">New Product</span>
         </button>
+        
         {/* Divider */}
         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
         {/* Calculator */}
