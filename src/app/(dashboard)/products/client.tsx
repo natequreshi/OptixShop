@@ -171,7 +171,28 @@ export default function ProductsClient({ products, categories, brands }: Props) 
                   <td className="px-4 py-3 text-sm font-mono text-gray-600">{p.sku}</td>
                   {/* Colors */}
                   <td className="px-4 py-3">
-                    {p.colors ? (
+                    {p.colorVariants && p.colorVariants.length > 0 ? (
+                      <div className="flex gap-1.5 items-center">
+                        {p.colorVariants.slice(0, 4).map((variant, i) => (
+                          <div
+                            key={i}
+                            className="w-8 h-8 rounded-md border-2 border-gray-200 shadow-sm overflow-hidden flex items-center justify-center bg-gray-50"
+                            title={variant.color}
+                          >
+                            {variant.image ? (
+                              <img src={variant.image} alt={variant.color} className="w-full h-full object-cover" />
+                            ) : (
+                              <Package size={14} className="text-gray-400" />
+                            )}
+                          </div>
+                        ))}
+                        {p.colorVariants.length > 4 && (
+                          <span className="text-xs text-gray-500 font-medium">
+                            +{p.colorVariants.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    ) : p.colors ? (
                       <div className="flex gap-1.5 items-center">
                         {p.colors.split(',').slice(0, 5).map((color, i) => {
                           const colorName = color.trim().toLowerCase();

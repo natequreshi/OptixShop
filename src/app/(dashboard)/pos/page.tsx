@@ -368,8 +368,12 @@ export default function POSPage() {
                   <div className="p-2 flex-1 flex flex-col justify-between">
                     <div className="mb-1">
                       <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
-                      <p className="text-[10px] text-primary-600 font-medium mt-0.5">{variant.color}</p>
                       <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">SKU: {p.sku}</p>
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        <span className="px-1.5 py-0.5 bg-primary-50 text-primary-700 rounded text-[9px] font-semibold">
+                          {variant.color}
+                        </span>
+                      </div>
                     </div>
                     <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
                       <div className="flex items-center justify-between">
