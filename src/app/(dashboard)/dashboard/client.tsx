@@ -252,8 +252,8 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
         </div>
       </div>
 
-      {/* ── Top Summary Cards (8 cards, 4 per row) ── */}
-      {visibleSummaryCards.length > 0 && (
+      {/* ── Dashboard Cards (12 cards total, 4 per row) ── */}
+      {(visibleSummaryCards.length > 0 || visibleQuickStats.length > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {visibleSummaryCards.map((card) => (
             <div key={card.title} className={`relative overflow-hidden rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-4`}>
@@ -268,13 +268,7 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* ── Quick Stats Row ── */}
-      {visibleQuickStats.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-{visibleQuickStats.map((card) => (
+          {visibleQuickStats.map((card) => (
           <div key={card.title} className={`rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-5`}>
             <div className="flex items-start justify-between">
               <div>
