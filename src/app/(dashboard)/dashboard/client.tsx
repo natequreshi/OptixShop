@@ -143,49 +143,65 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       title: "TOTAL SALES",
       value: formatCurrency(stats.totalSales),
       icon: DollarSign,
-      gradient: "bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500",
+      gradient: "bg-gradient-to-br from-blue-100 to-blue-200",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
     },
     {
       title: "NET",
       value: formatCurrency(stats.netSales),
       icon: CircleDollarSign,
-      gradient: "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500",
+      gradient: "bg-gradient-to-br from-green-100 to-green-200",
+      iconBg: "bg-green-50",
+      iconColor: "text-green-600",
     },
     {
       title: "INVOICE DUE",
       value: formatCurrency(stats.invoiceDue),
       icon: FileWarning,
-      gradient: "bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500",
+      gradient: "bg-gradient-to-br from-orange-100 to-orange-200",
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
     },
     {
       title: "TOTAL SELL RETURN",
       value: formatCurrency(stats.totalSellReturn),
       icon: Undo2,
-      gradient: "bg-gradient-to-r from-red-400 via-rose-500 to-pink-500",
+      gradient: "bg-gradient-to-br from-red-100 to-red-200",
+      iconBg: "bg-red-50",
+      iconColor: "text-red-600",
     },
     {
       title: "TOTAL PURCHASE",
       value: formatCurrency(stats.totalPurchase),
       icon: ShoppingCart,
-      gradient: "bg-gradient-to-r from-purple-400 via-violet-500 to-indigo-500",
+      gradient: "bg-gradient-to-br from-purple-100 to-purple-200",
+      iconBg: "bg-purple-50",
+      iconColor: "text-purple-600",
     },
     {
       title: "PURCHASE DUE",
       value: formatCurrency(stats.purchaseDue),
       icon: AlertTriangle,
-      gradient: "bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500",
+      gradient: "bg-gradient-to-br from-yellow-100 to-yellow-200",
+      iconBg: "bg-yellow-50",
+      iconColor: "text-yellow-600",
     },
     {
       title: "TOTAL PURCHASE RETURN",
       value: formatCurrency(stats.totalPurchaseReturn),
       icon: ReceiptText,
-      gradient: "bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-500",
+      gradient: "bg-gradient-to-br from-cyan-100 to-cyan-200",
+      iconBg: "bg-cyan-50",
+      iconColor: "text-cyan-600",
     },
     {
       title: "TOTAL EXPENSE",
       value: formatCurrency(stats.totalExpense),
       icon: Wallet,
-      gradient: "bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500",
+      gradient: "bg-gradient-to-br from-pink-100 to-pink-200",
+      iconBg: "bg-pink-50",
+      iconColor: "text-pink-600",
     },
   ];
 
@@ -240,14 +256,14 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
       {visibleSummaryCards.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {visibleSummaryCards.map((card) => (
-            <div key={card.title} className={`relative overflow-hidden rounded-lg shadow-sm ${card.gradient} p-4`}>
+            <div key={card.title} className={`relative overflow-hidden rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-4`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-white/80 font-medium tracking-wide">{card.title}</p>
-                  <p className="text-2xl font-bold text-white mt-2">{card.value}</p>
+                  <p className="text-xs text-gray-500 uppercase font-medium tracking-wide">{card.title}</p>
+                  <p className="text-xl font-bold text-gray-900 mt-1">{card.value}</p>
                 </div>
-                <div className="p-2 rounded-lg bg-white/20">
-                  <card.icon size={22} className="text-white" />
+                <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
+                  <card.icon size={20} className={card.iconColor} />
                 </div>
               </div>
             </div>
