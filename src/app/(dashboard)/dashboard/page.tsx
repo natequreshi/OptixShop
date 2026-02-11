@@ -29,8 +29,8 @@ export default async function DashboardPage() {
     invoiceDue,
     last30DaysSales,
     yearSales,
-    recentSalesRaw,
-    topProductsRaw,
+    recentSalesData,
+    topProductsData,
   ] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.customer.count({ where: { isActive: true } }),
@@ -64,16 +64,25 @@ export default async function DashboardPage() {
     // Recent sales (last 10)
     prisma.sale.findMany({
       take: 10,
-      orderBy: { saleDate: "desc" },
-      include: { customer: true, items: true },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        customer: { select: { firstName: true, lastName: true } },
+        items: true,
+      },
     }),
     // Top products by revenue
-    prisma.saleItem.groupBy({
-      by: ["productId"],
-      _sum: { total: true, quantity: true },
-      orderBy: { _sum: { total: "desc" } },
-      take: 5,
-    }),
+    prisma.$queryRaw<{ productName: string; totalRevenue: number; totalQty: number }[]>`
+      SELECT 
+        p.name as "productName",
+        CAST(COALESCE(SUM(si.total), 0) AS DECIMAL) as "totalRevenue",
+        CAST(COALESCE(SUM(si.quantity), 0) AS INTEGER) as "totalQty"
+      FROM products p
+      LEFT JOIN sale_items si ON p.id = si.product_id
+      WHERE p.is_active = true
+      GROUP BY p.id, p.name
+      ORDER BY "totalRevenue" DESC
+      LIMIT 10
+    `,
   ]);
 
   // Aggregate last 30 days into daily data
@@ -103,30 +112,6 @@ export default async function DashboardPage() {
     salesByMonth.push({ month: `${monthNames[m - 1]}-${currentYear}`, amount: monthlyMap[monthStr] ?? 0 });
   }
 
-  // Process recent sales
-  const recentSales = recentSalesRaw.map((sale) => ({
-    id: sale.id,
-    invoiceNo: sale.invoiceNo,
-    customerName: sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName || ""}`.trim() : "Walk-in",
-    totalAmount: sale.totalAmount,
-    status: sale.paymentStatus,
-    saleDate: sale.saleDate,
-    itemCount: sale.items.length,
-  }));
-
-  // Process top products
-  const productIds = topProductsRaw.map((p) => p.productId);
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true, name: true },
-  });
-  const productMap = new Map(products.map((p) => [p.id, p.name]));
-  const topProducts = topProductsRaw.map((p) => ({
-    name: productMap.get(p.productId) || "Unknown",
-    revenue: p._sum.total ?? 0,
-    qty: p._sum.quantity ?? 0,
-  }));
-
   const totalSalesAmount = allTimeSales._sum.totalAmount ?? 0;
   const totalPaidSales = allTimeSales._sum.paidAmount ?? 0;
   const totalReturnAmount = totalReturns._sum.totalAmount ?? 0;
@@ -150,6 +135,26 @@ export default async function DashboardPage() {
     totalPurchaseReturn: totalPurchaseReturns._sum.totalAmount ?? 0,
     totalExpense: totalExpenses._sum.amount ?? 0,
   };
+
+  // Transform recent sales
+  const recentSales = recentSalesData.map(sale => ({
+    id: sale.id,
+    invoiceNo: sale.invoiceNo,
+    customerName: sale.customer 
+      ? `${sale.customer.firstName} ${sale.customer.lastName || ''}`.trim()
+      : 'Walk-in Customer',
+    totalAmount: sale.totalAmount,
+    status: sale.paymentStatus,
+    saleDate: sale.saleDate,
+    itemCount: sale.items.length,
+  }));
+
+  // Transform top products
+  const topProducts = topProductsData.map(p => ({
+    name: p.productName,
+    revenue: Number(p.totalRevenue),
+    qty: Number(p.totalQty),
+  }));
 
   return (
     <DashboardClient
