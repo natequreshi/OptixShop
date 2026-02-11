@@ -87,6 +87,24 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* New Sale */}
+        <button onClick={() => router.push("/pos")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg" title="New Sale">
+          <ShoppingCart size={20} />
+        </button>
+        {/* New Customer */}
+        <button onClick={() => router.push("/customers")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="New Customer">
+          <User size={20} />
+        </button>
+        {/* Open Register */}
+        <button onClick={() => router.push("/register")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg" title="Open Register">
+          <CreditCard size={20} />
+        </button>
+        {/* Add Product */}
+        <button onClick={() => router.push("/products")} className="p-2 text-gray-400 dark:text-gray-500 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg" title="Add Product">
+          <Package size={20} />
+        </button>
+        {/* Divider */}
+        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
         {/* Calculator */}
         <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Calculator">
           <Calculator size={20} />
