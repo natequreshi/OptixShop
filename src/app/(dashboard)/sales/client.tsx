@@ -165,6 +165,9 @@ function SaleRow({ sale: s, onView, onEdit, onPrint, onDelete }: {
           <span className={cn("text-xs px-2 py-1 rounded-full font-medium", statusColors[s.paymentStatus])}>{s.paymentStatus}</span>
         </td>
         <td className="px-4 py-3 text-center">
+          <span className="text-sm text-gray-600 capitalize">{s.paymentMethods || "—"}</span>
+        </td>
+        <td className="px-4 py-3 text-center">
           <div className="flex items-center justify-center gap-1">
             <button onClick={onView} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600" title="View Invoice">
               <Eye size={15} />
