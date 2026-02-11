@@ -27,6 +27,8 @@ export async function POST(req: Request) {
       hsnSacCode: body.hsnSacCode,
       description: body.description,
       imageUrl: body.imageUrl || null,
+      colors: body.colors || null,
+      colorVariants: body.colorVariants || null,
     },
   });
   // Create inventory record
