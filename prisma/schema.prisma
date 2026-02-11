@@ -216,6 +216,9 @@ model Customer {
   totalPurchases Float  @default(0) @map("total_purchases")
   notes        String?
   isActive     Boolean  @default(true) @map("is_active")
+  passwordHash String?  @map("password_hash")
+  lastOtp      String?  @map("last_otp")
+  otpExpiry    DateTime? @map("otp_expiry")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
