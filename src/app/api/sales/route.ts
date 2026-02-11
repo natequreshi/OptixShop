@@ -157,33 +157,40 @@ export async function POST(req: Request) {
       data: { totalPurchases: { increment: totalAmount } },
     });
 
-    // Send WhatsApp notification
-    const customer = await prisma.customer.findUnique({ where: { id: body.customerId } });
-    const waNumber = customer?.whatsapp || customer?.phone;
-    if (waNumber) {
-      const itemsList = body.items.map((i: any) => `${i.productName ?? "Item"} × ${i.quantity}`).join(", ");
-      const itemsDetailed = body.items.map((i: any) => 
-        `• ${i.productName ?? "Item"} × ${i.quantity} - ${formatCurrencyPlain(i.total)}`
-      ).join("\n");
-      
-      const paymentMethodDisplay = (body.paymentMethod ?? "cash").toUpperCase();
-      const paymentStatusDisplay = (paidAmount >= totalAmount ? "Paid" : actualPaidAmount > 0 ? "Partial" : "Unpaid").toUpperCase();
-      
-      sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
-        customerName: `${customer!.firstName} ${customer!.lastName ?? ""}`.trim(),
-        invoiceNo: invoiceNo,
-        orderDate: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-        totalAmount: formatCurrencyPlain(totalAmount),
-        items: itemsList,
-        itemsDetailed: itemsDetailed,
-        subtotal: formatCurrencyPlain(subtotal),
-        discount: formatCurrencyPlain(totalDiscount),
-        tax: formatCurrencyPlain(totalTax),
-        paidAmount: formatCurrencyPlain(actualPaidAmount),
-        balanceAmount: formatCurrencyPlain(balanceAmount),
-        paymentMethod: paymentMethodDisplay,
-        paymentStatus: paymentStatusDisplay,
-      }).catch((err) => console.error("[WhatsApp] notification error:", err));
+    // Send WhatsApp notification if enabled
+    const whatsappSettings = await prisma.setting.findUnique({
+      where: { key: "whatsapp_enabled" },
+    });
+    const whatsappEnabled = whatsappSettings?.value === "true";
+
+    if (whatsappEnabled) {
+      const customer = await prisma.customer.findUnique({ where: { id: body.customerId } });
+      const waNumber = customer?.whatsapp || customer?.phone;
+      if (waNumber) {
+        const itemsList = body.items.map((i: any) => `${i.productName ?? "Item"} × ${i.quantity}`).join(", ");
+        const itemsDetailed = body.items.map((i: any) => 
+          `• ${i.productName ?? "Item"} × ${i.quantity} - ${formatCurrencyPlain(i.total)}`
+        ).join("\n");
+        
+        const paymentMethodDisplay = (body.paymentMethod ?? "cash").toUpperCase();
+        const paymentStatusDisplay = (paidAmount >= totalAmount ? "Paid" : actualPaidAmount > 0 ? "Partial" : "Unpaid").toUpperCase();
+        
+        sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
+          customerName: `${customer!.firstName} ${customer!.lastName ?? ""}`.trim(),
+          invoiceNo: invoiceNo,
+          orderDate: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+          totalAmount: formatCurrencyPlain(totalAmount),
+          items: itemsList,
+          itemsDetailed: itemsDetailed,
+          subtotal: formatCurrencyPlain(subtotal),
+          discount: formatCurrencyPlain(totalDiscount),
+          tax: formatCurrencyPlain(totalTax),
+          paidAmount: formatCurrencyPlain(actualPaidAmount),
+          balanceAmount: formatCurrencyPlain(balanceAmount),
+          paymentMethod: paymentMethodDisplay,
+          paymentStatus: paymentStatusDisplay,
+        }).catch((err) => console.error("[WhatsApp] notification error:", err));
+      }
     }
   }
 

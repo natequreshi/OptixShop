@@ -45,13 +45,28 @@ export async function POST(req: Request) {
       data: { lastOtp: otp, otpExpiry },
     });
 
-    // Send OTP via Email or WhatsApp
+    // Fetch notification settings
+    const emailSettings = await prisma.setting.findUnique({
+      where: { key: "email_notifications_enabled" },
+    });
+    const whatsappSettings = await prisma.setting.findUnique({
+      where: { key: "whatsapp_enabled" },
+    });
+    const smsSettings = await prisma.setting.findUnique({
+      where: { key: "sms_otp_enabled" },
+    });
+
+    const emailEnabled = emailSettings?.value === "true";
+    const whatsappEnabled = whatsappSettings?.value === "true";
+    const smsEnabled = smsSettings?.value === "true";
+
+    // Send OTP via configured channels
     const customerName = `${customer.firstName} ${customer.lastName || ""}`.trim();
     let otpSent = false;
     let sendMethod = "";
 
-    // If email login, send via email (FREE)
-    if (isEmail && customer.email) {
+    // If email login, send via email (if enabled)
+    if (isEmail && customer.email && emailEnabled) {
       const result = await sendEmailOTP({
         to: customer.email,
         otp,
@@ -60,12 +75,12 @@ export async function POST(req: Request) {
       otpSent = result.success;
       sendMethod = "email";
     } 
-    // If phone login, try WhatsApp first, then email as fallback
+    // If phone login, try enabled channels in order: WhatsApp → SMS → Email
     else {
       const waNumber = customer.whatsapp || customer.phone;
       
-      // Try WhatsApp
-      if (waNumber) {
+      // Try WhatsApp if enabled
+      if (!otpSent && whatsappEnabled && waNumber) {
         const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "optixshop.com";
         const message = `Your OTP for customer portal login is: ${otp}\n\nValid for 10 minutes.\n\n@${domain} #${otp}\n\nDo not share this code with anyone.`;
         
@@ -80,8 +95,18 @@ export async function POST(req: Request) {
         }
       }
 
-      // Fallback to email if WhatsApp fails and email exists
-      if (!otpSent && customer.email) {
+      // Try SMS if enabled (placeholder - implement SMS provider integration)
+      if (!otpSent && smsEnabled && waNumber) {
+        // TODO: Integrate SMS provider (Twilio, etc.)
+        // For now, SMS is configured but not implemented
+        console.log(`SMS OTP would be sent to ${waNumber}: ${otp}`);
+        // Uncomment when SMS provider is integrated:
+        // otpSent = true;
+        // sendMethod = "SMS";
+      }
+
+      // Fallback to email if enabled and other methods failed
+      if (!otpSent && emailEnabled && customer.email) {
         const result = await sendEmailOTP({
           to: customer.email,
           otp,

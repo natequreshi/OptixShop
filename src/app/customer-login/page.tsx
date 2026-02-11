@@ -5,8 +5,17 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Phone, Lock, Mail, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 
+interface AuthConfig {
+  otpEnabled: boolean;
+  passwordEnabled: boolean;
+  emailNotifications: boolean;
+  whatsappNotifications: boolean;
+  smsOtp: boolean;
+}
+
 export default function CustomerLoginPage() {
   const router = useRouter();
+  const [config, setConfig] = useState<AuthConfig | null>(null);
   const [loginMethod, setLoginMethod] = useState<"otp" | "password">("otp");
   const [phoneOrEmail, setPhoneOrEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,6 +23,30 @@ export default function CustomerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Fetch auth configuration on mount
+  useEffect(() => {
+    async function fetchConfig() {
+      try {
+        const res = await fetch("/api/customer-auth/config");
+        if (res.ok) {
+          const data = await res.json();
+          setConfig(data);
+          // Set default login method based on what's enabled
+          if (!data.otpEnabled && data.passwordEnabled) {
+            setLoginMethod("password");
+          } else {
+            setLoginMethod("otp");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch config:", error);
+        // Default to both enabled
+        setConfig({ otpEnabled: true, passwordEnabled: true, emailNotifications: false, whatsappNotifications: false, smsOtp: false });
+      }
+    }
+    fetchConfig();
+  }, []);
 
   // Web OTP API - Auto-fill OTP from SMS
   useEffect(() => {
@@ -133,6 +166,20 @@ export default function CustomerLoginPage() {
     setLoading(false);
   }
 
+  // Show loading while config is being fetched
+  if (!config) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg animate-pulse">
+            <ShieldCheck size={32} className="text-white" />
+          </div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -147,32 +194,34 @@ export default function CustomerLoginPage() {
 
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Toggle Buttons */}
-          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl">
-            <button
-              onClick={() => { setLoginMethod("otp"); setOtpSent(false); }}
-              className={`flex-1 py-2.5 rounded-lg font-medium transition ${
-                loginMethod === "otp"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Login with OTP
-            </button>
-            <button
-              onClick={() => setLoginMethod("password")}
-              className={`flex-1 py-2.5 rounded-lg font-medium transition ${
-                loginMethod === "password"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Login with Password
-            </button>
-          </div>
+          {/* Toggle Buttons - Only show if both methods are enabled */}
+          {config.otpEnabled && config.passwordEnabled && (
+            <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl">
+              <button
+                onClick={() => { setLoginMethod("otp"); setOtpSent(false); }}
+                className={`flex-1 py-2.5 rounded-lg font-medium transition ${
+                  loginMethod === "otp"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Login with OTP
+              </button>
+              <button
+                onClick={() => setLoginMethod("password")}
+                className={`flex-1 py-2.5 rounded-lg font-medium transition ${
+                  loginMethod === "password"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Login with Password
+              </button>
+            </div>
+          )}
 
-          {/* OTP Login */}
-          {loginMethod === "otp" && (
+          {/* OTP Login - Only show if OTP is enabled */}
+          {config.otpEnabled && loginMethod === "otp" && (
             <div className="space-y-4">
               <div>
                 <label className="label flex items-center gap-2">
@@ -239,8 +288,8 @@ export default function CustomerLoginPage() {
             </div>
           )}
 
-          {/* Password Login */}
-          {loginMethod === "password" && (
+          {/* Password Login - Only show if Password is enabled */}
+          {config.passwordEnabled && loginMethod === "password" && (
             <div className="space-y-4">
               <div>
                 <label className="label flex items-center gap-2">
