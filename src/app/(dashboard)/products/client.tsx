@@ -14,7 +14,6 @@ interface Product {
   colors: string; colorVariants?: {color: string; image: string}[];
   isActive: boolean;
 }
-}
 
 interface Props {
   products: Product[];
