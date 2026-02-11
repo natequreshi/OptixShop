@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, ShoppingCart, UserPlus, CreditCard, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 export default function Header() {
   const { data: session } = useSession();
@@ -12,9 +13,32 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showTodoList, setShowTodoList] = useState(false);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [showNewProduct, setShowNewProduct] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState("0");
   const [todos, setTodos] = useState<{id: number; text: string; done: boolean}[]>([]);
   const [todoInput, setTodoInput] = useState("");
+  
+  // Customer form
+  const [customerForm, setCustomerForm] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+  });
+  
+  // Product form
+  const [productForm, setProductForm] = useState({
+    name: "",
+    sku: "",
+    category: "",
+    price: "",
+    stock: "",
+  });
+  
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
+  
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +59,45 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Quick Action Buttons */}
+        <button 
+          onClick={() => router.push("/pos")}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm"
+          title="New Sale (POS)"
+        >
+          <ShoppingCart size={18} />
+          <span className="text-xs font-medium hidden sm:inline">New Sale</span>
+        </button>
+        
+        <button 
+          onClick={() => setShowNewCustomer(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+          title="New Customer"
+        >
+          <UserPlus size={18} />
+          <span className="text-xs font-medium hidden sm:inline">New Customer</span>
+        </button>
+        
+        <button 
+          onClick={() => router.push("/register")}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors shadow-sm"
+          title="Open Register"
+        >
+          <CreditCard size={18} />
+          <span className="text-xs font-medium hidden sm:inline">Register</span>
+        </button>
+        
+        <button 
+          onClick={() => setShowNewProduct(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm"
+          title="Add Product"
+        >
+          <Package size={18} />
+          <span className="text-xs font-medium hidden sm:inline">New Product</span>
+        </button>
+        
+        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+        
         {/* Calculator */}
         <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Calculator">
           <Calculator size={20} />
@@ -155,6 +218,221 @@ export default function Header() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Customer Modal */}
+      {showNewCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowNewCustomer(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-semibold dark:text-white">Add New Customer</h3>
+              <button onClick={() => setShowNewCustomer(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">First Name *</label>
+                  <input 
+                    type="text" 
+                    value={customerForm.firstName}
+                    onChange={(e) => setCustomerForm({...customerForm, firstName: e.target.value})}
+                    className="input" 
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <label className="label">Last Name</label>
+                  <input 
+                    type="text" 
+                    value={customerForm.lastName}
+                    onChange={(e) => setCustomerForm({...customerForm, lastName: e.target.value})}
+                    className="input" 
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="label">Phone *</label>
+                <input 
+                  type="tel" 
+                  value={customerForm.phone}
+                  onChange={(e) => setCustomerForm({...customerForm, phone: e.target.value})}
+                  className="input" 
+                  placeholder="+92-300-1234567"
+                />
+              </div>
+              <div>
+                <label className="label">Email</label>
+                <input 
+                  type="email" 
+                  value={customerForm.email}
+                  onChange={(e) => setCustomerForm({...customerForm, email: e.target.value})}
+                  className="input" 
+                  placeholder="john@example.com"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 border-t border-gray-100 dark:border-gray-700">
+              <button 
+                onClick={() => setShowNewCustomer(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!customerForm.firstName || !customerForm.phone) {
+                    toast.error("First name and phone are required");
+                    return;
+                  }
+                  setSavingCustomer(true);
+                  try {
+                    const res = await fetch("/api/customers", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(customerForm),
+                    });
+                    if (res.ok) {
+                      toast.success("Customer added successfully!");
+                      setCustomerForm({ firstName: "", lastName: "", phone: "", email: "" });
+                      setShowNewCustomer(false);
+                      router.refresh();
+                    } else {
+                      const data = await res.json();
+                      toast.error(data.error || "Failed to add customer");
+                    }
+                  } catch (err) {
+                    toast.error("Network error");
+                  }
+                  setSavingCustomer(false);
+                }}
+                disabled={savingCustomer}
+                className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {savingCustomer ? "Saving..." : "Add Customer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Product Modal */}
+      {showNewProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowNewProduct(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-semibold dark:text-white">Add New Product</h3>
+              <button onClick={() => setShowNewProduct(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="label">Product Name *</label>
+                <input 
+                  type="text" 
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                  className="input" 
+                  placeholder="Ray-Ban Aviator"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">SKU *</label>
+                  <input 
+                    type="text" 
+                    value={productForm.sku}
+                    onChange={(e) => setProductForm({...productForm, sku: e.target.value})}
+                    className="input" 
+                    placeholder="RB-001"
+                  />
+                </div>
+                <div>
+                  <label className="label">Category</label>
+                  <input 
+                    type="text" 
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                    className="input" 
+                    placeholder="Sunglasses"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Price *</label>
+                  <input 
+                    type="number" 
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    className="input" 
+                    placeholder="5000"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="label">Stock Quantity *</label>
+                  <input 
+                    type="number" 
+                    value={productForm.stock}
+                    onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
+                    className="input" 
+                    placeholder="10"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 border-t border-gray-100 dark:border-gray-700">
+              <button 
+                onClick={() => setShowNewProduct(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!productForm.name || !productForm.sku || !productForm.price || !productForm.stock) {
+                    toast.error("All fields except category are required");
+                    return;
+                  }
+                  setSavingProduct(true);
+                  try {
+                    const res = await fetch("/api/products", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        name: productForm.name,
+                        sku: productForm.sku,
+                        category: productForm.category || "Uncategorized",
+                        sellingPrice: parseFloat(productForm.price),
+                        stockQuantity: parseInt(productForm.stock),
+                      }),
+                    });
+                    if (res.ok) {
+                      toast.success("Product added successfully!");
+                      setProductForm({ name: "", sku: "", category: "", price: "", stock: "" });
+                      setShowNewProduct(false);
+                      router.refresh();
+                    } else {
+                      const data = await res.json();
+                      toast.error(data.error || "Failed to add product");
+                    }
+                  } catch (err) {
+                    toast.error("Network error");
+                  }
+                  setSavingProduct(false);
+                }}
+                disabled={savingProduct}
+                className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {savingProduct ? "Saving..." : "Add Product"}
+              </button>
             </div>
           </div>
         </div>
