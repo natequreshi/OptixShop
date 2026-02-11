@@ -27,6 +27,98 @@ interface Customer {
   phone: string; loyaltyPoints: number;
 }
 
+function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: (p: Product) => void }) {
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
+  const hasVariants = product.colorVariants && product.colorVariants.length > 0;
+  const displayImage = hasVariants && product.colorVariants![selectedVariantIdx]?.image 
+    ? product.colorVariants![selectedVariantIdx].image 
+    : product.imageUrl;
+
+  return (
+    <button onClick={() => onAddToCart(product)}
+      className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
+      <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+        {displayImage ? (
+          <img src={displayImage} alt={product.name} className="w-full h-full object-contain" />
+        ) : (
+          <Package size={32} className="text-gray-300" />
+        )}
+      </div>
+      <div className="p-2 flex-1 flex flex-col justify-between">
+        <div className="mb-1">
+          <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{product.name}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">SKU: {product.sku}</p>
+          
+          {/* Color Variants/Colors Display */}
+          {hasVariants ? (
+            <div className="flex gap-1.5 mt-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
+              {product.colorVariants!.map((variant, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedVariantIdx(idx);
+                  }}
+                  className={cn(
+                    "w-7 h-7 rounded-full border-2 overflow-hidden transition-all hover:scale-110",
+                    selectedVariantIdx === idx ? "border-primary-500 ring-2 ring-primary-200" : "border-gray-300"
+                  )}
+                  title={variant.color}
+                >
+                  {variant.image ? (
+                    <img src={variant.image} alt={variant.color} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-[8px] font-bold text-gray-600">{variant.color.substring(0, 2)}</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : product.colors ? (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {product.colors.split(',').slice(0, 4).map((color, idx) => {
+                const colorName = color.trim().toLowerCase();
+                const colorMap: Record<string, string> = {
+                  black: '#000000', white: '#FFFFFF', red: '#EF4444', blue: '#3B82F6',
+                  green: '#10B981', yellow: '#F59E0B', orange: '#F97316', purple: '#A855F7',
+                  pink: '#EC4899', gray: '#6B7280', grey: '#6B7280', brown: '#92400E',
+                  gold: '#D4AF37', silver: '#C0C0C0', bronze: '#CD7F32', navy: '#1E3A8A',
+                  maroon: '#7F1D1D', teal: '#14B8A6', cyan: '#06B6D4', lime: '#84CC16',
+                  indigo: '#6366F1', violet: '#8B5CF6', rose: '#F43F5E', amber: '#F59E0B',
+                  emerald: '#059669', sky: '#0EA5E9', slate: '#64748B'
+                };
+                const bgColor = colorMap[colorName] || '#9CA3AF';
+                return (
+                  <div
+                    key={idx}
+                    className="w-5 h-5 rounded-full border-2 border-gray-200 shadow-sm"
+                    style={{ backgroundColor: bgColor }}
+                    title={color.trim()}
+                  />
+                );
+              })}
+              {product.colors.split(',').length > 4 && (
+                <span className="text-[9px] text-gray-500 font-medium self-center">+{product.colors.split(',').length - 4}</span>
+              )}
+            </div>
+          ) : null}
+        </div>
+        <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">Price</span>
+            <span className="text-xs font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">Stock</span>
+            <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", product.stock <= 0 ? "bg-red-50 text-red-600" : product.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{product.stock}</span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export default function POSPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
@@ -353,122 +445,9 @@ export default function POSPage() {
 
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3">
-          {filteredProducts.slice(0, 50).map((p) => {
-            const hasVariants = p.colorVariants && p.colorVariants.length > 0;
-            if (hasVariants) {
-              // Show each color variant as separate item
-              return p.colorVariants!.map((variant, idx) => (
-                <button key={`${p.id}-${idx}`} onClick={() => addToCart(p)}
-                  className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
-                  <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                    {variant.image ? (
-                      <img src={variant.image} alt={`${p.name} - ${variant.color}`} className="w-full h-full object-contain" />
-                    ) : (
-                      <Package size={32} className="text-gray-300" />
-                    )}
-                  </div>
-                  <div className="p-2 flex-1 flex flex-col justify-between">
-                    <div className="mb-1">
-                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">SKU: {p.sku}</p>
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        <span className="px-1.5 py-0.5 bg-primary-50 text-primary-700 rounded text-[9px] font-semibold">
-                          {variant.color}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Price</span>
-                        <span className="text-xs font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Stock</span>
-                        <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock}</span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ));
-            } else {
-              // Show normal product
-              return (
-                <button key={p.id} onClick={() => addToCart(p)}
-                  className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
-                  <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                    {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain" />
-                    ) : (
-                      <Package size={32} className="text-gray-300" />
-                    )}
-                  </div>
-                  <div className="p-2 flex-1 flex flex-col justify-between">
-                    <div className="mb-1">
-                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2 group-hover:text-primary-700">{p.name}</p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">SKU: {p.sku}</p>
-                      
-                      {/* Color Variants/Colors Display */}
-                      {p.colorVariants && p.colorVariants.length > 0 ? (
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          {p.colorVariants.slice(0, 4).map((variant, idx) => (
-                            variant.image ? (
-                              <div key={idx} className="w-6 h-6 rounded border border-gray-200 overflow-hidden" title={variant.color}>
-                                <img src={variant.image} alt={variant.color} className="w-full h-full object-cover" />
-                              </div>
-                            ) : (
-                              <span key={idx} className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[9px] font-medium" title={variant.color}>
-                                {variant.color}
-                              </span>
-                            )
-                          ))}
-                          {p.colorVariants.length > 4 && (
-                            <span className="text-[9px] text-gray-500 font-medium self-center">+{p.colorVariants.length - 4}</span>
-                          )}
-                        </div>
-                      ) : p.colors ? (
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          {p.colors.split(',').slice(0, 4).map((color, idx) => {
-                            const colorName = color.trim().toLowerCase();
-                            const colorMap: Record<string, string> = {
-                              black: '#000000', white: '#FFFFFF', red: '#EF4444', blue: '#3B82F6',
-                              green: '#10B981', yellow: '#F59E0B', orange: '#F97316', purple: '#A855F7',
-                              pink: '#EC4899', gray: '#6B7280', grey: '#6B7280', brown: '#92400E',
-                              gold: '#D4AF37', silver: '#C0C0C0', bronze: '#CD7F32', navy: '#1E3A8A',
-                              maroon: '#7F1D1D', teal: '#14B8A6', cyan: '#06B6D4', lime: '#84CC16',
-                              indigo: '#6366F1', violet: '#8B5CF6', rose: '#F43F5E', amber: '#F59E0B',
-                              emerald: '#059669', sky: '#0EA5E9', slate: '#64748B'
-                            };
-                            const bgColor = colorMap[colorName] || '#9CA3AF';
-                            return (
-                              <div
-                                key={idx}
-                                className="w-5 h-5 rounded-full border-2 border-gray-200 shadow-sm"
-                                style={{ backgroundColor: bgColor }}
-                                title={color.trim()}
-                              />
-                            );
-                          })}
-                          {p.colors.split(',').length > 4 && (
-                            <span className="text-[9px] text-gray-500 font-medium self-center">+{p.colors.split(',').length - 4}</span>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Price</span>
-                        <span className="text-xs font-bold text-primary-600">{formatCurrency(p.sellingPrice)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Stock</span>
-                        <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", p.stock <= 0 ? "bg-red-50 text-red-600" : p.stock <= 10 ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700")}>{p.stock}</span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            }
-          })}
+          {filteredProducts.slice(0, 50).map((p) => (
+            <ProductCard key={p.id} product={p} onAddToCart={addToCart} />
+          ))}
           {filteredProducts.length === 0 && (
             <div className="w-full text-center py-12 text-gray-400">No products found</div>
           )}
