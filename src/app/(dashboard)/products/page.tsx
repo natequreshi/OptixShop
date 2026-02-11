@@ -35,6 +35,7 @@ export default async function ProductsPage() {
     sold: p.saleItems.reduce((sum, item) => sum + item.quantity, 0),
     imageUrl: p.imageUrl ?? "",
     description: p.description ?? "",
+    colors: p.colors ?? "",
     isActive: p.isActive,
   }));
 
