@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { sendWhatsAppNotification } from "@/lib/whatsapp";
 import { normalizePhone } from "@/lib/phoneUtils";
+import { sendEmailOTP } from "@/lib/emailOTP";
 
 export async function POST(req: Request) {
   try {
@@ -44,27 +45,59 @@ export async function POST(req: Request) {
       data: { lastOtp: otp, otpExpiry },
     });
 
-    // Send OTP via WhatsApp or SMS
-    const waNumber = customer.whatsapp || customer.phone;
-    if (waNumber) {
-      // Format message for Web OTP API compatibility
-      // Format: @domain.com #code (for auto-fill to work)
-      const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "optixshop.com";
-      const message = `Your OTP for customer portal login is: ${otp}\n\nValid for 10 minutes.\n\n@${domain} #${otp}\n\nDo not share this code with anyone.`;
+    // Send OTP via Email or WhatsApp
+    const customerName = `${customer.firstName} ${customer.lastName || ""}`.trim();
+    let otpSent = false;
+    let sendMethod = "";
+
+    // If email login, send via email (FREE)
+    if (isEmail && customer.email) {
+      const result = await sendEmailOTP({
+        to: customer.email,
+        otp,
+        customerName,
+      });
+      otpSent = result.success;
+      sendMethod = "email";
+    } 
+    // If phone login, try WhatsApp first, then email as fallback
+    else {
+      const waNumber = customer.whatsapp || customer.phone;
       
-      // Try to send via WhatsApp (will log to console if not configured)
-      await sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
-        customerName: `${customer.firstName} ${customer.lastName || ""}`.trim(),
-        items: message,
-      }).catch(console.error);
+      // Try WhatsApp
+      if (waNumber) {
+        const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "optixshop.com";
+        const message = `Your OTP for customer portal login is: ${otp}\n\nValid for 10 minutes.\n\n@${domain} #${otp}\n\nDo not share this code with anyone.`;
+        
+        const waResult = await sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
+          customerName,
+          items: message,
+        }).catch(() => ({ success: false, message: "WhatsApp not configured" }));
+
+        if (waResult.success) {
+          otpSent = true;
+          sendMethod = "WhatsApp";
+        }
+      }
+
+      // Fallback to email if WhatsApp fails and email exists
+      if (!otpSent && customer.email) {
+        const result = await sendEmailOTP({
+          to: customer.email,
+          otp,
+          customerName,
+        });
+        otpSent = result.success;
+        sendMethod = "email";
+      }
     }
 
     // For demo purposes, also return OTP in response (remove in production)
     return NextResponse.json({ 
       success: true, 
-      message: "OTP sent successfully",
+      message: otpSent ? `OTP sent via ${sendMethod}` : "OTP generated (check console)",
       // Remove this in production:
-      debug: { otp, phone: waNumber }
+      debug: { otp, method: sendMethod || "console", phone: customer.phone, email: customer.email }
     });
   } catch (error) {
     console.error("Send OTP error:", error);
