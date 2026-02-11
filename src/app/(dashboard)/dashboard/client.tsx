@@ -207,10 +207,10 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
 
   /* ─── Quick Stats Row ─── */
   const quickStats = [
-    { title: "Today's Sales", value: stats.todaySalesCount, sub: formatCurrency(stats.todaySalesAmount), icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50", gradient: "bg-gradient-to-br from-blue-100 to-blue-200" },
-    { title: "This Month", value: stats.monthSalesCount, sub: formatCurrency(stats.monthSalesAmount), icon: BarChart3, color: "text-green-600", bg: "bg-green-50", gradient: "bg-gradient-to-br from-green-100 to-green-200" },
-    { title: "Products", value: stats.totalProducts, sub: `${stats.lowStockCount} Low Stock`, icon: Package, color: "text-purple-600", bg: "bg-purple-50", gradient: "bg-gradient-to-br from-purple-100 to-purple-200" },
-    { title: "Total Customers", value: stats.totalCustomers, sub: "Registered", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", gradient: "bg-gradient-to-br from-indigo-100 to-indigo-200" },
+    { title: "Today's Sales", value: stats.todaySalesCount, sub: formatCurrency(stats.todaySalesAmount), icon: ShoppingBag, color: "text-emerald-600", bg: "bg-emerald-50", gradient: "bg-gradient-to-br from-emerald-100 to-emerald-200" },
+    { title: "This Month", value: stats.monthSalesCount, sub: formatCurrency(stats.monthSalesAmount), icon: BarChart3, color: "text-teal-600", bg: "bg-teal-50", gradient: "bg-gradient-to-br from-teal-100 to-teal-200" },
+    { title: "Products", value: stats.totalProducts, sub: `${stats.lowStockCount} Low Stock`, icon: Package, color: "text-amber-600", bg: "bg-amber-50", gradient: "bg-gradient-to-br from-amber-100 to-amber-200" },
+    { title: "Total Customers", value: stats.totalCustomers, sub: "Registered", icon: Users, color: "text-rose-600", bg: "bg-rose-50", gradient: "bg-gradient-to-br from-rose-100 to-rose-200" },
   ];
 
   // Widget visibility based on settings
@@ -269,15 +269,14 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
             </div>
           ))}
           {visibleQuickStats.map((card) => (
-          <div key={card.title} className={`rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-5`}>
-            <div className="flex items-start justify-between">
+          <div key={card.title} className={`rounded-lg shadow-sm border border-gray-100 ${card.gradient} p-4`}>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 uppercase font-medium tracking-wide">{card.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{card.value}</p>
+                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
                 <p className="text-xs text-gray-500 mt-1">{card.sub}</p>
               </div>
               <div className={`p-2.5 rounded-xl ${card.bg}`}>
-                <card.icon size={22} className={card.color} />
+                <card.icon size={20} className={card.color} />
               </div>
             </div>
           </div>
