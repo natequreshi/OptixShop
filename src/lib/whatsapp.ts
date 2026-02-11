@@ -4,8 +4,17 @@ interface WhatsAppMessageData {
   customerName: string;
   invoiceNo?: string;
   orderNo?: string;
+  orderDate?: string;
   totalAmount?: string;
   items?: string;
+  itemsDetailed?: string;
+  subtotal?: string;
+  discount?: string;
+  tax?: string;
+  paidAmount?: string;
+  balanceAmount?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
 }
 
 async function getSettings(): Promise<Record<string, string>> {
@@ -49,7 +58,11 @@ export async function sendWhatsAppNotification(
       return { success: false, message: "WhatsApp API not configured. Message logged to console." };
     }
 
-    const message = fillTemplate(template, data, storeName);
+    // Use enhanced message for order template, otherwise use template
+    const message = templateKey === "whatsapp_order_template" && data.itemsDetailed
+      ? createEnhancedOrderMessage(data, settings)
+      : fillTemplate(template, data, storeName);
+    
     const cleanPhone = phoneNumber.replace(/[^0-9]/g, "");
 
     // Send via WhatsApp Business API (Meta Graph API format)
@@ -82,4 +95,50 @@ export async function sendWhatsAppNotification(
 
 export function formatCurrencyPlain(amount: number): string {
   return `Rs. ${Math.round(amount).toLocaleString("en-PK")}`;
+}
+
+export function createEnhancedOrderMessage(data: WhatsAppMessageData, settings: Record<string, string>): string {
+  const storeName = settings["store_name"] || "OptixShop";
+  const storePhone = settings["store_phone"] || "";
+  const hasTax = data.tax && parseFloat(data.tax.replace(/[^0-9.-]/g, "")) > 0;
+  
+  let message = `🛍️ ORDER CONFIRMATION\n\n`;
+  message += `Dear ${data.customerName},\n`;
+  message += `Thank you for your purchase!\n\n`;
+  message += `━━━━━━━━━━━━━━━━━━\n`;
+  message += `📋 ORDER DETAILS\n`;
+  message += `Invoice: ${data.invoiceNo}\n`;
+  message += `Date: ${data.orderDate}\n\n`;
+  message += `📦 ITEMS:\n${data.itemsDetailed}\n\n`;
+  message += `━━━━━━━━━━━━━━━━━━\n`;
+  message += `💰 PAYMENT SUMMARY\n`;
+  message += `Subtotal: ${data.subtotal}\n`;
+  
+  if (data.discount && parseFloat(data.discount.replace(/[^0-9.-]/g, "")) > 0) {
+    message += `Discount: ${data.discount}\n`;
+  }
+  
+  if (hasTax) {
+    message += `Tax: ${data.tax}\n`;
+  }
+  
+  message += `Total: ${data.totalAmount}\n`;
+  message += `Paid: ${data.paidAmount}\n`;
+  
+  if (data.balanceAmount && parseFloat(data.balanceAmount.replace(/[^0-9.-]/g, "")) > 0) {
+    message += `Balance: ${data.balanceAmount}\n`;
+  }
+  
+  message += `\nPayment: ${data.paymentMethod}\n`;
+  message += `Status: ${data.paymentStatus}\n\n`;
+  message += `━━━━━━━━━━━━━━━━━━\n`;
+  message += `📍 ${storeName}\n`;
+  
+  if (storePhone) {
+    message += `📞 ${storePhone}\n`;
+  }
+  
+  message += `\nVisit us again! 🙏`;
+  
+  return message;
 }
