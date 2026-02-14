@@ -29,6 +29,15 @@ model User {
   @@map("users")
 }
 
+model Setting {
+  id       String @id @default(cuid())
+  key      String @unique
+  value    String @default("")
+  category String @default("general")
+
+  @@map("settings")
+}
+
 model Brand {
   id          String     @id @default(cuid())
   name        String
