@@ -10,27 +10,27 @@ async function main() {
   const hash = (pwd: string) => bcrypt.hashSync(pwd, 10);
 
   const admin = await prisma.user.upsert({
-    where: { username: "admin" },
+    where: { email: "admin@optixshop.com" },
     update: {},
-    create: { username: "admin", passwordHash: hash("admin123"), fullName: "Admin User", email: "admin@optixshop.com", role: "admin" },
+    create: { name: "Admin User", email: "admin@optixshop.com", password: hash("admin123"), role: "ADMIN", isActive: true },
   });
 
   const manager = await prisma.user.upsert({
-    where: { username: "manager" },
+    where: { email: "manager@optixshop.com" },
     update: {},
-    create: { username: "manager", passwordHash: hash("manager123"), fullName: "Store Manager", email: "manager@optixshop.com", role: "manager" },
+    create: { name: "Store Manager", email: "manager@optixshop.com", password: hash("manager123"), role: "MANAGER", isActive: true },
   });
 
   const cashier1 = await prisma.user.upsert({
-    where: { username: "cashier1" },
+    where: { email: "cashier1@optixshop.com" },
     update: {},
-    create: { username: "cashier1", passwordHash: hash("cashier123"), fullName: "Priya Sharma", role: "cashier" },
+    create: { name: "Priya Sharma", email: "cashier1@optixshop.com", password: hash("cashier123"), role: "CASHIER", isActive: true },
   });
 
   const optician = await prisma.user.upsert({
-    where: { username: "optician" },
+    where: { email: "optician@optixshop.com" },
     update: {},
-    create: { username: "optician", passwordHash: hash("optician123"), fullName: "Dr. Rahul Verma", role: "optician" },
+    create: { name: "Dr. Rahul Verma", email: "optician@optixshop.com", password: hash("optician123"), role: "OPTICIAN", isActive: true },
   });
 
   console.log("  ✅ Users created");
