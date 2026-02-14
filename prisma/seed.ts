@@ -48,7 +48,7 @@ async function main() {
   ];
 
   for (const s of settings) {
-    await prisma.setting.upsert({ where: { key: s.key }, update: {}, create: s });
+    await prisma.settings.upsert({ where: { key: s.key }, update: {}, create: s });
   }
   console.log("  ✅ Settings created");
 
