@@ -30,7 +30,7 @@ async function main() {
   const optician = await prisma.user.upsert({
     where: { email: "optician@optixshop.com" },
     update: {},
-    create: { name: "Dr. Rahul Verma", email: "optician@optixshop.com", password: hash("optician123"), role: "OPTICIAN", isActive: true, updatedAt: new Date(), businessId: "default" },
+    create: { name: "Dr. Rahul Verma", email: "optician@optixshop.com", password: hash("optician123"), role: "SALES_PERSON", isActive: true, updatedAt: new Date(), businessId: "default" },
   });
 
   console.log("  ✅ Users created");
