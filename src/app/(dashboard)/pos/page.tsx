@@ -13,7 +13,7 @@ interface Product {
   id: string; sku: string; name: string; sellingPrice: number;
   taxRate: number; productType: string; stock: number; imageUrl: string | null;
   categoryId?: string | null; brandId?: string | null;
-  colorVariants?: {color: string; image: string}[];
+  colorVariants?: {color: string; image: string; sku: string}[];
   colors?: string | null;
 }
 
@@ -184,8 +184,10 @@ export default function POSPage() {
   }, []);
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase());
+    const searchLower = search.toLowerCase();
+    const matchesSearch = p.name.toLowerCase().includes(searchLower) ||
+      p.sku.toLowerCase().includes(searchLower) ||
+      (p.colorVariants && p.colorVariants.some(v => v.sku.toLowerCase().includes(searchLower)));
     const matchesCategory = !selectedCategory || (p as any).categoryId === selectedCategory;
     const matchesBrand = !selectedBrand || (p as any).brandId === selectedBrand;
     return matchesSearch && matchesCategory && matchesBrand;

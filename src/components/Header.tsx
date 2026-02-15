@@ -261,8 +261,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Calculator">
           <Calculator size={20} />
         </button>
+        
         {/* Todo List */}
         <button onClick={() => setShowTodoList(!showTodoList)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Todo List">
+          <ListTodo size={20} />
+        </button>
         
         {/* Notifications */}
         <div ref={notificationRef} className="relative">
@@ -325,9 +328,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               </div>
             </div>
           )}
-        </divsize={20} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        </div>
 
         {/* User dropdown */}
         <div ref={ref} className="relative">

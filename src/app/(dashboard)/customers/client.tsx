@@ -28,7 +28,7 @@ interface Customer {
   latestRx: RxData | null; sales: SaleRecord[];
 }
 
-type ColumnKey = "whatsapp" | "email" | "city" | "country" | "odRx" | "osRx" | "purchases" | "totalSpent" | "loyalty";
+type ColumnKey = "whatsapp" | "email" | "city" | "country" | "odRx" | "osRx" | "purchases" | "totalSpent";
 
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "whatsapp", label: "WhatsApp" },
@@ -39,10 +39,9 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "osRx", label: "OS (Rx)" },
   { key: "purchases", label: "Purchases" },
   { key: "totalSpent", label: "Total Spent" },
-  { key: "loyalty", label: "Loyalty" },
 ];
 
-const DEFAULT_COLUMNS: ColumnKey[] = ["whatsapp", "city", "odRx", "osRx", "purchases", "totalSpent", "loyalty"];
+const DEFAULT_COLUMNS: ColumnKey[] = ["whatsapp", "city", "odRx", "osRx", "purchases", "totalSpent"];
 
 function getInitialColumns(settings: Record<string, string>): ColumnKey[] {
   const raw = settings["customer_visible_columns"];
@@ -69,12 +68,7 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyCustomerId, setHistoryCustomerId] = useState<string | null>(null);
   
-  const loyaltyEnabled = settings.loyalty_enabled === "true";
-  
-  // Filter available columns based on loyalty setting
-  const availableColumns = ALL_COLUMNS.filter(col => 
-    col.key !== "loyalty" || loyaltyEnabled
-  );
+  const availableColumns = ALL_COLUMNS;
 
   const filtered = customers.filter((c) => {
     const term = search.toLowerCase();
@@ -110,14 +104,9 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
     setShowHistoryModal(true);
   }
 
-  const isCol = (k: ColumnKey) => {
-    if (k === "loyalty" && !loyaltyEnabled) return false;
-    return visibleCols.includes(k);
-  };
+  const isCol = (k: ColumnKey) => visibleCols.includes(k);
   
-  // Filter out loyalty column if disabled
-  const activeVisibleCols = visibleCols.filter(col => col !== "loyalty" || loyaltyEnabled);
-  const colCount = 2 + activeVisibleCols.length + 1;
+  const colCount = 2 + visibleCols.length + 1;
 
   return (
     <div className="space-y-6">
@@ -177,8 +166,7 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
                 {isCol("osRx") && <th className="px-4 py-3 text-center">OS (Rx)</th>}
                 {isCol("purchases") && <th className="px-4 py-3 text-center">Purchases</th>}
                 {isCol("totalSpent") && <th className="px-4 py-3 text-right">Total Spent</th>}
-                {isCol("loyalty") && <th className="px-4 py-3 text-center">Loyalty</th>}
-                <th className="px-4 py-3"></th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -315,12 +303,6 @@ function CustomerRow({ customer: c, visibleCols, colCount, onEdit, onDelete, onV
         {/* Total Spent */}
         {isCol("totalSpent") && (
           <td className="px-4 py-3 text-sm text-right font-medium text-gray-800">{formatCurrency(c.totalPurchases)}</td>
-        )}
-        {/* Loyalty */}
-        {isCol("loyalty") && (
-          <td className="px-4 py-3 text-center">
-            <span className="text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">{c.loyaltyPoints} pts</span>
-          </td>
         )}
         {/* Actions */}
         <td className="px-4 py-3">

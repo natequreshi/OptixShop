@@ -11,7 +11,7 @@ interface Product {
   categoryId: string; category: string; brandId: string; brand: string;
   costPrice: number; sellingPrice: number; mrp: number; taxRate: number;
   stock: number; sold: number; imageUrl: string; description: string;
-  colors: string; colorVariants?: {color: string; image: string}[];
+  colors: string; colorVariants?: {color: string; image: string; sku: string}[];
   isActive: boolean;
 }
 
@@ -362,11 +362,14 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingVariantImage, setUploadingVariantImage] = useState(false);
-  const [colorVariants, setColorVariants] = useState<{color: string; image: string}[]>(
+  const [taxEnabled, setTaxEnabled] = useState(false);
+  const [defaultTaxRate, setDefaultTaxRate] = useState(0);
+  const [colorVariants, setColorVariants] = useState<{color: string; image: string; sku: string}[]>(
     product?.colorVariants ? JSON.parse(JSON.stringify(product.colorVariants)) : []
   );
   const [newVariantColor, setNewVariantColor] = useState("");
   const [newVariantImage, setNewVariantImage] = useState("");
+  const [newVariantSku, setNewVariantSku] = useState("");
   const [form, setForm] = useState({
     sku: product?.sku ?? "",
     name: product?.name ?? "",
@@ -382,20 +385,22 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     colors: product?.colors ?? "",
   });
 
-  // Fetch tax settings only when adding a new product
+  // Fetch tax settings
   useEffect(() => {
-    if (!product) {
-      fetch('/api/settings')
-        .then(res => res.json())
-        .then(settings => {
-          const taxEnabled = settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true';
-          const taxRateValue = parseFloat(settings.find((s: any) => s.key === 'tax_rate')?.value || '0');
-          if (taxEnabled) {
-            setForm(prev => ({ ...prev, taxRate: taxRateValue }));
-          }
-        })
-        .catch(err => console.error('Failed to fetch settings:', err));
-    }
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(settings => {
+        const taxEnabledSetting = settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true';
+        const taxRateValue = parseFloat(settings.find((s: any) => s.key === 'tax_rate')?.value || '0');
+        setTaxEnabled(taxEnabledSetting);
+        setDefaultTaxRate(taxRateValue);
+        
+        // Only set tax rate for new products if tax is enabled
+        if (!product && taxEnabledSetting) {
+          setForm(prev => ({ ...prev, taxRate: taxRateValue }));
+        }
+      })
+      .catch(err => console.error('Failed to fetch settings:', err));
   }, [product]);
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -479,9 +484,14 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
       toast.error("Please enter a color name");
       return;
     }
-    setColorVariants([...colorVariants, { color: newVariantColor.trim(), image: newVariantImage }]);
+    if (!newVariantSku.trim()) {
+      toast.error("Please enter a SKU for this variant");
+      return;
+    }
+    setColorVariants([...colorVariants, { color: newVariantColor.trim(), image: newVariantImage, sku: newVariantSku.trim() }]);
     setNewVariantColor("");
     setNewVariantImage("");
+    setNewVariantSku("");
     toast.success("Color variant added");
   }
 
@@ -619,7 +629,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{variant.color}</p>
-                        <p className="text-xs text-gray-500 truncate">{variant.image ? 'Has image' : 'No image'}</p>
+                        <p className="text-xs text-gray-500 truncate font-mono">SKU: {variant.sku || 'N/A'}</p>
                       </div>
                     </div>
                     <button
@@ -636,13 +646,22 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
 
             {/* Add New Variant */}
             <div className="border-t border-gray-200 pt-3 space-y-2">
-              <input
-                type="text"
-                value={newVariantColor}
-                onChange={(e) => setNewVariantColor(e.target.value)}
-                className="input text-sm"
-                placeholder="Color name (e.g., Black Gold)"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={newVariantColor}
+                  onChange={(e) => setNewVariantColor(e.target.value)}
+                  className="input text-sm"
+                  placeholder="Color name"
+                />
+                <input
+                  type="text"
+                  value={newVariantSku}
+                  onChange={(e) => setNewVariantSku(e.target.value)}
+                  className="input text-sm"
+                  placeholder="Variant SKU"
+                />
+              </div>
               
               {newVariantImage && (
                 <div className="relative w-20 h-20 border-2 border-gray-200 rounded-lg overflow-hidden">
@@ -710,10 +729,12 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
               <input type="number" step="0.01" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: +e.target.value })} className="input" />
             </div>
           </div>
-          <div className="w-1/3">
-            <label className="label">Tax Rate %</label>
-            <input type="number" step="0.01" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: +e.target.value })} className="input" />
-          </div>
+          {taxEnabled && (
+            <div className="w-1/3">
+              <label className="label">Tax Rate %</label>
+              <input type="number" step="0.01" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: +e.target.value })} className="input" />
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
             <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving..." : "Save"}</button>
