@@ -202,7 +202,7 @@ export default function CustomerPortalPage() {
                           </span>
                         </div>
                         {rx.prescribedBy && (
-                          <span className="text-xs text-gray-500">Dr. {rx.prescribedBy}</span>
+                          <span className="text-xs text-gray-500">{rx.prescribedBy}</span>
                         )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
