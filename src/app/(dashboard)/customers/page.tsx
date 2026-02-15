@@ -27,6 +27,7 @@ export default async function CustomersPage() {
 
   const data = customers.map((c) => {
     const rx = c.prescriptions[0] ?? null;
+    const totalPurchases = c.sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
     return {
       id: c.id,
       customerNo: c.customerNo,
@@ -41,7 +42,7 @@ export default async function CustomersPage() {
       address: c.address ?? "",
       state: c.state ?? "",
       loyaltyPoints: c.loyaltyPoints,
-      totalPurchases: c.totalPurchases,
+      totalPurchases: totalPurchases,
       salesCount: c._count.sales,
       rxCount: c._count.prescriptions,
       isActive: c.isActive,
