@@ -20,6 +20,9 @@ interface Product {
 interface CartItem extends Product {
   qty: number;
   discount: number;
+  cartItemId: string;
+  selectedVariantIdx?: number;
+  selectedVariantSku?: string;
 }
 
 interface Customer {
@@ -27,7 +30,7 @@ interface Customer {
   phone: string; loyaltyPoints: number;
 }
 
-function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: (p: Product) => void }) {
+function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: (p: Product, variantIdx?: number) => void }) {
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const hasVariants = product.colorVariants && product.colorVariants.length > 0;
   const displayImage = hasVariants && product.colorVariants![selectedVariantIdx]?.image 
@@ -35,7 +38,7 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
     : product.imageUrl;
 
   return (
-    <button onClick={() => onAddToCart(product)}
+    <button onClick={() => onAddToCart(product, selectedVariantIdx)}
       className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
       <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
         {displayImage ? (
@@ -198,20 +201,35 @@ export default function POSPage() {
     c.phone?.includes(custSearch)
   );
 
-  function addToCart(product: Product) {
+  function addToCart(product: Product, variantIdx?: number) {
+    // Create unique cart item ID including variant
+    const variantSku = variantIdx !== undefined && product.colorVariants?.[variantIdx] 
+      ? product.colorVariants[variantIdx].sku 
+      : product.sku;
+    const cartItemId = `${product.id}-${variantSku}`;
+    
     setCart(prev => {
-      const existing = prev.find(i => i.id === product.id);
-      if (existing) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...product, qty: 1, discount: 0 }];
+      const existing = prev.find(i => i.cartItemId === cartItemId);
+      if (existing) {
+        return prev.map(i => i.cartItemId === cartItemId ? { ...i, qty: i.qty + 1 } : i);
+      }
+      return [...prev, { 
+        ...product, 
+        qty: 1, 
+        discount: 0,
+        cartItemId,
+        selectedVariantIdx: variantIdx,
+        selectedVariantSku: variantSku
+      }];
     });
   }
 
-  function updateQty(id: string, delta: number) {
-    setCart(prev => prev.map(i => i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i));
+  function updateQty(cartItemId: string, delta: number) {
+    setCart(prev => prev.map(i => i.cartItemId === cartItemId ? { ...i, qty: Math.max(1, i.qty + delta) } : i));
   }
 
-  function removeItem(id: string) {
-    setCart(prev => prev.filter(i => i.id !== id));
+  function removeItem(cartItemId: string) {
+    setCart(prev => prev.filter(i => i.cartItemId !== cartItemId));
   }
 
   const subtotal = manualSubtotal !== null ? manualSubtotal : cart.reduce((s, i) => s + i.sellingPrice * i.qty, 0);
@@ -530,18 +548,19 @@ export default function POSPage() {
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+              <div key={item.cartItemId} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
+                  <p className="text-xs text-gray-500 font-mono">SKU: {item.selectedVariantSku || item.sku}</p>
                   <p className="text-xs text-gray-400">{formatCurrency(item.sellingPrice)} × {item.qty}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200"><Minus size={12} /></button>
+                  <button onClick={() => updateQty(item.cartItemId, -1)} className="w-6 h-6 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200"><Minus size={12} /></button>
                   <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
-                  <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200"><Plus size={12} /></button>
+                  <button onClick={() => updateQty(item.cartItemId, 1)} className="w-6 h-6 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200"><Plus size={12} /></button>
                 </div>
                 <p className="text-sm font-semibold w-20 text-right">{formatCurrency(item.sellingPrice * item.qty)}</p>
-                <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                <button onClick={() => removeItem(item.cartItemId)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
               </div>
             ))
           )}
@@ -598,7 +617,7 @@ export default function POSPage() {
         <div className="p-4 border-t border-gray-100">
           {!showPayment ? (
             <button onClick={() => setShowPayment(true)} disabled={cart.length === 0}
-              className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
+              className="w-full py-3 text-base font-semibold flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CreditCard size={20} /> Pay {formatCurrency(grandTotal)}
             </button>
