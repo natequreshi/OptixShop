@@ -8,27 +8,33 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ─── USERS ─────────────────────────────────────────
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  emailVerified DateTime?
-  name          String
-  password      String
-  role          UserRole       @default(CASHIER)
-  phone         String?
-  avatar        String?
-  isActive      Boolean        @default(true)
-  businessId    String
-  locationIds   String[]       @default([])
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime
-  sessions      sessions[]
-  transactions  transactions[]
-  businesses    businesses     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  id                   String                @id @default(cuid())
+  username             String                @unique
+  passwordHash         String                @map("password_hash")
+  fullName             String                @map("full_name")
+  email                String?
+  phone                String?
+  role                 String                @default("cashier")
+  isActive             Boolean               @default(true) @map("is_active")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  purchaseOrders       PurchaseOrder[]        @relation("PurchaseOrderCreator")
+  goodsReceiptNotes    GoodsReceiptNote[]     @relation("GRNReceiver")
+  sales                Sale[]                 @relation("SaleCashier")
+  payments             Payment[]              @relation("PaymentCreator")
+  returns              Return[]               @relation("ReturnProcessor")
+  labOrders            LabOrder[]             @relation("LabOrderCreator")
+  registerSessions     RegisterSession[]
+  journalEntries       JournalEntry[]         @relation("JournalCreator")
+  expenses             Expense[]              @relation("ExpenseCreator")
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
 
+// ─── SETTINGS ──────────────────────────────────────
 model Setting {
   id       String @id @default(cuid())
   key      String @unique
@@ -38,327 +44,680 @@ model Setting {
   @@map("settings")
 }
 
-model Brand {
-  id          String     @id @default(cuid())
-  name        String
-  slug        String
-  description String?
-  logo        String?
-  businessId  String
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime
-  businesses  businesses @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  products    Product[]
+// ─── PRODUCT CATEGORIES ────────────────────────────
+model ProductCategory {
+  id        String            @id @default(cuid())
+  name      String
+  parentId  String?           @map("parent_id")
+  sortOrder Int               @default(0) @map("sort_order")
+  isActive  Boolean           @default(true) @map("is_active")
+  createdAt DateTime          @default(now()) @map("created_at")
+  parent    ProductCategory?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children  ProductCategory[] @relation("CategoryParent")
+  products  Product[]
 
-  @@unique([businessId, slug])
+  @@map("product_categories")
+}
+
+// ─── BRANDS ────────────────────────────────────────
+model Brand {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  isActive Boolean   @default(true) @map("is_active")
+  products Product[]
+
   @@map("brands")
 }
 
+// ─── PRODUCTS ──────────────────────────────────────
 model Product {
-  id                 String               @id @default(cuid())
-  name               String
-  slug               String
-  sku                String
-  barcode            String?
-  description        String?
-  shortDescription   String?
-  type               ProductType          @default(SIMPLE)
-  businessId         String
-  categoryId         String?
-  brandId            String?
-  unitId             String?
-  taxRate            Float                @default(0)
-  images             String[]             @default([])
-  videos             String[]             @default([])
-  cost               Float                @default(0)
-  price              Float
-  comparePrice       Float?
-  trackInventory     Boolean              @default(true)
-  lowStockAlert      Int?
-  weight             Float?
-  weightUnit         String?
-  dimensions         Json?
-  isActive           Boolean              @default(true)
-  isFeatured         Boolean              @default(false)
-  publishToWeb       Boolean              @default(false)
-  metaTitle          String?
-  metaDescription    String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  inventory          Inventory[]
-  product_variations product_variations[]
-  brands             Brand?               @relation(fields: [brandId], references: [id])
-  businesses         businesses           @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  categories         categories?          @relation(fields: [categoryId], references: [id])
-  transaction_items  transaction_items[]
+  id                    String                 @id @default(cuid())
+  sku                   String                 @unique
+  barcode               String?
+  name                  String
+  categoryId            String?                @map("category_id")
+  brandId               String?                @map("brand_id")
+  productType           String                 @default("frame") @map("product_type")
+  costPrice             Float                  @default(0) @map("cost_price")
+  sellingPrice          Float                  @default(0) @map("selling_price")
+  mrp                   Float                  @default(0)
+  taxRate               Float                  @default(18) @map("tax_rate")
+  hsnSacCode            String?                @map("hsn_sac_code")
+  description           String?
+  imageUrl              String?                @map("image_url")
+  isActive              Boolean                @default(true) @map("is_active")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  category              ProductCategory?       @relation(fields: [categoryId], references: [id])
+  brand                 Brand?                 @relation(fields: [brandId], references: [id])
+  frameAttribute        FrameAttribute?
+  lensAttribute         LensAttribute?
+  contactLensAttribute  ContactLensAttribute?
+  sunglassesAttribute   SunglassesAttribute?
+  inventory             Inventory?
+  inventoryMovements    InventoryMovement[]
+  purchaseOrderItems    PurchaseOrderItem[]
+  grnItems              GrnItem[]
+  purchaseInvoiceItems  PurchaseInvoiceItem[]
+  saleItems             SaleItem[]
+  returnItems           ReturnItem[]
+  labOrdersAsFrame      LabOrder[]             @relation("LabOrderFrame")
+  labOrdersAsLens       LabOrder[]             @relation("LabOrderLens")
 
-  @@unique([businessId, sku])
   @@map("products")
 }
 
-model Inventory {
-  id                 String              @id @default(cuid())
-  locationId         String
-  productId          String
-  variationId        String?
-  quantity           Float               @default(0)
-  alertQuantity      Float?
-  updatedAt          DateTime
-  locations          locations           @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  products           Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
-  product_variations product_variations? @relation(fields: [variationId], references: [id], onDelete: Cascade)
+// ─── PRODUCT ATTRIBUTES ────────────────────────────
+model FrameAttribute {
+  productId  String  @id @map("product_id")
+  model      String?
+  color      String?
+  sizeBridge String? @map("size_bridge")
+  sizeTemple String? @map("size_temple")
+  material   String?
+  shape      String?
+  gender     String?
+  frameType  String? @map("frame_type")
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([locationId, productId, variationId])
+  @@map("frame_attributes")
+}
+
+model LensAttribute {
+  productId           String  @id @map("product_id")
+  lensType            String? @map("lens_type")
+  lensIndex           String? @map("lens_index")
+  lensMaterial        String? @map("lens_material")
+  coatingAr           Boolean @default(false) @map("coating_ar")
+  coatingBlueCut      Boolean @default(false) @map("coating_blue_cut")
+  coatingPhotochromic Boolean @default(false) @map("coating_photochromic")
+  product             Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("lens_attributes")
+}
+
+model ContactLensAttribute {
+  productId   String  @id @map("product_id")
+  contactType String? @map("contact_type")
+  sphereRange String? @map("sphere_range")
+  baseCurve   String? @map("base_curve")
+  diameter    String?
+  packSize    Int     @default(1) @map("pack_size")
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("contact_lens_attributes")
+}
+
+model SunglassesAttribute {
+  productId   String  @id @map("product_id")
+  isRxReady   Boolean @default(false) @map("is_rx_ready")
+  uvCategory  String? @map("uv_category")
+  isPolarized Boolean @default(false) @map("is_polarized")
+  lensColor   String? @map("lens_color")
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("sunglasses_attributes")
+}
+
+// ─── INVENTORY ─────────────────────────────────────
+model Inventory {
+  id        String  @id @default(cuid())
+  productId String  @unique @map("product_id")
+  quantity  Int     @default(0)
+  avgCost   Float   @default(0) @map("avg_cost")
+  location  String  @default("main")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@map("inventory")
 }
 
+model InventoryMovement {
+  id            String   @id @default(cuid())
+  productId     String   @map("product_id")
+  movementType  String   @map("movement_type")
+  quantity      Int
+  referenceType String?  @map("reference_type")
+  referenceId   String?  @map("reference_id")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  product       Product  @relation(fields: [productId], references: [id])
+
+  @@map("inventory_movements")
+}
+
+// ─── CUSTOMERS ─────────────────────────────────────
 model Customer {
-  id           String         @id @default(cuid())
-  name         String
-  email        String?
-  phone        String?
-  businessId   String
-  customerType CustomerType   @default(WALK_IN)
-  companyName  String?
-  taxNumber    String?
-  address      String?
-  city         String?
-  state        String?
-  zipCode      String?
-  country      String?
-  creditLimit  Float          @default(0)
-  balance      Float          @default(0)
-  points       Int            @default(0)
-  notes        String?
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime
-  businesses   businesses     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  transactions transactions[]
+  id             String               @id @default(cuid())
+  customerNo     String               @unique @map("customer_no")
+  firstName      String               @map("first_name")
+  lastName       String?              @map("last_name")
+  phone          String?
+  whatsapp       String?
+  email          String?
+  dateOfBirth    String?              @map("date_of_birth")
+  gender         String?
+  address        String?
+  city           String?
+  state          String?
+  country        String?              @default("Pakistan")
+  pincode        String?
+  gstNo          String?              @map("gst_no")
+  loyaltyPoints  Int                  @default(0) @map("loyalty_points")
+  totalPurchases Float                @default(0) @map("total_purchases")
+  notes          String?
+  isActive       Boolean              @default(true) @map("is_active")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  prescriptions  Prescription[]
+  sales          Sale[]
+  payments       Payment[]
+  returns        Return[]
+  labOrders      LabOrder[]
+  loyaltyTxns    LoyaltyTransaction[]
 
   @@map("customers")
 }
 
+// ─── PRESCRIPTIONS ─────────────────────────────────
+model Prescription {
+  id               String     @id @default(cuid())
+  prescriptionNo   String     @unique @map("prescription_no")
+  customerId       String     @map("customer_id")
+  prescribedBy     String?    @map("prescribed_by")
+  prescriptionDate String     @map("prescription_date")
+  expiryDate       String?    @map("expiry_date")
+  odSphere         Float?     @map("od_sphere")
+  odCylinder       Float?     @map("od_cylinder")
+  odAxis           Int?       @map("od_axis")
+  odAdd            Float?     @map("od_add")
+  odPd             Float?     @map("od_pd")
+  osSphere         Float?     @map("os_sphere")
+  osCylinder       Float?     @map("os_cylinder")
+  osAxis           Int?       @map("os_axis")
+  osAdd            Float?     @map("os_add")
+  osPd             Float?     @map("os_pd")
+  photoUrl         String?    @map("photo_url")
+  notes            String?
+  createdAt        DateTime   @default(now()) @map("created_at")
+  customer         Customer   @relation(fields: [customerId], references: [id])
+  sales            Sale[]
+  labOrders        LabOrder[]
+
+  @@map("prescriptions")
+}
+
+// ─── VENDORS ───────────────────────────────────────
+model Vendor {
+  id                String             @id @default(cuid())
+  vendorCode        String             @unique @map("vendor_code")
+  companyName       String             @map("company_name")
+  contactPerson     String?            @map("contact_person")
+  phone             String?
+  email             String?
+  address           String?
+  city              String?
+  state             String?
+  pincode           String?
+  gstNo             String?            @map("gst_no")
+  paymentTerms      String?            @map("payment_terms")
+  creditDays        Int                @default(30) @map("credit_days")
+  isActive          Boolean            @default(true) @map("is_active")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  purchaseOrders    PurchaseOrder[]
+  goodsReceiptNotes GoodsReceiptNote[]
+  purchaseInvoices  PurchaseInvoice[]
+  payments          Payment[]
+
+  @@map("vendors")
+}
+
+// ─── PURCHASE ORDERS ───────────────────────────────
+model PurchaseOrder {
+  id                String              @id @default(cuid())
+  poNumber          String              @unique @map("po_number")
+  vendorId          String              @map("vendor_id")
+  orderDate         String              @map("order_date")
+  expectedDelivery  String?             @map("expected_delivery")
+  subtotal          Float               @default(0)
+  discountAmount    Float               @default(0) @map("discount_amount")
+  taxAmount         Float               @default(0) @map("tax_amount")
+  freightAmount     Float               @default(0) @map("freight_amount")
+  totalAmount       Float               @default(0) @map("total_amount")
+  status            String              @default("draft")
+  paymentTerms      String?             @map("payment_terms")
+  notes             String?
+  createdById       String?             @map("created_by")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  vendor            Vendor              @relation(fields: [vendorId], references: [id])
+  createdBy         User?               @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
+  items             PurchaseOrderItem[]
+  goodsReceiptNotes GoodsReceiptNote[]
+  purchaseInvoices  PurchaseInvoice[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id          String        @id @default(cuid())
+  poId        String        @map("po_id")
+  productId   String        @map("product_id")
+  quantity    Float
+  receivedQty Float         @default(0) @map("received_qty")
+  unitPrice   Float         @map("unit_price")
+  discountPct Float         @default(0) @map("discount_pct")
+  taxRate     Float         @default(0) @map("tax_rate")
+  taxAmount   Float         @default(0) @map("tax_amount")
+  total       Float
+  po          PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  product     Product       @relation(fields: [productId], references: [id])
+  grnItems    GrnItem[]
+
+  @@map("purchase_order_items")
+}
+
+// ─── GOODS RECEIPT NOTES ───────────────────────────
+model GoodsReceiptNote {
+  id           String         @id @default(cuid())
+  grnNumber    String         @unique @map("grn_number")
+  poId         String?        @map("po_id")
+  vendorId     String         @map("vendor_id")
+  receiptDate  String         @map("receipt_date")
+  status       String         @default("draft")
+  notes        String?
+  receivedById String?        @map("received_by")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  po           PurchaseOrder? @relation(fields: [poId], references: [id])
+  vendor       Vendor         @relation(fields: [vendorId], references: [id])
+  receivedBy   User?          @relation("GRNReceiver", fields: [receivedById], references: [id])
+  items        GrnItem[]
+
+  @@map("goods_receipt_notes")
+}
+
+model GrnItem {
+  id          String             @id @default(cuid())
+  grnId       String             @map("grn_id")
+  poItemId    String?            @map("po_item_id")
+  productId   String             @map("product_id")
+  orderedQty  Float?             @map("ordered_qty")
+  receivedQty Float              @map("received_qty")
+  acceptedQty Float              @map("accepted_qty")
+  rejectedQty Float              @default(0) @map("rejected_qty")
+  batchNo     String?            @map("batch_no")
+  expiryDate  String?            @map("expiry_date")
+  damageNotes String?            @map("damage_notes")
+  grn         GoodsReceiptNote   @relation(fields: [grnId], references: [id], onDelete: Cascade)
+  poItem      PurchaseOrderItem? @relation(fields: [poItemId], references: [id])
+  product     Product            @relation(fields: [productId], references: [id])
+
+  @@map("grn_items")
+}
+
+// ─── PURCHASE INVOICES ─────────────────────────────
+model PurchaseInvoice {
+  id              String                @id @default(cuid())
+  invoiceNo       String                @unique @map("invoice_no")
+  vendorInvoiceNo String?               @map("vendor_invoice_no")
+  vendorId        String                @map("vendor_id")
+  poId            String?               @map("po_id")
+  invoiceDate     String                @map("invoice_date")
+  dueDate         String?               @map("due_date")
+  subtotal        Float                 @default(0)
+  discountAmount  Float                 @default(0) @map("discount_amount")
+  taxAmount       Float                 @default(0) @map("tax_amount")
+  freightAmount   Float                 @default(0) @map("freight_amount")
+  totalAmount     Float                 @default(0) @map("total_amount")
+  paidAmount      Float                 @default(0) @map("paid_amount")
+  balanceAmount   Float                 @default(0) @map("balance_amount")
+  status          String                @default("unpaid")
+  cgstAmount      Float                 @default(0) @map("cgst_amount")
+  sgstAmount      Float                 @default(0) @map("sgst_amount")
+  igstAmount      Float                 @default(0) @map("igst_amount")
+  notes           String?
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  vendor          Vendor                @relation(fields: [vendorId], references: [id])
+  po              PurchaseOrder?        @relation(fields: [poId], references: [id])
+  items           PurchaseInvoiceItem[]
+
+  @@map("purchase_invoices")
+}
+
+model PurchaseInvoiceItem {
+  id          String          @id @default(cuid())
+  invoiceId   String          @map("invoice_id")
+  productId   String          @map("product_id")
+  quantity    Float
+  unitPrice   Float           @map("unit_price")
+  discountPct Float           @default(0) @map("discount_pct")
+  taxRate     Float           @default(0) @map("tax_rate")
+  taxAmount   Float           @default(0) @map("tax_amount")
+  cgst        Float           @default(0)
+  sgst        Float           @default(0)
+  igst        Float           @default(0)
+  total       Float
+  invoice     PurchaseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product     Product         @relation(fields: [productId], references: [id])
+
+  @@map("purchase_invoice_items")
+}
+
+// ─── SALES ─────────────────────────────────────────
+model Sale {
+  id              String        @id @default(cuid())
+  invoiceNo       String        @unique @map("invoice_no")
+  customerId      String?       @map("customer_id")
+  prescriptionId  String?       @map("prescription_id")
+  saleDate        String        @map("sale_date")
+  subtotal        Float         @default(0)
+  discountAmount  Float         @default(0) @map("discount_amount")
+  discountType    String        @default("amount") @map("discount_type")
+  taxAmount       Float         @default(0) @map("tax_amount")
+  cgstAmount      Float         @default(0) @map("cgst_amount")
+  sgstAmount      Float         @default(0) @map("sgst_amount")
+  igstAmount      Float         @default(0) @map("igst_amount")
+  totalAmount     Float         @default(0) @map("total_amount")
+  paidAmount      Float         @default(0) @map("paid_amount")
+  balanceAmount   Float         @default(0) @map("balance_amount")
+  status          String        @default("completed")
+  paymentStatus   String        @default("paid") @map("payment_status")
+  couponCode      String?       @map("coupon_code")
+  couponDiscount  Float         @default(0) @map("coupon_discount")
+  loyaltyEarned   Int           @default(0) @map("loyalty_earned")
+  loyaltyRedeemed Int           @default(0) @map("loyalty_redeemed")
+  notes           String?
+  cashierId       String?       @map("cashier_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  prescription    Prescription? @relation(fields: [prescriptionId], references: [id])
+  cashier         User?         @relation("SaleCashier", fields: [cashierId], references: [id])
+  items           SaleItem[]
+  payments        Payment[]     @relation("SalePayments")
+  returns         Return[]
+  labOrders       LabOrder[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id             String       @id @default(cuid())
+  saleId         String       @map("sale_id")
+  productId      String       @map("product_id")
+  quantity       Float
+  unitPrice      Float        @map("unit_price")
+  costPrice      Float        @default(0) @map("cost_price")
+  discountPct    Float        @default(0) @map("discount_pct")
+  discountAmount Float        @default(0) @map("discount_amount")
+  taxRate        Float        @default(0) @map("tax_rate")
+  taxAmount      Float        @default(0) @map("tax_amount")
+  cgst           Float        @default(0)
+  sgst           Float        @default(0)
+  igst           Float        @default(0)
+  total          Float
+  notes          String?
+  sale           Sale         @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id])
+  returnItems    ReturnItem[]
+
+  @@map("sale_items")
+}
+
+// ─── PAYMENTS ──────────────────────────────────────
 model Payment {
-  id            String        @id @default(cuid())
-  transactionId String
-  amount        Float
-  method        PaymentMethod
-  reference     String?
-  notes         String?
-  createdAt     DateTime      @default(now())
-  transactions  transactions  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  paymentNo      String    @unique @map("payment_no")
+  paymentType    String    @map("payment_type")
+  referenceType  String?   @map("reference_type")
+  referenceId    String?   @map("reference_id")
+  customerId     String?   @map("customer_id")
+  vendorId       String?   @map("vendor_id")
+  saleId         String?   @map("sale_id")
+  paymentDate    String    @map("payment_date")
+  amount         Float
+  paymentMethod  String    @map("payment_method")
+  transactionRef String?   @map("transaction_ref")
+  notes          String?
+  createdById    String?   @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  customer       Customer? @relation(fields: [customerId], references: [id])
+  vendor         Vendor?   @relation(fields: [vendorId], references: [id])
+  sale           Sale?     @relation("SalePayments", fields: [saleId], references: [id])
+  createdBy      User?     @relation("PaymentCreator", fields: [createdById], references: [id])
 
   @@map("payments")
 }
 
-model businesses {
-  id              String         @id
-  name            String
-  email           String?
-  phone           String?
-  address         String?
-  city            String?
-  state           String?
-  country         String?
-  zipCode         String?
-  taxNumber       String?
-  currency        String         @default("USD")
-  dateFormat      String         @default("MM/DD/YYYY")
-  timeZone        String         @default("UTC")
-  fiscalYearStart DateTime       @default(now())
-  fiscalYearEnd   DateTime       @default(now())
-  logo            String?
-  settings        Json?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime
-  brands          Brand[]
-  categories      categories[]
-  customers       Customer[]
-  locations       locations[]
-  products        Product[]
-  transactions    transactions[]
-  users           User[]
+// ─── RETURNS ───────────────────────────────────────
+model Return {
+  id            String       @id @default(cuid())
+  returnNo      String       @unique @map("return_no")
+  saleId        String       @map("sale_id")
+  customerId    String?      @map("customer_id")
+  returnDate    String       @map("return_date")
+  returnType    String       @map("return_type")
+  reason        String?
+  subtotal      Float        @default(0)
+  taxAmount     Float        @default(0) @map("tax_amount")
+  totalAmount   Float        @default(0) @map("total_amount")
+  refundMethod  String?      @map("refund_method")
+  status        String       @default("completed")
+  processedById String?      @map("processed_by")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  sale          Sale         @relation(fields: [saleId], references: [id])
+  customer      Customer?    @relation(fields: [customerId], references: [id])
+  processedBy   User?        @relation("ReturnProcessor", fields: [processedById], references: [id])
+  items         ReturnItem[]
+
+  @@map("returns")
 }
 
-model categories {
-  id               String       @id
-  name             String
-  slug             String
-  description      String?
-  image            String?
-  parentId         String?
-  businessId       String
-  isActive         Boolean      @default(true)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime
-  businesses       businesses   @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  categories       categories?  @relation("categoriesTocategories", fields: [parentId], references: [id])
-  other_categories categories[] @relation("categoriesTocategories")
-  products         Product[]
+model ReturnItem {
+  id         String    @id @default(cuid())
+  returnId   String    @map("return_id")
+  saleItemId String?   @map("sale_item_id")
+  productId  String    @map("product_id")
+  quantity   Float
+  unitPrice  Float     @map("unit_price")
+  total      Float
+  reason     String?
+  condition  String    @default("good")
+  return_    Return    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  saleItem   SaleItem? @relation(fields: [saleItemId], references: [id])
+  product    Product   @relation(fields: [productId], references: [id])
 
-  @@unique([businessId, slug])
+  @@map("return_items")
 }
 
-model locations {
-  id           String         @id
-  name         String
-  code         String
-  businessId   String
-  address      String?
-  city         String?
-  state        String?
-  zipCode      String?
-  phone        String?
-  email        String?
-  isActive     Boolean        @default(true)
-  settings     Json?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime
-  inventory    Inventory[]
-  businesses   businesses     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  transactions transactions[]
-
-  @@unique([businessId, code])
-}
-
-model product_variations {
-  id                String              @id
-  productId         String
-  name              String
-  sku               String
-  barcode           String?
-  price             Float
-  cost              Float               @default(0)
-  image             String?
-  attributes        Json
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  inventory         Inventory[]
-  products          Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
-  transaction_items transaction_items[]
-
-  @@unique([productId, sku])
-}
-
-model sessions {
-  id           String   @id
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  users        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model transaction_items {
-  id                 String              @id
-  transactionId      String
-  productId          String
-  variationId        String?
-  name               String
-  sku                String
-  quantity           Float
-  unitPrice          Float
-  cost               Float               @default(0)
-  taxRate            Float               @default(0)
-  taxAmount          Float               @default(0)
-  discountType       DiscountType?
-  discountValue      Float               @default(0)
-  discountAmount     Float               @default(0)
-  subtotal           Float
-  total              Float
-  createdAt          DateTime            @default(now())
-  products           Product             @relation(fields: [productId], references: [id])
-  transactions       transactions        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  product_variations product_variations? @relation(fields: [variationId], references: [id])
-}
-
-model transactions {
-  id                String              @id
-  invoiceNo         String              @unique
-  type              TransactionType
-  status            TransactionStatus   @default(FINAL)
-  businessId        String
-  locationId        String
-  customerId        String?
-  userId            String
-  transactionDate   DateTime            @default(now())
-  dueDate           DateTime?
-  subtotal          Float
-  taxAmount         Float               @default(0)
-  discountType      DiscountType?
-  discountValue     Float               @default(0)
-  discountAmount    Float               @default(0)
-  shippingCost      Float               @default(0)
-  total             Float
-  paidAmount        Float               @default(0)
-  changeAmount      Float               @default(0)
-  paymentStatus     PaymentStatus       @default(PENDING)
-  paymentMethod     String?
+// ─── LAB ORDERS ────────────────────────────────────
+model LabOrder {
+  id                String        @id @default(cuid())
+  orderNo           String        @unique @map("order_no")
+  saleId            String?       @map("sale_id")
+  customerId        String        @map("customer_id")
+  prescriptionId    String?       @map("prescription_id")
+  orderDate         String        @map("order_date")
+  frameProductId    String?       @map("frame_product_id")
+  lensProductId     String?       @map("lens_product_id")
+  fittingHeight     String?       @map("fitting_height")
+  segHeight         String?       @map("seg_height")
+  labType           String        @default("in_house") @map("lab_type")
+  labName           String?       @map("lab_name")
+  labNotes          String?       @map("lab_notes")
+  status            String        @default("pending")
+  estimatedDelivery String?       @map("estimated_delivery")
+  actualDelivery    String?       @map("actual_delivery")
+  labCost           Float         @default(0) @map("lab_cost")
   notes             String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  payments          Payment[]
-  transaction_items transaction_items[]
-  businesses        businesses          @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customers         Customer?           @relation(fields: [customerId], references: [id])
-  locations         locations           @relation(fields: [locationId], references: [id])
-  users             User                @relation(fields: [userId], references: [id])
+  createdById       String?       @map("created_by")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  sale              Sale?         @relation(fields: [saleId], references: [id])
+  customer          Customer      @relation(fields: [customerId], references: [id])
+  prescription      Prescription? @relation(fields: [prescriptionId], references: [id])
+  frameProduct      Product?      @relation("LabOrderFrame", fields: [frameProductId], references: [id])
+  lensProduct       Product?      @relation("LabOrderLens", fields: [lensProductId], references: [id])
+  createdBy         User?         @relation("LabOrderCreator", fields: [createdById], references: [id])
+
+  @@map("lab_orders")
 }
 
-enum CustomerType {
-  WALK_IN
-  REGULAR
-  WHOLESALE
-  VIP
+// ─── REGISTER / POS ────────────────────────────────
+model RegisterSession {
+  id            String                @id @default(cuid())
+  userId        String                @map("user_id")
+  openedAt      DateTime              @default(now()) @map("opened_at")
+  closedAt      DateTime?             @map("closed_at")
+  openingCash   Float                 @default(0) @map("opening_cash")
+  closingCash   Float?                @map("closing_cash")
+  expectedCash  Float?                @map("expected_cash")
+  difference    Float?
+  status        String                @default("open")
+  notes         String?
+  user          User                  @relation(fields: [userId], references: [id])
+  transactions  RegisterTransaction[]
+
+  @@map("register_sessions")
 }
 
-enum DiscountType {
-  FIXED
-  PERCENTAGE
+model RegisterTransaction {
+  id        String          @id @default(cuid())
+  sessionId String          @map("session_id")
+  type      String
+  amount    Float
+  method    String          @default("cash")
+  reference String?
+  notes     String?
+  createdAt DateTime        @default(now()) @map("created_at")
+  session   RegisterSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("register_transactions")
 }
 
-enum PaymentMethod {
-  CASH
-  CARD
-  BANK_TRANSFER
-  MOBILE_MONEY
-  CHECK
-  OTHER
+// ─── ACCOUNTING ────────────────────────────────────
+model ChartOfAccount {
+  id                 String             @id @default(cuid())
+  accountCode        String             @unique @map("account_code")
+  accountName        String             @map("account_name")
+  accountType        String             @map("account_type")
+  parentId           String?            @map("parent_id")
+  isGroup            Boolean            @default(false) @map("is_group")
+  isSystem           Boolean            @default(false) @map("is_system")
+  isActive           Boolean            @default(true) @map("is_active")
+  parent             ChartOfAccount?    @relation("CoaParent", fields: [parentId], references: [id])
+  children           ChartOfAccount[]   @relation("CoaParent")
+  journalLines       JournalEntryLine[] @relation("JournalDebitAccount")
+  creditJournalLines JournalEntryLine[] @relation("JournalCreditAccount")
+
+  @@map("chart_of_accounts")
 }
 
-enum PaymentStatus {
-  PENDING
-  PARTIAL
-  PAID
-  OVERPAID
+model FiscalPeriod {
+  id         String  @id @default(cuid())
+  periodName String  @map("period_name")
+  startDate  String  @map("start_date")
+  endDate    String  @map("end_date")
+  isClosed   Boolean @default(false) @map("is_closed")
+
+  @@map("fiscal_periods")
 }
 
-enum ProductType {
-  SIMPLE
-  VARIABLE
-  SERVICE
+model JournalEntry {
+  id            String             @id @default(cuid())
+  entryNo       String             @unique @map("entry_no")
+  entryDate     String             @map("entry_date")
+  description   String?
+  referenceType String?            @map("reference_type")
+  referenceId   String?            @map("reference_id")
+  totalAmount   Float              @default(0) @map("total_amount")
+  status        String             @default("posted")
+  createdById   String?            @map("created_by")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  createdBy     User?              @relation("JournalCreator", fields: [createdById], references: [id])
+  lines         JournalEntryLine[]
+
+  @@map("journal_entries")
 }
 
-enum TransactionStatus {
-  DRAFT
-  PENDING
-  FINAL
-  CANCELLED
+model JournalEntryLine {
+  id              String          @id @default(cuid())
+  entryId         String          @map("entry_id")
+  accountId       String          @map("account_id")
+  creditAccountId String?         @map("credit_account_id")
+  debit           Float           @default(0)
+  credit          Float           @default(0)
+  narration       String?
+  entry           JournalEntry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account         ChartOfAccount  @relation("JournalDebitAccount", fields: [accountId], references: [id])
+  creditAccount   ChartOfAccount? @relation("JournalCreditAccount", fields: [creditAccountId], references: [id])
+
+  @@map("journal_entry_lines")
 }
 
-enum TransactionType {
-  SALE
-  PURCHASE
-  RETURN
-  ADJUSTMENT
-  TRANSFER
+// ─── COUPONS ───────────────────────────────────────
+model Coupon {
+  id            String  @id @default(cuid())
+  code          String  @unique
+  discountType  String  @default("percentage") @map("discount_type")
+  discountValue Float   @map("discount_value")
+  minPurchase   Float   @default(0) @map("min_purchase")
+  maxDiscount   Float?  @map("max_discount")
+  validFrom     String? @map("valid_from")
+  validTo       String? @map("valid_to")
+  usageLimit    Int?    @map("usage_limit")
+  usedCount     Int     @default(0) @map("used_count")
+  isActive      Boolean @default(true) @map("is_active")
+
+  @@map("coupons")
 }
 
-enum UserRole {
-  OWNER
-  ADMIN
-  MANAGER
-  CASHIER
-  SALES_PERSON
+// ─── EXPENSES ──────────────────────────────────────
+model Expense {
+  id            String   @id @default(cuid())
+  expenseNo     String   @unique @map("expense_no")
+  category      String   @default("general")
+  description   String
+  amount        Float
+  expenseDate   String   @map("expense_date")
+  paymentMethod String   @default("cash") @map("payment_method")
+  reference     String?
+  notes         String?
+  isRecurring   Boolean  @default(false) @map("is_recurring")
+  recurringType String?  @map("recurring_type")
+  createdById   String?  @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     User?    @relation("ExpenseCreator", fields: [createdById], references: [id])
+
+  @@map("expenses")
+}
+
+// ─── LOYALTY ───────────────────────────────────────
+model LoyaltyTransaction {
+  id         String   @id @default(cuid())
+  customerId String   @map("customer_id")
+  type       String
+  points     Int
+  reference  String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  @@map("loyalty_transactions")
+}
+
+// ─── AUDIT LOGS ────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  action    String
+  tableName String   @map("table_name")
+  recordId  String?  @map("record_id")
+  oldValues String?  @map("old_values")
+  newValues String?  @map("new_values")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
 }
