@@ -7,12 +7,12 @@ import {
   CreditCard, Tag, Save, Palette, Globe, FileText, Award,
   MessageCircle, Users, Phone, Send, Key, Link, PenTool,
   Layout, Type, Grid, AlignLeft, AlignCenter, AlignRight,
-  MapPin, Eye, EyeOff,
+  MapPin, Eye, EyeOff, Coins, Calendar,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment";
+type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "pos" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment" | "events";
 
 const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "general", label: "General", icon: Store },
@@ -20,11 +20,13 @@ const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "loyalty", label: "Loyalty Program", icon: Award },
   { key: "payment", label: "Payment Gateway", icon: CreditCard },
   { key: "modules", label: "Modules", icon: Shield },
+  { key: "pos", label: "POS Settings", icon: Coins },
   { key: "receipt", label: "Receipt / Invoice", icon: FileText },
   { key: "invoice_designer", label: "Invoice Designer", icon: PenTool },
   { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { key: "customers", label: "Customer Columns", icon: Users },
   { key: "appearance", label: "Appearance", icon: Palette },
+  { key: "events", label: "Events Calendar", icon: Calendar },
 ];
 
 const CUSTOMER_COLUMN_OPTIONS = [
@@ -245,6 +247,32 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
             </>
           )}
 
+          {tab === "pos" && (
+            <>
+              <SectionTitle icon={Coins} title="Cash Denominations" />
+              <Toggle label="Show Cash Denominations" checked={val("pos_show_denominations", "true") === "true"} onToggle={() => toggle("pos_show_denominations")} desc="Show denomination breakdown during checkout" />
+              <p className="text-sm text-gray-600 mb-4">Set the denominations available in your currency:</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[5000, 1000, 500, 100, 50, 10, 5, 1].map((denom) => (
+                  <div key={denom} className="flex items-center gap-2">
+                    <input type="checkbox" defaultChecked className="checkbox" id={`denom-${denom}`} />
+                    <label htmlFor={`denom-${denom}`} className="text-sm font-medium">Rs. {denom}</label>
+                  </div>
+                ))}
+              </div>
+
+              <SectionTitle icon={Palette} title="POS Display" />
+              <Toggle label="Show Product Images in POS" checked={val("pos_show_images", "true") === "true"} onToggle={() => toggle("pos_show_images")} desc="Display product images in product grid" />
+              <Toggle label="Auto-Focus Search on Load" checked={val("pos_auto_focus_search", "true") === "true"} onToggle={() => toggle("pos_auto_focus_search")} desc="Automatically focus on product search field" />
+              <Toggle label="Show Low Stock Warnings" checked={val("pos_show_low_stock", "true") === "true"} onToggle={() => toggle("pos_show_low_stock")} desc="Alert when product stock is low" />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Low Stock Threshold" value={val("pos_low_stock_threshold", "5")} onChange={(v) => set("pos_low_stock_threshold", v)} type="number" />
+                <Field label="Default Discount (%)" value={val("pos_default_discount", "0")} onChange={(v) => set("pos_default_discount", v)} type="number" />
+              </div>
+            </>
+          )}
+
           {tab === "invoice_designer" && (
             <>
               {/* Template Selection */}
@@ -423,6 +451,70 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
                   <Toggle label="This Month" checked={val("widget_this_month", "true") === "true"} onToggle={() => toggle("widget_this_month")} />
                   <Toggle label="Products" checked={val("widget_products", "true") === "true"} onToggle={() => toggle("widget_products")} />
                   <Toggle label="Total Customers" checked={val("widget_customers", "true") === "true"} onToggle={() => toggle("widget_customers")} />
+                </div>
+              </div>
+            </>
+          )}
+
+          {tab === "events" && (
+            <>
+              <SectionTitle icon={Calendar} title="Business Events Calendar" />
+              <p className="text-sm text-gray-600 mb-4">Manage important business events and dates. These will appear in the dashboard calendar.</p>
+              
+              <div className="space-y-4">
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">Add New Event</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="label">Event Name</label>
+                      <input type="text" placeholder="e.g., Stock Inventory, Staff Meeting" className="input" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label">Event Date</label>
+                        <input type="date" className="input" />
+                      </div>
+                      <div>
+                        <label className="label">Event Type</label>
+                        <select className="input">
+                          <option value="personal">Personal</option>
+                          <option value="meeting">Meeting</option>
+                          <option value="inventory">Inventory</option>
+                          <option value="maintenance">Maintenance</option>
+                          <option value="promotion">Promotion</option>
+                          <option value="holiday">Holiday</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">Description</label>
+                      <textarea placeholder="Event details..." rows={2} className="input resize-none"></textarea>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="btn-primary flex-1">Add Event</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">Upcoming Events</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div>
+                        <p className="font-medium text-sm">Stock Inventory Audit</p>
+                        <p className="text-xs text-gray-500">February 20, 2026 • Inventory</p>
+                      </div>
+                      <button className="text-red-500 hover:text-red-700 text-sm">Remove</button>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div>
+                        <p className="font-medium text-sm">Spring Sale Campaign</p>
+                        <p className="text-xs text-gray-500">March 1, 2026 • Promotion</p>
+                      </div>
+                      <button className="text-red-500 hover:text-red-700 text-sm">Remove</button>
+                    </div>
+                    <p className="text-xs text-gray-400 text-center py-4">No more upcoming events</p>
+                  </div>
                 </div>
               </div>
             </>
