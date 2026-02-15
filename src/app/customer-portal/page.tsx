@@ -15,6 +15,7 @@ interface Customer {
 
 interface Prescription {
   id: string;
+  prescriptionDate: string;
   createdAt: string;
   odSphere: number | null;
   odCylinder: number | null;
@@ -168,7 +169,7 @@ export default function CustomerPortalPage() {
                         <div className="flex items-center gap-2">
                           <Calendar size={16} className="text-gray-400" />
                           <span className="text-sm text-gray-600">
-                            {new Date(rx.createdAt).toLocaleDateString("en-US", {
+                            {new Date(rx.prescriptionDate).toLocaleDateString("en-US", {
                               year: "numeric",
                               month: "long",
                               day: "numeric",
