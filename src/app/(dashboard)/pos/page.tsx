@@ -145,6 +145,7 @@ export default function POSPage() {
   const [discountValue, setDiscountValue] = useState(0);
   const [customerSales, setCustomerSales] = useState<any[]>([]);
   const [showCustomerSales, setShowCustomerSales] = useState(false);
+  const [loadingCustomerSales, setLoadingCustomerSales] = useState(false);
   const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});  const [transactionId, setTransactionId] = useState("");  const [taxEnabled, setTaxEnabled] = useState(true);
   const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const [currency, setCurrency] = useState("Rs.");
@@ -489,8 +490,20 @@ export default function POSPage() {
             <div className="relative"
               onMouseEnter={() => {
                 setShowCustomerSales(true);
-                if (!customerSales.length) {
-                  fetch(`/api/sales?customerId=${selectedCustomer.id}`).then(r => r.json()).then(data => setCustomerSales(Array.isArray(data) ? data.slice(0, 5) : data.sales ? data.sales.slice(0, 5) : [])).catch(() => setCustomerSales([]));
+                if (!customerSales.length && !loadingCustomerSales) {
+                  setLoadingCustomerSales(true);
+                  fetch(`/api/sales?customerId=${selectedCustomer.id}`)
+                    .then(r => r.json())
+                    .then(data => {
+                      const sales = Array.isArray(data) ? data.slice(0, 5) : data.sales ? data.sales.slice(0, 5) : [];
+                      setCustomerSales(sales);
+                      setLoadingCustomerSales(false);
+                    })
+                    .catch(err => {
+                      console.error('Failed to fetch sales:', err);
+                      setCustomerSales([]);
+                      setLoadingCustomerSales(false);
+                    });
                 }
               }}
               onMouseLeave={() => setShowCustomerSales(false)}
@@ -503,22 +516,30 @@ export default function POSPage() {
                     <p className="text-xs text-primary-500">{selectedCustomer.phone}</p>
                   </div>
                 </div>
-                <button onClick={() => { setSelectedCustomer(null); setCustomerSales([]); }} className="text-primary-400 hover:text-primary-600"><X size={16} /></button>
+                <button onClick={() => { setSelectedCustomer(null); setCustomerSales([]); setShowCustomerSales(false); }} className="text-primary-400 hover:text-primary-600"><X size={16} /></button>
               </div>
-              {showCustomerSales && customerSales.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-20 p-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Purchases</p>
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {customerSales.map((s: any) => (
-                      <div key={s.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">{s.invoiceNo}</span>
-                          <span className="text-gray-400 ml-2">{new Date(s.saleDate).toLocaleDateString()}</span>
-                        </div>
-                        <span className="font-semibold text-primary-600">{formatCurrency(s.totalAmount)}</span>
+              {showCustomerSales && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-20 p-3 min-h-16">
+                  {loadingCustomerSales ? (
+                    <p className="text-xs text-gray-500 py-2">Loading...</p>
+                  ) : customerSales.length > 0 ? (
+                    <>
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Purchases</p>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {customerSales.map((s: any) => (
+                          <div key={s.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                            <div>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{s.invoiceNo}</span>
+                              <span className="text-gray-400 ml-2">{new Date(s.saleDate).toLocaleDateString()}</span>
+                            </div>
+                            <span className="font-semibold text-primary-600">{formatCurrency(s.totalAmount)}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-500 py-2">No purchase history</p>
+                  )}
                 </div>
               )}
             </div>

@@ -114,3 +114,21 @@ export async function POST(req: Request) {
 
   return NextResponse.json(sale, { status: 201 });
 }
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const customerId = searchParams.get("customerId");
+
+  if (!customerId) {
+    return NextResponse.json({ error: "customerId required" }, { status: 400 });
+  }
+
+  const sales = await prisma.sale.findMany({
+    where: { customerId },
+    include: { items: true, customer: true },
+    orderBy: { saleDate: "desc" },
+    take: 5,
+  });
+
+  return NextResponse.json(sales);
+}
