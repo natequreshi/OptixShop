@@ -267,8 +267,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
         
         {/* Calendar Dropdown */}
-        <div ref={calendarRef} className="relative">
-          <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Calendar">
+        <div ref={calendarRef} className="relative z-40">
+          <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition" title="Calendar">
             <Calendar size={20} />
           </button>
           
