@@ -5,6 +5,29 @@ import { useRouter } from "next/navigation";
 import { Eye, LogOut, Calendar, ShoppingBag, User, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 
+// Helper to format date strings safely
+function formatDate(dateString: string): string {
+  try {
+    // Handle YYYY-MM-DD format
+    const [year, month, day] = dateString.split('-');
+    if (year && month && day) {
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+    // Fallback for other formats
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return "Invalid Date";
+  }
+}
+
 interface Customer {
   id: string;
   firstName: string;
@@ -169,11 +192,7 @@ export default function CustomerPortalPage() {
                         <div className="flex items-center gap-2">
                           <Calendar size={16} className="text-gray-400" />
                           <span className="text-sm text-gray-600">
-                            {new Date(rx.prescriptionDate).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
+                            {formatDate(rx.prescriptionDate)}
                           </span>
                         </div>
                         {rx.prescribedBy && (
@@ -216,11 +235,7 @@ export default function CustomerPortalPage() {
                         <div>
                           <p className="font-semibold text-gray-900">{sale.invoiceNo}</p>
                           <p className="text-sm text-gray-500 mt-1">
-                            {new Date(sale.saleDate).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
+                            {formatDate(sale.saleDate)}
                           </p>
                         </div>
                         <div className="text-right">
