@@ -28,7 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/admin",          icon: LayoutDashboard, label: "Admin Dashboard", module: null },
+  { href: "/dashboard",          icon: LayoutDashboard, label: "Dashboard", module: null },
   { href: "/pos",                icon: ShoppingCart,    label: "POS", module: "module_pos" },
   { href: "/products",           icon: Package,         label: "Products", module: null },
   { href: "/inventory",          icon: Boxes,           label: "Inventory", module: "module_inventory" },
@@ -45,7 +45,6 @@ const navItems = [
   { href: "/reports",            icon: BarChart3,       label: "Reports", module: "module_reports" },
   { href: "/register",           icon: CreditCard,      label: "Cash Register", module: "module_register" },
   { href: "/settings",           icon: Settings,        label: "Settings", module: null },
-  { href: "/customer-login",    icon: Users,           label: "Customer Login", module: null },
 ];
 
 interface SidebarProps {

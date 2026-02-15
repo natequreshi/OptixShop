@@ -28,7 +28,7 @@ export default function LoginPage() {
       if (res?.error) {
         setError("Invalid username or password");
       } else {
-        router.push("/admin");
+        router.push("/dashboard");
         router.refresh();
       }
     } catch {
