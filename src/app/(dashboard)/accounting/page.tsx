@@ -7,31 +7,31 @@ export default async function AccountingPage() {
   const [accounts, journalEntries] = await Promise.all([
     prisma.chartOfAccount.findMany({ orderBy: { accountCode: "asc" } }),
     prisma.journalEntry.findMany({
-      include: { lines: { include: { account: true, creditAccount: true } }, createdBy: true },
+      include: { lines: { include: { debitAccount: true, creditAccount: true } }, createdBy: true },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
   ]);
 
-  const accountData: any[] = accounts.map(a => ({
+  const accountData = accounts.map(a => ({
     id: a.id, accountCode: a.accountCode, accountName: a.accountName,
     accountType: a.accountType, isGroup: a.isGroup, isSystem: a.isSystem,
   }));
 
-  const entryData: any[] = journalEntries.map(je => ({
+  const entryData = journalEntries.map(je => ({
     id: je.id, entryNo: je.entryNo, entryDate: je.entryDate,
     description: je.description ?? "", totalAmount: je.totalAmount,
     status: je.status, createdBy: je.createdBy?.fullName ?? "—",
     lines: je.lines.map(l => {
-      // Use 'account' for debit account
-      const acc = l.debit > 0 ? l.account : (l.creditAccount ?? l.account);
+      const acc = l.debit > 0 ? l.debitAccount : (l.creditAccount ?? l.debitAccount);
       return {
-        accountCode: acc?.accountCode ?? "", accountName: acc?.accountName ?? "",
+        accountCode: acc.accountCode, accountName: acc.accountName,
         debit: l.debit, credit: l.credit, narration: l.narration ?? "",
       };
     }),
   }));
 
+  // Trial balance
   const trialBalance = await prisma.journalEntryLine.groupBy({
     by: ["accountId"],
     _sum: { debit: true, credit: true },
