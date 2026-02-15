@@ -38,8 +38,7 @@ interface Customer {
 
 interface Prescription {
   id: string;
-  prescriptionDate: string;
-  createdAt: string;
+  date: string;
   odSphere: number | null;
   odCylinder: number | null;
   odAxis: number | null;
@@ -52,9 +51,15 @@ interface Prescription {
 interface Sale {
   id: string;
   invoiceNo: string;
-  saleDate: string;
+  date: string;
   totalAmount: number;
-  paymentStatus: string;
+  status: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
 }
 
 export default function CustomerPortalPage() {
@@ -64,6 +69,7 @@ export default function CustomerPortalPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"prescriptions" | "orders">("prescriptions");
+  const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Check if customer is logged in
@@ -192,7 +198,7 @@ export default function CustomerPortalPage() {
                         <div className="flex items-center gap-2">
                           <Calendar size={16} className="text-gray-400" />
                           <span className="text-sm text-gray-600">
-                            {formatDate(rx.prescriptionDate)}
+                            {formatDate(rx.date)}
                           </span>
                         </div>
                         {rx.prescribedBy && (
@@ -229,32 +235,67 @@ export default function CustomerPortalPage() {
                     <p className="text-gray-500">No orders found</p>
                   </div>
                 ) : (
-                  sales.map((sale) => (
-                    <div key={sale.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-900">{sale.invoiceNo}</p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {formatDate(sale.saleDate)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-gray-900">
-                            Rs. {sale.totalAmount.toLocaleString()}
-                          </p>
-                          <span
-                            className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
-                              sale.paymentStatus === "paid"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-amber-100 text-amber-700"
-                            }`}
-                          >
-                            {sale.paymentStatus}
-                          </span>
-                        </div>
+                  sales.map((sale) => {
+                    const isExpanded = expandedInvoices.has(sale.id);
+                    return (
+                      <div key={sale.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                        <button
+                          onClick={() => {
+                            const newExpanded = new Set(expandedInvoices);
+                            if (newExpanded.has(sale.id)) {
+                              newExpanded.delete(sale.id);
+                            } else {
+                              newExpanded.add(sale.id);
+                            }
+                            setExpandedInvoices(newExpanded);
+                          }}
+                          className="w-full text-left p-4 hover:bg-gray-50 transition"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900">{sale.invoiceNo}</p>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  {formatDate(sale.date)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-gray-900">
+                                Rs. {sale.totalAmount.toLocaleString()}
+                              </p>
+                              <span
+                                className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                                  sale.status === "paid"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {sale.status}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                        
+                        {isExpanded && sale.items && (
+                          <div className="border-t border-gray-200 bg-gray-50 p-4">
+                            <div className="space-y-2">
+                              {sale.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between py-2 px-3 bg-white rounded border border-gray-100">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">{item.productName}</p>
+                                    <p className="text-xs text-gray-500">Qty: {item.quantity} × Rs. {item.unitPrice.toLocaleString()}</p>
+                                  </div>
+                                  <p className="text-sm font-semibold text-gray-900">Rs. {item.total.toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
+
                 )}
               </div>
             )}
