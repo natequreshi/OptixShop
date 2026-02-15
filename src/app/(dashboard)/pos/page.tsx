@@ -155,7 +155,6 @@ export default function POSPage() {
   const [storeCity, setStoreCity] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
-  const customerSalesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetch("/api/products").then(r => r.json()).then((data) => {
@@ -185,10 +184,6 @@ export default function POSPage() {
       setLogoUrl(settings['logo_url'] || '');
     });
     searchRef.current?.focus();
-
-    return () => {
-      if (customerSalesTimeoutRef.current) clearTimeout(customerSalesTimeoutRef.current);
-    };
   }, []);
 
   const filteredProducts = products.filter(p => {
@@ -493,16 +488,12 @@ export default function POSPage() {
           {selectedCustomer ? (
             <div className="relative"
               onMouseEnter={() => {
-                if (customerSalesTimeoutRef.current) clearTimeout(customerSalesTimeoutRef.current);
-                customerSalesTimeoutRef.current = setTimeout(() => {
-                  setShowCustomerSales(true);
+                setShowCustomerSales(true);
+                if (!customerSales.length) {
                   fetch(`/api/sales?customerId=${selectedCustomer.id}`).then(r => r.json()).then(data => setCustomerSales(Array.isArray(data) ? data.slice(0, 5) : data.sales ? data.sales.slice(0, 5) : [])).catch(() => setCustomerSales([]));
-                }, 200);
+                }
               }}
-              onMouseLeave={() => {
-                if (customerSalesTimeoutRef.current) clearTimeout(customerSalesTimeoutRef.current);
-                setShowCustomerSales(false);
-              }}
+              onMouseLeave={() => setShowCustomerSales(false)}
             >
               <div className="flex items-center justify-between bg-primary-50 rounded-lg p-2">
                 <div className="flex items-center gap-2">
