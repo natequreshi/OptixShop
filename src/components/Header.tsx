@@ -15,6 +15,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showTodoList, setShowTodoList] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -52,11 +53,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
   
   const ref = useRef<HTMLDivElement>(null);
   const registerRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
       if (registerRef.current && !registerRef.current.contains(e.target as Node)) setShowRegisterDropdown(false);
+      if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) setShowNotifications(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -260,11 +263,69 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
         {/* Todo List */}
         <button onClick={() => setShowTodoList(!showTodoList)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Todo List">
-          <ListTodo size={20} />
-        </button>
+        
         {/* Notifications */}
-        <button className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
-          <Bell size={20} />
+        <div ref={notificationRef} className="relative">
+          <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+            <Bell size={20} />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          </button>
+          
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl z-50">
+              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50 cursor-pointer">
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Low Stock Alert</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">5 products are running low on stock</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">2 hours ago</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50 cursor-pointer">
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">New Sale</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Order #INV-2026-0014 - Rs. 45,000</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">5 hours ago</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50 cursor-pointer">
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Payment Reminder</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">3 pending payments to collect</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">1 day ago</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 bg-gray-300 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">System Update</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">New features available in dashboard</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">2 days ago</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 border-t border-gray-100 dark:border-gray-700">
+                <button className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium w-full text-center">
+                  View All Notifications
+                </button>
+              </div>
+            </div>
+          )}
+        </divsize={20} />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
 
