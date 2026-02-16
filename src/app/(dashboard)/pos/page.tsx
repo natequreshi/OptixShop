@@ -197,6 +197,54 @@ export default function POSPage() {
     searchRef.current?.focus();
   }, []);
 
+  // Save cart as draft when navigating away
+  useEffect(() => {
+    const saveDraft = async () => {
+      if (cart.length === 0) return;
+
+      try {
+        // Transform cart to sale format
+        const draftSale = {
+          customerId: selectedCustomer?.id || null,
+          items: cart.map(item => ({
+            productId: item.id,
+            productName: item.name,
+            quantity: item.qty,
+            unitPrice: item.sellingPrice,
+            discount: item.discount,
+            taxRate: item.taxRate,
+            selectedVariantSku: item.selectedVariantSku,
+          })),
+          amountTendered: 0,
+          paymentMethod: paymentMethod,
+          discountPercent,
+          discountValue,
+        };
+
+        // Save as draft
+        await fetch("/api/sales", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draftSale),
+        });
+      } catch (error) {
+        console.error("Failed to save draft:", error);
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (cart.length > 0) {
+        saveDraft();
+        // Show browser confirmation
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [cart, selectedCustomer, paymentMethod, discountPercent, discountValue]);
+
   const filteredProducts = products.filter(p => {
     const searchLower = search.toLowerCase();
     const matchesSearch = p.name.toLowerCase().includes(searchLower) ||
@@ -646,8 +694,55 @@ export default function POSPage() {
           </div>
         </div>
 
-        {/* Pay Button */}
-        <div className="p-4 border-t border-gray-100">
+        {/* Draft & Pay Buttons */}
+        <div className="p-4 border-t border-gray-100 space-y-2">
+          <button onClick={async () => {
+            if (cart.length === 0) return toast.error("Cart is empty");
+            try {
+              setLoading(true);
+              const draftSale = {
+                customerId: selectedCustomer?.id || null,
+                items: cart.map(item => ({
+                  productId: item.id,
+                  productName: item.name,
+                  quantity: item.qty,
+                  unitPrice: item.sellingPrice,
+                  discount: item.discount,
+                  taxRate: item.taxRate,
+                  selectedVariantSku: item.selectedVariantSku,
+                })),
+                amountTendered: 0,
+                paymentMethod,
+                discountPercent,
+                discountValue,
+              };
+              const res = await fetch("/api/sales", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(draftSale),
+              });
+              if (res.ok) {
+                toast.success("Draft saved successfully!");
+                setCart([]);
+                setSelectedCustomer(null);
+                setManualSubtotal(null);
+                setDiscountPercent(0);
+                setDiscountValue(0);
+                setDiscountType('percent');
+              } else {
+                toast.error("Failed to save draft");
+              }
+            } catch (error) {
+              toast.error("Error saving draft");
+            } finally {
+              setLoading(false);
+            }
+          }} disabled={cart.length === 0 || loading}
+            className="w-full py-2 text-sm font-semibold flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ShoppingCart size={16} /> {loading ? "Saving..." : "Save as Draft"}
+          </button>
+
           {!showPayment ? (
             <button onClick={() => setShowPayment(true)} disabled={cart.length === 0}
               className="w-full py-3 text-base font-semibold flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
