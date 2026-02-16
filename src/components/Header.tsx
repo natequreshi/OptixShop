@@ -15,7 +15,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [showTodoList, setShowTodoList] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
@@ -52,11 +54,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
   
   const ref = useRef<HTMLDivElement>(null);
   const registerRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
       if (registerRef.current && !registerRef.current.contains(e.target as Node)) setShowRegisterDropdown(false);
+      if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) setShowNotifications(false);
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) setShowCalendar(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
