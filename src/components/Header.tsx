@@ -271,10 +271,28 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
         
         {/* Notifications */}
-        <button className="relative p-2 text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors">
-          <Bell size={20} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <div ref={notificationRef} className="relative">
+          <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors" title="Notifications">
+            <Bell size={20} />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          </button>
+          
+          {/* Notifications Dropdown */}
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h3>
+              </div>
+              
+              <div className="max-h-80 overflow-y-auto">
+                <div className="p-6 text-center">
+                  <Bell size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-400">No notifications yet</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* User dropdown */}
         <div ref={ref} className="relative">
