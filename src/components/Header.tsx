@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, ShoppingCart, UserPlus, CreditCard, Package, Menu, Calendar } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, ShoppingCart, UserPlus, CreditCard, Package, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -15,14 +15,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
   const [showTodoList, setShowTodoList] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState("0");
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [todos, setTodos] = useState<{id: number; text: string; done: boolean}[]>([]);
   const [todoInput, setTodoInput] = useState("");
   
@@ -55,15 +52,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
   
   const ref = useRef<HTMLDivElement>(null);
   const registerRef = useRef<HTMLDivElement>(null);
-  const notificationRef = useRef<HTMLDivElement>(null);
-  const calendarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
       if (registerRef.current && !registerRef.current.contains(e.target as Node)) setShowRegisterDropdown(false);
-      if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) setShowNotifications(false);
-      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) setShowCalendar(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -118,11 +111,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {/* Quick Action Icons - Colorful */}
         <button 
           onClick={() => router.push("/pos")}
-          className="p-2.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+          className="p-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
           title="New Sale (POS)"
         >
           <ShoppingCart size={20} />
@@ -130,7 +123,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         
         <button 
           onClick={() => setShowNewCustomer(true)}
-          className="p-2.5 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+          className="p-2 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
           title="New Customer"
         >
           <UserPlus size={20} />
@@ -138,22 +131,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
         
         <button 
           onClick={() => setShowNewProduct(true)}
-          className="p-2.5 text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+          className="p-2 text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
           title="New Product"
         >
           <Package size={20} />
         </button>
         
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
-        
         {/* Register Icon with Dropdown */}
         <div ref={registerRef} className="relative">
           <button 
             onClick={() => setShowRegisterDropdown(!showRegisterDropdown)}
-            className="p-2.5 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+            className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
             title={new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           >
-            <CreditCard size={20} />
+            <DollarSign size={20} />
           </button>
           
           {/* Register Dropdown */}
@@ -262,169 +253,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Calculator">
           <Calculator size={20} />
         </button>
-        
-        {/* Calendar Dropdown */}
-        <div ref={calendarRef} className="relative z-40">
-          <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition" title="Calendar">
-            <Calendar size={20} />
-          </button>
-          
-          {showCalendar && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl z-50">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Calendar</h3>
-                  <button onClick={() => setShowCalendar(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
-                </div>
-                
-                {/* Calendar Header */}
-                <div className="mb-4">
-                  <div className="text-center mb-3">
-                    <p className="text-lg font-semibold dark:text-white">
-                      {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                  
-                  {/* Weekday headers */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                      <div key={day} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Calendar Days */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {Array.from({length: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0).getDate() + new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay()}).map((_, i) => {
-                      const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay();
-                      const day = i - firstDay + 1;
-                      const isCurrentMonth = day > 0;
-                      const isToday = isCurrentMonth && day === new Date().getDate() && selectedDate.getMonth() === new Date().getMonth() && selectedDate.getFullYear() === new Date().getFullYear();
-                      
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            if (isCurrentMonth) {
-                              setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day));
-                            }
-                          }}
-                          className={cn(
-                            "py-2 text-sm rounded font-medium transition",
-                            !isCurrentMonth && "text-gray-300 dark:text-gray-600 cursor-default",
-                            isCurrentMonth && !isToday && "text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer",
-                            isToday && "bg-primary-600 text-white hover:bg-primary-700"
-                          )}
-                        >
-                          {isCurrentMonth ? day : ''}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                
-                {/* Month Navigation */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1))}
-                    className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-sm font-medium text-gray-700 dark:text-gray-200 transition"
-                  >
-                    ← Previous
-                  </button>
-                  <button
-                    onClick={() => setSelectedDate(new Date())}
-                    className="flex-1 py-2 px-3 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-900/50 rounded text-sm font-medium text-primary-700 dark:text-primary-400 transition"
-                  >
-                    Today
-                  </button>
-                  <button
-                    onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1))}
-                    className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-sm font-medium text-gray-700 dark:text-gray-200 transition"
-                  >
-                    Next →
-                  </button>
-                </div>
-                
-                {/* Selected Date Display */}
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Selected Date</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        
         {/* Todo List */}
         <button onClick={() => setShowTodoList(!showTodoList)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Todo List">
           <ListTodo size={20} />
         </button>
-        
         {/* Notifications */}
-        <div ref={notificationRef} className="relative">
-          <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
-            <Bell size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
-          
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl z-50">
-              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50 cursor-pointer">
-                  <div className="flex gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Low Stock Alert</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">5 products are running low on stock</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">2 hours ago</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50 cursor-pointer">
-                  <div className="flex gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">New Sale</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Order #INV-2026-0014 - Rs. 45,000</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">5 hours ago</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50 cursor-pointer">
-                  <div className="flex gap-3">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Payment Reminder</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">3 pending payments to collect</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">1 day ago</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
-                  <div className="flex gap-3">
-                    <div className="w-2 h-2 bg-gray-300 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">System Update</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">New features available in dashboard</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">2 days ago</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 border-t border-gray-100 dark:border-gray-700">
-                <button className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium w-full text-center">
-                  View All Notifications
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <button className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+          <Bell size={20} />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+        </button>
 
         {/* User dropdown */}
         <div ref={ref} className="relative">
