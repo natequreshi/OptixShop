@@ -79,6 +79,22 @@ export default function Header({ onMenuClick }: HeaderProps) {
   }, []);
 
   // Fetch register sessions, tax settings, and sales data
+  const refetchSales = async () => {
+    try {
+      const [recentRes, pendingRes, draftRes] = await Promise.all([
+        fetch("/api/sales?status=completed&limit=5"),
+        fetch("/api/sales?status=pending&limit=5"),
+        fetch("/api/sales?status=draft&limit=5")
+      ]);
+      
+      if (recentRes.ok) setRecentSalesStatus(await recentRes.json());
+      if (pendingRes.ok) setPendingSalesStatus(await pendingRes.json());
+      if (draftRes.ok) setDraftSalesStatus(await draftRes.json());
+    } catch (err) {
+      console.error("Failed to fetch sales data", err);
+    }
+  };
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -109,7 +125,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
         console.error("Failed to fetch data", err);
       }
     }
+    
     fetchData();
+    
+    // Refresh sales data every 10 seconds
+    const interval = setInterval(refetchSales, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -281,6 +302,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             onViewSale={(sale) => setViewingSale(sale)}
             onEditSale={(sale) => setEditingSale(sale)}
             onPrintSale={(sale) => setPrintingSale(sale)}
+            onRefresh={refetchSales}
           />
         </div>
         

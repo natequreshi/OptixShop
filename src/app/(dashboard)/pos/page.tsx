@@ -729,6 +729,8 @@ export default function POSPage() {
                 setDiscountPercent(0);
                 setDiscountValue(0);
                 setDiscountType('percent');
+                // Refresh to update header sales data
+                router.refresh();
               } else {
                 toast.error("Failed to save draft");
               }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ShoppingBag, ChevronDown, Eye, Edit2, Printer, Trash2 } from "lucide-react";
+import { ShoppingBag, ChevronDown, Eye, Edit2, Printer, Trash2, RotateCw } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -36,6 +36,7 @@ interface Props {
   onViewSale: (sale: Sale) => void;
   onEditSale: (sale: Sale) => void;
   onPrintSale: (sale: Sale) => void;
+  onRefresh?: () => Promise<void>;
 }
 
 export default function SalesStatusDropdown({
@@ -45,9 +46,11 @@ export default function SalesStatusDropdown({
   onViewSale,
   onEditSale,
   onPrintSale,
+  onRefresh,
 }: Props) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"recent" | "pending" | "draft">("recent");
   const [showActions, setShowActions] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -92,6 +95,20 @@ export default function SalesStatusDropdown({
     }
   }, [isOpen]);
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      if (onRefresh) {
+        await onRefresh();
+        toast.success("Sales data refreshed");
+      }
+    } catch (error) {
+      toast.error("Failed to refresh sales");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -110,37 +127,49 @@ export default function SalesStatusDropdown({
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200">
+          {/* Header with Tabs and Refresh Button */}
+          <div className="flex border-b border-gray-200 items-stretch">
+            <div className="flex flex-1 border-b border-gray-200">
+              {/* Tabs */}
+              <button
+                onClick={() => setActiveTab("recent")}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === "recent"
+                    ? "text-primary-600 border-b-2 border-primary-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Recent ({recentSalesStatus.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("pending")}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === "pending"
+                    ? "text-primary-600 border-b-2 border-primary-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Pending ({pendingSalesStatus.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("draft")}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === "draft"
+                    ? "text-primary-600 border-b-2 border-primary-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Draft ({draftSalesStatus.length})
+              </button>
+            </div>
+            {/* Refresh Button */}
             <button
-              onClick={() => setActiveTab("recent")}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === "recent"
-                  ? "text-primary-600 border-b-2 border-primary-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="px-3 py-3 text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              title="Refresh sales data"
             >
-              Recent ({recentSalesStatus.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("pending")}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === "pending"
-                  ? "text-primary-600 border-b-2 border-primary-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Pending ({pendingSalesStatus.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("draft")}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === "draft"
-                  ? "text-primary-600 border-b-2 border-primary-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Draft ({draftSalesStatus.length})
+              <RotateCw size={16} className={isRefreshing ? "animate-spin" : ""} />
             </button>
           </div>
 
