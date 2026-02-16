@@ -357,7 +357,7 @@ export default function POSPage() {
           </div>
           ${cart.map(item => `
             <div class="item">
-              <span style="flex:1">${item.name}</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.name.substring(0, 20)}</span>
               <span style="width:30px;text-align:center">${item.qty}</span>
               <span style="width:60px;text-align:right">${formatCurrency(item.sellingPrice * item.qty)}</span>
             </div>
