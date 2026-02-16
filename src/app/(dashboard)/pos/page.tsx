@@ -330,18 +330,18 @@ export default function POSPage() {
           body {
             font-family: 'Courier New', monospace;
             width: 80mm;
-            padding: 10mm 5mm;
-            font-size: 11px;
-            line-height: 1.4;
+            padding: 8mm 4mm;
+            font-size: 10px;
+            line-height: 1.3;
           }
           .center { text-align: center; }
           .bold { font-weight: bold; }
           .large { font-size: 14px; }
-          .separator { border-top: 1px solid #000; margin: 8px 0; }
-          .row { display: flex; justify-content: space-between; margin: 3px 0; }
-          .items { margin: 10px 0; }
-          .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 10px; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 4px; }
-          .item { display: flex; justify-content: space-between; margin: 3px 0; }
+          .separator { border-top: 1px solid #000; margin: 6px 0; }
+          .row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 9px; }
+          .items { margin: 8px 0; }
+          .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 9px; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 2px; }
+          .item { display: flex; justify-content: space-between; margin: 2px 0; }
           .total-row { font-size: 13px; font-weight: bold; margin-top: 8px; }
         </style>
       </head>
@@ -369,15 +369,15 @@ export default function POSPage() {
         
         <div class="items">
           <div class="item-header">
-            <span style="flex:1">Item</span>
-            <span style="width:30px;text-align:center">Qty</span>
-            <span style="width:60px;text-align:right">Rs.</span>
+            <span style="flex:1;min-width:0">Item</span>
+            <span style="width:25px;text-align:center">Qty</span>
+            <span style="width:50px;text-align:right">Rs.</span>
           </div>
           ${cart.map(item => `
             <div class="item">
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.name.substring(0, 20)}</span>
-              <span style="width:30px;text-align:center">${item.qty}</span>
-              <span style="width:60px;text-align:right">${formatCurrency(item.sellingPrice * item.qty)}</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px">${item.name.substring(0, 18)}</span>
+              <span style="width:25px;text-align:center;font-size:9px">${item.qty}</span>
+              <span style="width:50px;text-align:right;font-size:9px">${formatCurrency(item.sellingPrice * item.qty)}</span>
             </div>
           `).join('')}
         </div>
@@ -386,18 +386,18 @@ export default function POSPage() {
         
         <div class="row">
           <span>Subtotal:</span>
-          <span>${formatCurrency(subtotal)}</span>
+          <span style="font-size:9px">${formatCurrency(subtotal)}</span>
         </div>
         ${discountAmount > 0 ? `
         <div class="row">
           <span>Discount (${discountPercent}%):</span>
-          <span>-${formatCurrency(discountAmount)}</span>
+          <span style="font-size:9px">-${formatCurrency(discountAmount)}</span>
         </div>
         ` : ''}
         ${taxEnabled ? `
         <div class="row">
           <span>Tax:</span>
-          <span>${formatCurrency(taxAmount)}</span>
+          <span style="font-size:9px">${formatCurrency(taxAmount)}</span>
         </div>
         ` : ''}
         
@@ -405,32 +405,32 @@ export default function POSPage() {
         
         <div class="row total-row">
           <span>TOTAL:</span>
-          <span>${formatCurrency(grandTotal)}</span>
+          <span style="font-size:12px">${formatCurrency(grandTotal)}</span>
         </div>
         
         <div class="row">
           <span>Payment Method:</span>
-          <span class="bold">${paymentMethod.toUpperCase().replace('_', ' ')}</span>
+          <span class="bold" style="font-size:9px">${paymentMethod.toUpperCase().replace('_', ' ')}</span>
         </div>
         ${transactionId ? `
         <div class="row">
           <span>Transaction ID:</span>
-          <span class="bold">${transactionId}</span>
+          <span class="bold" style="font-size:9px">${transactionId}</span>
         </div>
         ` : ''}
         ${paymentMethod === 'cash' && (denominationsTotal > 0 || parseFloat(amountTendered) > 0) ? `
         <div class="row">
           <span>Cash Tendered:</span>
-          <span>${formatCurrency(denominationsTotal > 0 ? denominationsTotal : parseFloat(amountTendered))}</span>
+          <span style="font-size:9px">${formatCurrency(denominationsTotal > 0 ? denominationsTotal : parseFloat(amountTendered))}</span>
         </div>
         ${change > 0 ? `
         <div class="row">
           <span>Change:</span>
-          <span>${formatCurrency(change)}</span>
+          <span style="font-size:9px">${formatCurrency(change)}</span>
         </div>
         ` : ''}
         ${(() => { const tendered = denominationsTotal > 0 ? denominationsTotal : parseFloat(amountTendered); return tendered < grandTotal ? `
-        <div class="row bold" style="color:#c00">
+        <div class="row bold" style="color:#c00;font-size:9px">
           <span>Remaining:</span>
           <span>${formatCurrency(grandTotal - tendered)}</span>
         </div>
