@@ -119,32 +119,29 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Quick Action Buttons */}
+        {/* Quick Action Icons - Colorful */}
         <button 
           onClick={() => router.push("/pos")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm"
+          className="p-2.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
           title="New Sale (POS)"
         >
-          <ShoppingCart size={18} />
-          <span className="text-xs font-medium hidden sm:inline">New Sale</span>
+          <ShoppingCart size={20} />
         </button>
         
         <button 
           onClick={() => setShowNewCustomer(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+          className="p-2.5 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
           title="New Customer"
         >
-          <UserPlus size={18} />
-          <span className="text-xs font-medium hidden sm:inline">New Customer</span>
+          <UserPlus size={20} />
         </button>
         
         <button 
           onClick={() => setShowNewProduct(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm"
-          title="Add Product"
+          className="p-2.5 text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+          title="New Product"
         >
-          <Package size={18} />
-          <span className="text-xs font-medium hidden sm:inline">New Product</span>
+          <Package size={20} />
         </button>
         
         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
@@ -153,7 +150,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <div ref={registerRef} className="relative">
           <button 
             onClick={() => setShowRegisterDropdown(!showRegisterDropdown)}
-            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2.5 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
             title={new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           >
             <CreditCard size={20} />
