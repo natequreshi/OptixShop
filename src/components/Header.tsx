@@ -249,16 +249,23 @@ export default function Header({ onMenuClick }: HeaderProps) {
           )}
         </div>
         
+        {/* Calendar */}
+        <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" title="Calendar">
+          <Calendar size={20} />
+        </button>
+        
         {/* Calculator */}
-        <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Calculator">
+        <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors" title="Calculator">
           <Calculator size={20} />
         </button>
+        
         {/* Todo List */}
-        <button onClick={() => setShowTodoList(!showTodoList)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg" title="Todo List">
+        <button onClick={() => setShowTodoList(!showTodoList)} className="p-2 text-cyan-500 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors" title="Todo List">
           <ListTodo size={20} />
         </button>
+        
         {/* Notifications */}
-        <button className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+        <button className="relative p-2 text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors">
           <Bell size={20} />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
