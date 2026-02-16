@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Banknote, Smartphone, User, X, Receipt, Package, Calendar, Clock
+  Banknote, Smartphone, User, X, Receipt, Package, ChevronDown, ShoppingBag
 } from "lucide-react";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import SalesStatusDropdown from "@/components/SalesStatusDropdown";
 
 interface Product {
   id: string; sku: string; name: string; sellingPrice: number;
@@ -42,7 +43,7 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
       className="card p-0 text-left hover:border-primary-300 hover:shadow-md transition group overflow-hidden flex flex-col">
       <div className="w-full aspect-square bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
         {displayImage ? (
-          <img src={displayImage} alt={product.name} className="w-full h-full object-contain" />
+          <img src={displayImage} alt={product.name} className="w-full h-full object-cover" />
         ) : (
           <Package size={32} className="text-gray-300" />
         )}
@@ -155,13 +156,26 @@ export default function POSPage() {
   const [storePhone, setStorePhone] = useState('');
   const [storeCity, setStoreCity] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [recentSalesStatus, setRecentSalesStatus] = useState<any[]>([]);
+  const [pendingSalesStatus, setPendingSalesStatus] = useState<any[]>([]);
+  const [draftSalesStatus, setDraftSalesStatus] = useState<any[]>([]);
+  const [viewingSale, setViewingSale] = useState<any | null>(null);
+  const [editingSale, setEditingSale] = useState<any | null>(null);
+  const [printingSale, setPrintingSale] = useState<any | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/products").then(r => r.json()).then((data) => {
-      setProducts(data.map((p: any) => ({
+    Promise.all([
+      fetch("/api/products").then(r => r.json()),
+      fetch("/api/customers").then(r => r.json()),
+      fetch("/api/categories").then(r => r.json()),
+      fetch("/api/brands").then(r => r.json()),
+      fetch("/api/settings").then(r => r.json()),
+      fetch("/api/sales?status=completed&limit=5").then(r => r.json()),
+      fetch("/api/sales?status=pending&limit=5").then(r => r.json()),
+      fetch("/api/sales?status=draft&limit=5").then(r => r.json()),
+    ]).then(([products, customers, categories, brands, settings, recentData, pendingData, draftData]) => {
+      setProducts(products.map((p: any) => ({
         id: p.id, sku: p.sku, name: p.name, sellingPrice: p.sellingPrice,
         taxRate: p.taxRate, productType: p.productType,
         stock: p.inventory?.quantity ?? 0,
@@ -171,11 +185,9 @@ export default function POSPage() {
         colorVariants: p.colorVariants ? JSON.parse(p.colorVariants) : [],
         colors: p.colors || null,
       })));
-    });
-    fetch("/api/customers").then(r => r.json()).then(setCustomers);
-    fetch("/api/categories").then(r => r.json()).then(setCategories);
-    fetch("/api/brands").then(r => r.json()).then(setBrands);
-    fetch("/api/settings").then(r => r.json()).then((settings: Record<string, string>) => {
+      setCustomers(customers);
+      setCategories(categories);
+      setBrands(brands);
       setTaxEnabled(settings['tax_enabled'] === 'true');
       setPrintTemplate((settings['print_template'] as any) || '80mm');
       setCurrency(settings['currency'] || 'Rs.');
@@ -185,6 +197,9 @@ export default function POSPage() {
       setStorePhone(settings['store_phone'] || '');
       setStoreCity(settings['store_city'] || '');
       setLogoUrl(settings['logo_url'] || '');
+      setRecentSalesStatus(recentData || []);
+      setPendingSalesStatus(pendingData || []);
+      setDraftSalesStatus(draftData || []);
     });
     searchRef.current?.focus();
   }, []);
@@ -460,44 +475,18 @@ export default function POSPage() {
               {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
             </select>
             
-            <button onClick={() => setShowAddProduct(true)} className="btn-primary flex items-center gap-2 py-2 px-4 whitespace-nowrap" title="Add New Product">
-              <Plus size={18} /> Add Product
+            <button onClick={() => setShowAddProduct(true)} className="btn-primary flex items-center gap-2 py-1 px-3 text-sm whitespace-nowrap" title="Add New Product">
+              <Plus size={16} /> Add Product
             </button>
 
-            <button onClick={() => setShowCalendar(!showCalendar)} className="btn-secondary flex items-center gap-2 py-2 px-4 whitespace-nowrap relative" title="Business Calendar">
-              <Calendar size={18} />
-            </button>
-            {showCalendar && (
-              <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-20 p-4 w-80">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Business Calendar</h3>
-                  <button onClick={() => setShowCalendar(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
-                </div>
-                
-                <div className="mb-4">
-                  <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input w-full text-sm" />
-                </div>
-
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  <div className="text-xs text-gray-500 font-semibold uppercase mb-2">Upcoming Events</div>
-                  <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
-                    <Clock size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-blue-900 dark:text-blue-300">Stock Inventory Audit</p>
-                      <p className="text-xs text-blue-700 dark:text-blue-400">Feb 20, 2026</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-sm">
-                    <Clock size={14} className="text-purple-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-purple-900 dark:text-purple-300">Spring Sale Campaign</p>
-                      <p className="text-xs text-purple-700 dark:text-purple-400">Mar 1, 2026</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 text-center py-3">Set events in Settings → Events Calendar</p>
-                </div>
-              </div>
-            )}
+            <SalesStatusDropdown
+              recentSalesStatus={recentSalesStatus}
+              pendingSalesStatus={pendingSalesStatus}
+              draftSalesStatus={draftSalesStatus}
+              onViewSale={(sale) => setViewingSale(sale)}
+              onEditSale={(sale) => setEditingSale(sale)}
+              onPrintSale={(sale) => setPrintingSale(sale)}
+            />
           </div>
         </div>
 
