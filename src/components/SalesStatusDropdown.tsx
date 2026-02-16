@@ -212,7 +212,7 @@ export default function SalesStatusDropdown({
                               }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors border-b border-gray-100"
                             >
-                              <Printer size={14} /> Print
+                              <Printer size={14} /> Print Invoice
                             </button>
                             <button
                               onClick={(e) => {
