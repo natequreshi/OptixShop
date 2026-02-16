@@ -41,6 +41,10 @@ import { Responsive, ResponsiveProps } from "react-grid-layout";
 import { useContainerWidth } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
+import SalesStatusDropdown from "@/components/SalesStatusDropdown";
+import ViewSaleModal from "./view-sale-modal";
+import EditSaleModal from "./edit-sale-modal";
+import PrintInvoiceModal from "./print-invoice-modal";
 
 interface Layout {
   i: string;
@@ -50,6 +54,29 @@ interface Layout {
   h: number;
   minH?: number;
   minW?: number;
+}
+
+interface SaleItem {
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  taxAmount: number;
+  total: number;
+}
+
+interface Sale {
+  id: string;
+  invoiceNo: string;
+  customerName: string;
+  saleDate: string;
+  totalAmount: number;
+  status: string;
+  paymentStatus: string;
+  itemCount: number;
+  items: SaleItem[];
+  paidAmount: number;
+  balanceAmount: number;
 }
 
 interface Props {
@@ -84,11 +111,27 @@ interface Props {
   salesLast30Days: { date: string; amount: number }[];
   salesByMonth: { month: string; amount: number }[];
   settings: Record<string, string>;
+  recentSalesStatus: Sale[];
+  pendingSalesStatus: Sale[];
+  draftSalesStatus: Sale[];
 }
 
-export default function DashboardClient({ stats, recentSales, topProducts, salesLast30Days, salesByMonth, settings }: Props) {
+export default function DashboardClient({ 
+  stats, 
+  recentSales, 
+  topProducts, 
+  salesLast30Days, 
+  salesByMonth, 
+  settings,
+  recentSalesStatus,
+  pendingSalesStatus,
+  draftSalesStatus,
+}: Props) {
   const [isLocked, setIsLocked] = useState(true);
   const [width, setWidth] = useState(1200);
+  const [viewingSale, setViewingSale] = useState<Sale | null>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [printingSale, setPrintingSale] = useState<Sale | null>(null);
   
   const defaultLayouts = {
     lg: [
@@ -241,6 +284,14 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
           <p className="text-sm text-gray-500 mt-1">Welcome back! Here's your overview</p>
         </div>
         <div className="flex items-center gap-4">
+          <SalesStatusDropdown 
+            recentSalesStatus={recentSalesStatus}
+            pendingSalesStatus={pendingSalesStatus}
+            draftSalesStatus={draftSalesStatus}
+            onViewSale={setViewingSale}
+            onEditSale={setEditingSale}
+            onPrintSale={setPrintingSale}
+          />
           <p className="text-sm text-gray-500">
             {new Date().toLocaleDateString("en-IN", {
               weekday: "long",
@@ -339,6 +390,19 @@ export default function DashboardClient({ stats, recentSales, topProducts, sales
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {/* ── Modals for Sales Operations ── */}
+      {viewingSale && (
+        <ViewSaleModal sale={viewingSale} onClose={() => setViewingSale(null)} onEdit={() => { setEditingSale(viewingSale); setViewingSale(null); }} onPrint={() => { setPrintingSale(viewingSale); setViewingSale(null); }} />
+      )}
+
+      {editingSale && (
+        <EditSaleModal sale={editingSale} onClose={() => setEditingSale(null)} onSaved={() => { setEditingSale(null); window.location.reload(); }} />
+      )}
+
+      {printingSale && (
+        <PrintInvoiceModal sale={printingSale} onClose={() => setPrintingSale(null)} />
+      )}
     </div>
   );
 }

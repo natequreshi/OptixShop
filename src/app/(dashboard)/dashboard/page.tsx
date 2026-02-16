@@ -31,6 +31,9 @@ export default async function DashboardPage() {
     yearSales,
     recentSalesData,
     topProductsData,
+    recentSalesStatusData,
+    pendingSalesStatusData,
+    draftSalesStatusData,
   ] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.customer.count({ where: { isActive: true } }),
@@ -83,6 +86,36 @@ export default async function DashboardPage() {
       ORDER BY "totalRevenue" DESC
       LIMIT 10
     `,
+    // Recent sales (completed, last 5)
+    prisma.sale.findMany({
+      take: 5,
+      where: { status: "completed" },
+      orderBy: { saleDate: 'desc' },
+      include: {
+        customer: { select: { firstName: true, lastName: true } },
+        items: true,
+      },
+    }),
+    // Pending sales (unpaid or partial payment)
+    prisma.sale.findMany({
+      take: 5,
+      where: { paymentStatus: { in: ["unpaid", "partial"] } },
+      orderBy: { saleDate: 'desc' },
+      include: {
+        customer: { select: { firstName: true, lastName: true } },
+        items: true,
+      },
+    }),
+    // Draft sales
+    prisma.sale.findMany({
+      take: 5,
+      where: { status: "draft" },
+      orderBy: { saleDate: 'desc' },
+      include: {
+        customer: { select: { firstName: true, lastName: true } },
+        items: true,
+      },
+    }),
   ]);
 
   // Aggregate last 30 days into daily data
@@ -156,6 +189,34 @@ export default async function DashboardPage() {
     qty: Number(p.totalQty),
   }));
 
+  // Transform sales status data
+  const transformSalesData = (sales: any[]) => sales.map(sale => ({
+    id: sale.id,
+    invoiceNo: sale.invoiceNo,
+    customerName: sale.customer 
+      ? `${sale.customer.firstName} ${sale.customer.lastName || ''}`.trim()
+      : 'Walk-in Customer',
+    saleDate: sale.saleDate,
+    totalAmount: sale.totalAmount,
+    status: sale.status,
+    paymentStatus: sale.paymentStatus,
+    itemCount: sale.items.length,
+    items: sale.items.map((item: any) => ({
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: item.discountAmount,
+      taxAmount: item.taxAmount,
+      total: item.total,
+    })),
+    paidAmount: sale.paidAmount,
+    balanceAmount: sale.balanceAmount,
+  }));
+
+  const recentSalesStatus = transformSalesData(recentSalesStatusData);
+  const pendingSalesStatus = transformSalesData(pendingSalesStatusData);
+  const draftSalesStatus = transformSalesData(draftSalesStatusData);
+
   // Fetch settings
   const settingsData = await prisma.setting.findMany();
   const settings: Record<string, string> = {};
@@ -169,6 +230,9 @@ export default async function DashboardPage() {
       salesLast30Days={salesLast30Days}
       salesByMonth={salesByMonth}
       settings={settings}
+      recentSalesStatus={recentSalesStatus}
+      pendingSalesStatus={pendingSalesStatus}
+      draftSalesStatus={draftSalesStatus}
     />
   );
 }
