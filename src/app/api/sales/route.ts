@@ -118,17 +118,104 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const customerId = searchParams.get("customerId");
+  const status = searchParams.get("status");
+  const limit = parseInt(searchParams.get("limit") || "10");
 
-  if (!customerId) {
-    return NextResponse.json({ error: "customerId required" }, { status: 400 });
+  // If filtering by customer
+  if (customerId) {
+    const sales = await prisma.sale.findMany({
+      where: { customerId },
+      include: { items: true, customer: true },
+      orderBy: { saleDate: "desc" },
+      take: limit,
+    });
+    return NextResponse.json(sales);
   }
 
+  // If filtering by status
+  if (status) {
+    const statusMap: Record<string, string> = {
+      completed: "completed",
+      pending: "pending",
+      draft: "draft",
+      cancelled: "cancelled",
+      paid: "paid",
+      partial: "partial",
+      unpaid: "unpaid",
+    };
+
+    const mappedStatus = statusMap[status] || status;
+    
+    const sales = await prisma.sale.findMany({
+      where: {
+        ...(status === "completed" ? { status: "completed" } : {}),
+        ...(status === "pending" || status === "unpaid" ? { paymentStatus: "unpaid", status: "completed" } : {}),
+        ...(status === "partial" ? { paymentStatus: "partial", status: "completed" } : {}),
+        ...(status === "draft" ? { status: "draft" } : {}),
+      },
+      include: { 
+        items: {
+          include: { product: { select: { name: true } } }
+        }, 
+        customer: { select: { id: true, firstName: true, lastName: true } } 
+      },
+      orderBy: { saleDate: "desc" },
+      take: limit,
+    });
+
+    // Transform data to match expected format
+    return NextResponse.json(sales.map((sale: any) => ({
+      id: sale.id,
+      invoiceNo: sale.invoiceNo,
+      customerName: sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName || ""}`.trim() : "Walk-in Customer",
+      saleDate: sale.saleDate,
+      totalAmount: sale.totalAmount,
+      status: sale.status,
+      paymentStatus: sale.paymentStatus,
+      itemCount: sale.items?.length || 0,
+      items: sale.items?.map((item: any) => ({
+        productName: item.product?.name || "Item",
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discountAmount || 0,
+        taxAmount: item.taxAmount || 0,
+        total: item.total || (item.unitPrice * item.quantity),
+      })) || [],
+      paidAmount: sale.paidAmount,
+      balanceAmount: sale.balanceAmount,
+    })));
+  }
+
+  // Default: return all recent sales
   const sales = await prisma.sale.findMany({
-    where: { customerId },
-    include: { items: true, customer: true },
+    include: { 
+      items: {
+        include: { product: { select: { name: true } } }
+      }, 
+      customer: { select: { id: true, firstName: true, lastName: true } } 
+    },
     orderBy: { saleDate: "desc" },
-    take: 5,
+    take: limit,
   });
 
-  return NextResponse.json(sales);
+  return NextResponse.json(sales.map((sale: any) => ({
+    id: sale.id,
+    invoiceNo: sale.invoiceNo,
+    customerName: sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName || ""}`.trim() : "Walk-in Customer",
+    saleDate: sale.saleDate,
+    totalAmount: sale.totalAmount,
+    status: sale.status,
+    paymentStatus: sale.paymentStatus,
+    itemCount: sale.items?.length || 0,
+    items: sale.items?.map((item: any) => ({
+      productName: item.product?.name || "Item",
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: item.discountAmount || 0,
+      taxAmount: item.taxAmount || 0,
+      total: item.total || (item.unitPrice * item.quantity),
+    })) || [],
+    paidAmount: sale.paidAmount,
+    balanceAmount: sale.balanceAmount,
+  })));
 }

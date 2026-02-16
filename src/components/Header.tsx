@@ -7,6 +7,9 @@ import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Tra
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import SalesStatusDropdown from "@/components/SalesStatusDropdown";
+import ViewSaleModal from "@/app/(dashboard)/dashboard/view-sale-modal";
+import EditSaleModal from "@/app/(dashboard)/dashboard/edit-sale-modal";
+import PrintInvoiceModal from "@/app/(dashboard)/dashboard/print-invoice-modal";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -747,6 +750,36 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Sales Modals */}
+      {viewingSale && (
+        <ViewSaleModal 
+          sale={viewingSale} 
+          onClose={() => setViewingSale(null)}
+          onEdit={() => {
+            setEditingSale(viewingSale);
+            setViewingSale(null);
+          }}
+          onPrint={() => {
+            setPrintingSale(viewingSale);
+            setViewingSale(null);
+          }}
+        />
+      )}
+      {editingSale && (
+        <EditSaleModal 
+          sale={editingSale} 
+          onClose={() => setEditingSale(null)}
+          onSaved={() => {
+            setEditingSale(null);
+            toast.success("Sale updated successfully");
+            window.location.reload();
+          }}
+        />
+      )}
+      {printingSale && (
+        <PrintInvoiceModal sale={printingSale} onClose={() => setPrintingSale(null)} />
       )}
     </header>
   );
