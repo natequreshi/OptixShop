@@ -155,7 +155,11 @@ export default function SalesStatusDropdown({
                 {currentSales.map((sale) => (
                   <div
                     key={sale.id}
-                    className="p-3 hover:bg-gray-50 transition-colors"
+                    className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      onViewSale(sale);
+                      setIsOpen(false);
+                    }}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -181,25 +185,16 @@ export default function SalesStatusDropdown({
                             setShowActions(showActions === sale.id ? null : sale.id);
                           }}
                           className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-                          title="Actions"
+                          title="More actions"
                         >
                           <ChevronDown size={16} className="text-gray-500 rotate-90" />
                         </button>
 
                         {showActions === sale.id && (
-                          <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                          <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50" onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => {
-                                onViewSale(sale);
-                                setShowActions(null);
-                                setIsOpen(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-gray-100"
-                            >
-                              <Eye size={14} /> View
-                            </button>
-                            <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 onEditSale(sale);
                                 setShowActions(null);
                                 setIsOpen(false);
@@ -209,7 +204,8 @@ export default function SalesStatusDropdown({
                               <Edit2 size={14} /> Edit
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 onPrintSale(sale);
                                 setShowActions(null);
                                 setIsOpen(false);
@@ -219,7 +215,8 @@ export default function SalesStatusDropdown({
                               <Printer size={14} /> Print
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleDelete(sale.id, sale.invoiceNo);
                                 setShowActions(null);
                               }}
