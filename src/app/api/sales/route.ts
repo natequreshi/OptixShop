@@ -39,6 +39,7 @@ export async function POST(req: Request) {
 
   const totalAmount = subtotal + totalTax;
   const paidAmount = body.amountTendered ?? totalAmount;
+  const isDraft = body.amountTendered === 0 || body.amountTendered === undefined && !body.paymentMethod;
 
   const sale = await prisma.sale.create({
     data: {
@@ -51,31 +52,34 @@ export async function POST(req: Request) {
       cgstAmount: totalTax / 2,
       sgstAmount: totalTax / 2,
       totalAmount,
-      paidAmount: Math.min(paidAmount, totalAmount),
-      balanceAmount: Math.max(0, totalAmount - paidAmount),
-      status: "completed",
-      paymentStatus: paidAmount >= totalAmount ? "paid" : "partial",
+      paidAmount: isDraft ? 0 : Math.min(paidAmount, totalAmount),
+      balanceAmount: isDraft ? totalAmount : Math.max(0, totalAmount - paidAmount),
+      status: isDraft ? "draft" : "completed",
+      paymentStatus: isDraft ? "unpaid" : (paidAmount >= totalAmount ? "paid" : "partial"),
       cashierId: (session?.user as any)?.id || null,
       items: { create: itemsData },
     },
   });
 
-  // Create payment record
-  const payCount = await prisma.payment.count();
-  await prisma.payment.create({
-    data: {
-      paymentNo: `PAY${String(payCount + 1).padStart(5, "0")}`,
-      paymentType: "receipt",
-      saleId: sale.id,
-      customerId: body.customerId || null,
-      paymentDate: today,
-      amount: Math.min(paidAmount, totalAmount),
-      paymentMethod: body.paymentMethod ?? "cash",
-    },
-  });
+  // Create payment record - only for completed sales
+  if (!isDraft) {
+    const payCount = await prisma.payment.count();
+    await prisma.payment.create({
+      data: {
+        paymentNo: `PAY${String(payCount + 1).padStart(5, "0")}`,
+        paymentType: "receipt",
+        saleId: sale.id,
+        customerId: body.customerId || null,
+        paymentDate: today,
+        amount: Math.min(paidAmount, totalAmount),
+        paymentMethod: body.paymentMethod ?? "cash",
+      },
+    });
+  }
 
-  // Update inventory
-  for (const item of body.items) {
+  // Update inventory - only for completed sales
+  if (!isDraft) {
+    for (const item of body.items) {
     await prisma.inventory.updateMany({
       where: { productId: item.productId },
       data: { quantity: { decrement: item.quantity } },
@@ -89,10 +93,11 @@ export async function POST(req: Request) {
         referenceId: sale.id,
       },
     });
+    }
   }
 
-  // Update customer totals
-  if (body.customerId) {
+  // Update customer totals - only for completed sales
+  if (!isDraft && body.customerId) {
     await prisma.customer.update({
       where: { id: body.customerId },
       data: { totalPurchases: { increment: totalAmount } },

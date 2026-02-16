@@ -285,9 +285,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </div>
         
         {/* Calendar */}
-        <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" title="Calendar">
-          <Calendar size={20} />
-        </button>
+        <div ref={calendarRef} className="relative">
+          <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" title="Calendar">
+            <Calendar size={20} />
+          </button>
+          {showCalendar && (
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Calendar</h3>
+              </div>
+              <div className="p-4">
+                <input type="date" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+              </div>
+            </div>
+          )}
+        </div>
         
         {/* Calculator */}
         <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors" title="Calculator">
