@@ -8,7 +8,6 @@ import {
 import { formatCurrency, cn, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import SalesStatusDropdown from "@/components/SalesStatusDropdown";
 import ViewSaleModal from "@/app/(dashboard)/dashboard/view-sale-modal";
 import EditSaleModal from "@/app/(dashboard)/dashboard/edit-sale-modal";
 import PrintInvoiceModal from "@/app/(dashboard)/dashboard/print-invoice-modal";
@@ -159,9 +158,6 @@ export default function POSPage() {
   const [storePhone, setStorePhone] = useState('');
   const [storeCity, setStoreCity] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [recentSalesStatus, setRecentSalesStatus] = useState<any[]>([]);
-  const [pendingSalesStatus, setPendingSalesStatus] = useState<any[]>([]);
-  const [draftSalesStatus, setDraftSalesStatus] = useState<any[]>([]);
   const [viewingSale, setViewingSale] = useState<any | null>(null);
   const [editingSale, setEditingSale] = useState<any | null>(null);
   const [printingSale, setPrintingSale] = useState<any | null>(null);
@@ -174,10 +170,7 @@ export default function POSPage() {
       fetch("/api/categories").then(r => r.json()),
       fetch("/api/brands").then(r => r.json()),
       fetch("/api/settings").then(r => r.json()),
-      fetch("/api/sales?status=completed&limit=5").then(r => r.json()),
-      fetch("/api/sales?status=pending&limit=5").then(r => r.json()),
-      fetch("/api/sales?status=draft&limit=5").then(r => r.json()),
-    ]).then(([products, customers, categories, brands, settings, recentData, pendingData, draftData]) => {
+    ]).then(([products, customers, categories, brands, settings]) => {
       setProducts(products.map((p: any) => ({
         id: p.id, sku: p.sku, name: p.name, sellingPrice: p.sellingPrice,
         taxRate: p.taxRate, productType: p.productType,
@@ -200,9 +193,6 @@ export default function POSPage() {
       setStorePhone(settings['store_phone'] || '');
       setStoreCity(settings['store_city'] || '');
       setLogoUrl(settings['logo_url'] || '');
-      setRecentSalesStatus(recentData || []);
-      setPendingSalesStatus(pendingData || []);
-      setDraftSalesStatus(draftData || []);
     });
     searchRef.current?.focus();
   }, []);
@@ -481,15 +471,6 @@ export default function POSPage() {
             <button onClick={() => setShowAddProduct(true)} className="btn-primary flex items-center gap-2 py-1 px-3 text-sm whitespace-nowrap" title="Add New Product">
               <Plus size={16} /> Add Product
             </button>
-
-            <SalesStatusDropdown
-              recentSalesStatus={recentSalesStatus}
-              pendingSalesStatus={pendingSalesStatus}
-              draftSalesStatus={draftSalesStatus}
-              onViewSale={(sale) => setViewingSale(sale)}
-              onEditSale={(sale) => setEditingSale(sale)}
-              onPrintSale={(sale) => setPrintingSale(sale)}
-            />
           </div>
         </div>
 

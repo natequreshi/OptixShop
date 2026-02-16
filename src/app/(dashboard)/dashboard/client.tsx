@@ -41,7 +41,6 @@ import { Responsive, ResponsiveProps } from "react-grid-layout";
 import { useContainerWidth } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-import SalesStatusDropdown from "@/components/SalesStatusDropdown";
 import ViewSaleModal from "./view-sale-modal";
 import EditSaleModal from "./edit-sale-modal";
 import PrintInvoiceModal from "./print-invoice-modal";
@@ -283,24 +282,14 @@ export default function DashboardClient({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Welcome back! Here's your overview</p>
         </div>
-        <div className="flex items-center gap-4">
-          <SalesStatusDropdown 
-            recentSalesStatus={recentSalesStatus}
-            pendingSalesStatus={pendingSalesStatus}
-            draftSalesStatus={draftSalesStatus}
-            onViewSale={setViewingSale}
-            onEditSale={setEditingSale}
-            onPrintSale={setPrintingSale}
-          />
-          <p className="text-sm text-gray-500">
-            {new Date().toLocaleDateString("en-IN", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-        </div>
+        <p className="text-sm text-gray-500">
+          {new Date().toLocaleDateString("en-IN", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </p>
       </div>
 
       {/* ── Dashboard Cards (12 cards total, 4 per row) ── */}

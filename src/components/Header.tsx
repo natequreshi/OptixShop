@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, ShoppingCart, UserPlus, CreditCard, Package, Menu, DollarSign, Calendar } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, ShoppingCart, UserPlus, CreditCard, Package, Menu, DollarSign, Calendar, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import SalesStatusDropdown from "@/components/SalesStatusDropdown";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -51,6 +52,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [registerSessions, setRegisterSessions] = useState<any[]>([]);
   const [loadingRegister, setLoadingRegister] = useState(false);
   const [taxRate, setTaxRate] = useState(0);
+  const [recentSalesStatus, setRecentSalesStatus] = useState<any[]>([]);
+  const [pendingSalesStatus, setPendingSalesStatus] = useState<any[]>([]);
+  const [draftSalesStatus, setDraftSalesStatus] = useState<any[]>([]);
+  const [viewingSale, setViewingSale] = useState<any | null>(null);
+  const [editingSale, setEditingSale] = useState<any | null>(null);
+  const [printingSale, setPrintingSale] = useState<any | null>(null);
   
   const ref = useRef<HTMLDivElement>(null);
   const registerRef = useRef<HTMLDivElement>(null);
@@ -68,13 +75,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  // Fetch register sessions and tax settings
+  // Fetch register sessions, tax settings, and sales data
   useEffect(() => {
     async function fetchData() {
       try {
-        const [regRes, taxRes] = await Promise.all([
+        const [regRes, taxRes, recentRes, pendingRes, draftRes] = await Promise.all([
           fetch("/api/register?limit=7"),
-          fetch("/api/settings")
+          fetch("/api/settings"),
+          fetch("/api/sales?status=completed&limit=5"),
+          fetch("/api/sales?status=pending&limit=5"),
+          fetch("/api/sales?status=draft&limit=5")
         ]);
         
         if (regRes.ok) {
@@ -88,6 +98,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
           const rate = parseFloat(settings.tax_rate || "0");
           setTaxRate(taxEnabled ? rate : 0);
         }
+        
+        if (recentRes.ok) setRecentSalesStatus(await recentRes.json());
+        if (pendingRes.ok) setPendingSalesStatus(await pendingRes.json());
+        if (draftRes.ok) setDraftSalesStatus(await draftRes.json());
       } catch (err) {
         console.error("Failed to fetch data", err);
       }
@@ -253,6 +267,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
               </div>
             </div>
           )}
+        </div>
+        
+        {/* Sales Dropdown */}
+        <div className="relative">
+          <SalesStatusDropdown
+            recentSalesStatus={recentSalesStatus}
+            pendingSalesStatus={pendingSalesStatus}
+            draftSalesStatus={draftSalesStatus}
+            onViewSale={(sale) => setViewingSale(sale)}
+            onEditSale={(sale) => setEditingSale(sale)}
+            onPrintSale={(sale) => setPrintingSale(sale)}
+          />
         </div>
         
         {/* Calendar */}
