@@ -99,18 +99,18 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-50">
-              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700 w-24">Type</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-blue-600" colSpan={3}>OD (Right Eye)</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-green-600" colSpan={3}>OS (Left Eye)</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700 w-1/7">Type</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-blue-600 w-3/7" colSpan={3}>OD (Right Eye)</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-green-600 w-3/7" colSpan={3}>OS (Left Eye)</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700"></th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Shp</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Cyl</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Axis</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Shp</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Cyl</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Axis</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700 w-1/7">Shp</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700 w-1/7">Cyl</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700 w-1/7">Axis</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700 w-1/7">Shp</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700 w-1/7">Cyl</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700 w-1/7">Axis</th>
             </tr>
           </thead>
           <tbody>

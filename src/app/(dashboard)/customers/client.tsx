@@ -472,48 +472,16 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
             </div>
           </div>
 
-          {/* Second Row: Address, City, Area */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Address Row */}
+          <div className="grid grid-cols-1 gap-4">
             <div className="relative">
               <label className="label flex items-center gap-1.5"><MapPin size={13} /> Address</label>
               <input
                 value={form.address}
-                onChange={(e) => handleAddressChange(e.target.value)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onChange={(e) => set("address", e.target.value)}
                 className="input"
-                placeholder="Start typing address..."
+                placeholder="Enter address manually..."
               />
-              {showSuggestions && addressSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto z-50">
-                  {addressSuggestions.map((s: any) => (
-                    <button key={s.place_id} type="button" onClick={() => selectPlace(s.place_id, s.description)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-700 flex items-center gap-2">
-                      <MapPin size={12} className="text-gray-400 flex-shrink-0" /> {s.description}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="label">City</label>
-              <input value={form.city} onChange={(e) => set("city", e.target.value)} className="input" />
-            </div>
-            <div>
-              <label className="label">Area</label>
-              <input value={form.state} onChange={(e) => set("state", e.target.value)} className="input" placeholder="Enter area/locality" />
-            </div>
-          </div>
-
-          {/* Third Row: Gender */}
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="label">Gender</label>
-              <select value={form.gender} onChange={(e) => set("gender", e.target.value)} className="input">
-                <option value="">— Select —</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
             </div>
           </div>
 
