@@ -62,14 +62,18 @@ export default function OpticalDisplayGrid({ data, showColors = true }: OpticalD
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-50">
-              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700">Eye Sight No</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700">Type</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-blue-600" colSpan={3}>OD (Right Eye)</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-green-600" colSpan={3}>OS (Left Eye)</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700"></th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Shp</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Cyl</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Axis</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Shp</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Cyl</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Axis</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Sr. No</th>
             </tr>
           </thead>
           <tbody>
@@ -106,7 +110,6 @@ export default function OpticalDisplayGrid({ data, showColors = true }: OpticalD
                   {data.distanceOsAxis ? `${data.distanceOsAxis}°` : "—"}
                 </div>
               </td>
-              <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">1</td>
             </tr>
             
             {/* Near Row */}
@@ -142,7 +145,6 @@ export default function OpticalDisplayGrid({ data, showColors = true }: OpticalD
                   {data.nearOsAxis ? `${data.nearOsAxis}°` : "—"}
                 </div>
               </td>
-              <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">2</td>
             </tr>
             
             {/* Add Row */}
@@ -178,7 +180,6 @@ export default function OpticalDisplayGrid({ data, showColors = true }: OpticalD
                   {data.addOsAxis ? `${data.addOsAxis}°` : "—"}
                 </div>
               </td>
-              <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">3</td>
             </tr>
           </tbody>
         </table>
