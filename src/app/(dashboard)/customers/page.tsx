@@ -49,12 +49,30 @@ export default async function CustomersPage() {
       latestRx: rx ? {
         prescriptionNo: rx.prescriptionNo,
         date: rx.prescriptionDate,
-        odSph: rx.odSphere,
-        odCyl: rx.odCylinder,
-        odAxis: rx.odAxis,
-        osSph: rx.osSphere,
-        osCyl: rx.osCylinder,
-        osAxis: rx.osAxis,
+        // Use existing fields for now - mapping to new structure
+        odDistanceSphere: rx.odSphere,
+        odDistanceCylinder: rx.odCylinder,
+        odDistanceAxis: rx.odAxis,
+        osDistanceSphere: rx.osSphere,
+        osDistanceCylinder: rx.osCylinder,
+        osDistanceAxis: rx.osAxis,
+        // Near Vision (null for now until fields are available)
+        odNearSphere: null,
+        odNearCylinder: null,
+        odNearAxis: null,
+        osNearSphere: null,
+        osNearCylinder: null,
+        osNearAxis: null,
+        // Add Power (null for now until fields are available)
+        odAddSphere: null,
+        odAddCylinder: null,
+        odAddAxis: null,
+        osAddSphere: null,
+        osAddCylinder: null,
+        osAddAxis: null,
+        // PD (null for now until fields are available)
+        odPd: null,
+        osPd: null,
       } : null,
       sales: c.sales.map((s) => ({
         id: s.id,

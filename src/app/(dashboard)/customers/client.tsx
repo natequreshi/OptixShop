@@ -9,12 +9,22 @@ import {
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import OpticalGrid, { OpticalData } from "@/components/OpticalGrid";
 
 /* ── Types ─────────────────────────────────────── */
 interface RxData {
   prescriptionNo: string; date: string;
-  odSph: number | null; odCyl: number | null; odAxis: number | null;
-  osSph: number | null; osCyl: number | null; osAxis: number | null;
+  // Distance Vision
+  odDistanceSphere: number | null; odDistanceCylinder: number | null; odDistanceAxis: number | null;
+  osDistanceSphere: number | null; osDistanceCylinder: number | null; osDistanceAxis: number | null;
+  // Near Vision
+  odNearSphere: number | null; odNearCylinder: number | null; odNearAxis: number | null;
+  osNearSphere: number | null; osNearCylinder: number | null; osNearAxis: number | null;
+  // Add Power
+  odAddSphere: number | null; odAddCylinder: number | null; odAddAxis: number | null;
+  osAddSphere: number | null; osAddCylinder: number | null; osAddAxis: number | null;
+  // PD
+  odPd: number | null; osPd: number | null;
 }
 interface SaleItem { productName: string; quantity: number; total: number; }
 interface SaleRecord { id: string; invoiceNo: string; date: string; totalAmount: number; status: string; items: SaleItem[]; }
@@ -267,11 +277,11 @@ function CustomerRow({ customer: c, visibleCols, colCount, onEdit, onDelete, onV
           <td className="px-4 py-3 text-center">
             {rx ? (
               <div className="text-xs font-mono">
-                <span className="text-gray-600">{fmtRx(rx.odSph)}</span>
+                <span className="text-gray-600">{fmtRx(rx.odDistanceSphere)}</span>
                 <span className="text-gray-400 mx-0.5">/</span>
-                <span className="text-gray-600">{fmtRx(rx.odCyl)}</span>
+                <span className="text-gray-600">{fmtRx(rx.odDistanceCylinder)}</span>
                 <span className="text-gray-400 mx-0.5">×</span>
-                <span className="text-gray-600">{rx.odAxis ?? "—"}°</span>
+                <span className="text-gray-600">{rx.odDistanceAxis ?? "—"}°</span>
               </div>
             ) : <span className="text-xs text-gray-300">No Rx</span>}
           </td>
@@ -281,11 +291,11 @@ function CustomerRow({ customer: c, visibleCols, colCount, onEdit, onDelete, onV
           <td className="px-4 py-3 text-center">
             {rx ? (
               <div className="text-xs font-mono">
-                <span className="text-gray-600">{fmtRx(rx.osSph)}</span>
+                <span className="text-gray-600">{fmtRx(rx.osDistanceSphere)}</span>
                 <span className="text-gray-400 mx-0.5">/</span>
-                <span className="text-gray-600">{fmtRx(rx.osCyl)}</span>
+                <span className="text-gray-600">{fmtRx(rx.osDistanceCylinder)}</span>
                 <span className="text-gray-400 mx-0.5">×</span>
-                <span className="text-gray-600">{rx.osAxis ?? "—"}°</span>
+                <span className="text-gray-600">{rx.osDistanceAxis ?? "—"}°</span>
               </div>
             ) : <span className="text-xs text-gray-300">No Rx</span>}
           </td>
@@ -332,15 +342,27 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
     city: customer?.city ?? "",
     state: customer?.state ?? "",
     country: customer?.country ?? "Pakistan",
-    // Rx fields
-    odSphere: "",
-    odCylinder: "",
-    odAxis: "",
-    odAdd: "",
-    osSphere: "",
-    osCylinder: "",
-    osAxis: "",
-    osAdd: "",
+  });
+  
+  const [opticalData, setOpticalData] = useState<OpticalData>({
+    distanceOdSphere: customer?.latestRx?.odDistanceSphere?.toString() ?? "",
+    distanceOdCylinder: customer?.latestRx?.odDistanceCylinder?.toString() ?? "",
+    distanceOdAxis: customer?.latestRx?.odDistanceAxis?.toString() ?? "",
+    distanceOsSphere: customer?.latestRx?.osDistanceSphere?.toString() ?? "",
+    distanceOsCylinder: customer?.latestRx?.osDistanceCylinder?.toString() ?? "",
+    distanceOsAxis: customer?.latestRx?.osDistanceAxis?.toString() ?? "",
+    nearOdSphere: customer?.latestRx?.odNearSphere?.toString() ?? "",
+    nearOdCylinder: customer?.latestRx?.odNearCylinder?.toString() ?? "",
+    nearOdAxis: customer?.latestRx?.odNearAxis?.toString() ?? "",
+    nearOsSphere: customer?.latestRx?.osNearSphere?.toString() ?? "",
+    nearOsCylinder: customer?.latestRx?.osNearCylinder?.toString() ?? "",
+    nearOsAxis: customer?.latestRx?.osNearAxis?.toString() ?? "",
+    addOdSphere: customer?.latestRx?.odAddSphere?.toString() ?? "",
+    addOdCylinder: customer?.latestRx?.odAddCylinder?.toString() ?? "",
+    addOdAxis: customer?.latestRx?.odAddAxis?.toString() ?? "",
+    addOsSphere: customer?.latestRx?.osAddSphere?.toString() ?? "",
+    addOsCylinder: customer?.latestRx?.osAddCylinder?.toString() ?? "",
+    addOsAxis: customer?.latestRx?.osAddAxis?.toString() ?? "",
   });
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -398,17 +420,18 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
     };
 
     // Include Rx data if any Rx field is filled
-    const hasRx = form.odSphere || form.odCylinder || form.odAxis || form.osSphere || form.osCylinder || form.osAxis;
+    const hasRx = Object.values(opticalData).some(value => value && value.trim() !== "");
     if (hasRx) {
       payload.rx = {
-        odSphere: form.odSphere ? parseFloat(form.odSphere) : null,
-        odCylinder: form.odCylinder ? parseFloat(form.odCylinder) : null,
-        odAxis: form.odAxis ? parseInt(form.odAxis) : null,
-        odAdd: form.odAdd ? parseFloat(form.odAdd) : null,
-        osSphere: form.osSphere ? parseFloat(form.osSphere) : null,
-        osCylinder: form.osCylinder ? parseFloat(form.osCylinder) : null,
-        osAxis: form.osAxis ? parseInt(form.osAxis) : null,
-        osAdd: form.osAdd ? parseFloat(form.osAdd) : null,
+        // Map distance vision to existing database fields
+        odSphere: opticalData.distanceOdSphere ? parseFloat(opticalData.distanceOdSphere) : null,
+        odCylinder: opticalData.distanceOdCylinder ? parseFloat(opticalData.distanceOdCylinder) : null,
+        odAxis: opticalData.distanceOdAxis ? parseInt(opticalData.distanceOdAxis) : null,
+        osSphere: opticalData.distanceOsSphere ? parseFloat(opticalData.distanceOsSphere) : null,
+        osCylinder: opticalData.distanceOsCylinder ? parseFloat(opticalData.distanceOsCylinder) : null,
+        osAxis: opticalData.distanceOsAxis ? parseInt(opticalData.distanceOsAxis) : null,
+        // Note: Near and Add fields will be stored when database schema is fully updated
+        // For now, we're only using the distance vision fields that exist in the current schema
       };
     }
 
@@ -499,52 +522,11 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
 
           {/* ── Rx Section ─────────────────────── */}
           <div className="border-t border-gray-100 pt-4">
-            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Eye size={16} className="text-primary-600" /> Prescription (Rx)
-            </h3>
-            <p className="text-xs text-gray-400 mb-3">Optional — enter the customer&apos;s latest prescription. This creates a prescription record.</p>
-            
-            {/* OD (Right Eye) */}
-            <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">OD — Right Eye</p>
-            <div className="grid grid-cols-4 gap-3 mb-4">
-              <div>
-                <label className="label text-xs">Sphere (SPH)</label>
-                <input type="number" step="0.25" value={form.odSphere} onChange={(e) => set("odSphere", e.target.value)} className="input" placeholder="±0.00" />
-              </div>
-              <div>
-                <label className="label text-xs">Cylinder (CYL)</label>
-                <input type="number" step="0.25" value={form.odCylinder} onChange={(e) => set("odCylinder", e.target.value)} className="input" placeholder="±0.00" />
-              </div>
-              <div>
-                <label className="label text-xs">Axis</label>
-                <input type="number" step="1" min="0" max="180" value={form.odAxis} onChange={(e) => set("odAxis", e.target.value)} className="input" placeholder="0-180" />
-              </div>
-              <div>
-                <label className="label text-xs">Add</label>
-                <input type="number" step="0.25" value={form.odAdd} onChange={(e) => set("odAdd", e.target.value)} className="input" placeholder="+0.00" />
-              </div>
-            </div>
-
-            {/* OS (Left Eye) */}
-            <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">OS — Left Eye</p>
-            <div className="grid grid-cols-4 gap-3">
-              <div>
-                <label className="label text-xs">Sphere (SPH)</label>
-                <input type="number" step="0.25" value={form.osSphere} onChange={(e) => set("osSphere", e.target.value)} className="input" placeholder="±0.00" />
-              </div>
-              <div>
-                <label className="label text-xs">Cylinder (CYL)</label>
-                <input type="number" step="0.25" value={form.osCylinder} onChange={(e) => set("osCylinder", e.target.value)} className="input" placeholder="±0.00" />
-              </div>
-              <div>
-                <label className="label text-xs">Axis</label>
-                <input type="number" step="1" min="0" max="180" value={form.osAxis} onChange={(e) => set("osAxis", e.target.value)} className="input" placeholder="0-180" />
-              </div>
-              <div>
-                <label className="label text-xs">Add</label>
-                <input type="number" step="0.25" value={form.osAdd} onChange={(e) => set("osAdd", e.target.value)} className="input" placeholder="+0.00" />
-              </div>
-            </div>
+            <OpticalGrid 
+              data={opticalData} 
+              onChange={setOpticalData}
+              disabled={loading}
+            />
           </div>
 
           {/* Actions */}
