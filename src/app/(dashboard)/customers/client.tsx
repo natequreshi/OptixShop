@@ -472,7 +472,7 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
             </div>
           </div>
 
-          {/* Second Row: Address, City, Mohalla */}
+          {/* Second Row: Address, City, Area */}
           <div className="grid grid-cols-3 gap-4">
             <div className="relative">
               <label className="label flex items-center gap-1.5"><MapPin size={13} /> Address</label>
@@ -499,8 +499,21 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
               <input value={form.city} onChange={(e) => set("city", e.target.value)} className="input" />
             </div>
             <div>
-              <label className="label">Mohalla</label>
-              <input value={form.state} onChange={(e) => set("state", e.target.value)} className="input" placeholder="Enter mohalla/area" />
+              <label className="label">Area</label>
+              <input value={form.state} onChange={(e) => set("state", e.target.value)} className="input" placeholder="Enter area/locality" />
+            </div>
+          </div>
+
+          {/* Third Row: Gender */}
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="label">Gender</label>
+              <select value={form.gender} onChange={(e) => set("gender", e.target.value)} className="input">
+                <option value="">— Select —</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
           </div>
 

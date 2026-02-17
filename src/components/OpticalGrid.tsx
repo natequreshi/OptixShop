@@ -99,21 +99,25 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-50">
-              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700">Eye Sight No</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700 w-24">Type</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-blue-600" colSpan={3}>OD (Right Eye)</th>
+              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-green-600" colSpan={3}>OS (Left Eye)</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700"></th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Shp</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Cyl</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Axis</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Shp</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Cyl</th>
               <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Axis</th>
-              <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-700">Sr. No</th>
             </tr>
           </thead>
           <tbody>
             {/* Distance Row */}
             <tr>
               <td className="border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">Distance</td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.distanceOdSphere}
                   onChange={(value) => updateField("distanceOdSphere", value)}
@@ -122,7 +126,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.distanceOdCylinder}
                   onChange={(value) => updateField("distanceOdCylinder", value)}
@@ -131,7 +135,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.distanceOdAxis}
                   onChange={(value) => updateField("distanceOdAxis", value)}
@@ -142,7 +146,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   max="180"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.distanceOsSphere}
                   onChange={(value) => updateField("distanceOsSphere", value)}
@@ -151,7 +155,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.distanceOsCylinder}
                   onChange={(value) => updateField("distanceOsCylinder", value)}
@@ -160,7 +164,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.distanceOsAxis}
                   onChange={(value) => updateField("distanceOsAxis", value)}
@@ -171,13 +175,12 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   max="180"
                 />
               </td>
-              <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">1</td>
             </tr>
             
             {/* Near Row */}
             <tr>
               <td className="border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">Near</td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.nearOdSphere}
                   onChange={(value) => updateField("nearOdSphere", value)}
@@ -186,7 +189,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.nearOdCylinder}
                   onChange={(value) => updateField("nearOdCylinder", value)}
@@ -195,7 +198,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.nearOdAxis}
                   onChange={(value) => updateField("nearOdAxis", value)}
@@ -206,7 +209,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   max="180"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.nearOsSphere}
                   onChange={(value) => updateField("nearOsSphere", value)}
@@ -215,7 +218,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.nearOsCylinder}
                   onChange={(value) => updateField("nearOsCylinder", value)}
@@ -224,7 +227,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.nearOsAxis}
                   onChange={(value) => updateField("nearOsAxis", value)}
@@ -235,13 +238,12 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   max="180"
                 />
               </td>
-              <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">2</td>
             </tr>
             
             {/* Add Row */}
             <tr>
               <td className="border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">Add</td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.addOdSphere}
                   onChange={(value) => updateField("addOdSphere", value)}
@@ -250,7 +252,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.addOdCylinder}
                   onChange={(value) => updateField("addOdCylinder", value)}
@@ -259,7 +261,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-blue-50">
                 <GridInput
                   value={data.addOdAxis}
                   onChange={(value) => updateField("addOdAxis", value)}
@@ -270,7 +272,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   max="180"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.addOsSphere}
                   onChange={(value) => updateField("addOsSphere", value)}
@@ -279,7 +281,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.addOsCylinder}
                   onChange={(value) => updateField("addOsCylinder", value)}
@@ -288,7 +290,7 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   step="0.25"
                 />
               </td>
-              <td className="border border-gray-200 px-2 py-1">
+              <td className="border border-gray-200 px-2 py-1 bg-green-50">
                 <GridInput
                   value={data.addOsAxis}
                   onChange={(value) => updateField("addOsAxis", value)}
@@ -299,7 +301,6 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
                   max="180"
                 />
               </td>
-              <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">3</td>
             </tr>
           </tbody>
         </table>
