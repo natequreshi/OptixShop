@@ -452,72 +452,55 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
           <h2 className="text-lg font-semibold">{customer ? "Edit Customer" : "Add Customer"}</h2>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Name */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">First Name *</label>
-              <input value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className="input" required />
-            </div>
-            <div>
-              <label className="label">Last Name</label>
-              <input value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className="input" />
-            </div>
-          </div>
-          {/* Gender */}
-          <div>
-            <label className="label">Gender</label>
-            <select value={form.gender} onChange={(e) => set("gender", e.target.value)} className="input">
-              <option value="">— Select —</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          {/* WhatsApp Only */}
-          <div>
-            <label className="label flex items-center gap-1.5"><MessageCircle size={13} className="text-green-600" /> WhatsApp *</label>
-            <input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} className="input" placeholder="+923001234567" required />
-            <p className="text-xs text-gray-400 mt-1">This will also be used as the primary contact number</p>
-          </div>
-          {/* Email */}
-          <div>
-            <label className="label flex items-center gap-1.5"><Mail size={13} /> Email</label>
-            <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="input" />
-          </div>
-          {/* Address with Google Maps Autocomplete */}
-          <div className="relative">
-            <label className="label flex items-center gap-1.5"><MapPin size={13} /> Address</label>
-            <input
-              value={form.address}
-              onChange={(e) => handleAddressChange(e.target.value)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              className="input"
-              placeholder="Start typing address..."
-            />
-            {showSuggestions && addressSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto z-50">
-                {addressSuggestions.map((s: any) => (
-                  <button key={s.place_id} type="button" onClick={() => selectPlace(s.place_id, s.description)}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-700 flex items-center gap-2">
-                    <MapPin size={12} className="text-gray-400 flex-shrink-0" /> {s.description}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* City, State, Country */}
+          {/* Top Row: Name, Email, WhatsApp */}
           <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="label">Name *</label>
+              <input value={`${form.firstName} ${form.lastName}`} onChange={(e) => {
+                const names = e.target.value.split(' ');
+                set("firstName", names[0] || "");
+                set("lastName", names.slice(1).join(' ') || "");
+              }} className="input" required />
+            </div>
+            <div>
+              <label className="label flex items-center gap-1.5"><Mail size={13} /> Email</label>
+              <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="input" />
+            </div>
+            <div>
+              <label className="label flex items-center gap-1.5"><MessageCircle size={13} className="text-green-600" /> WhatsApp *</label>
+              <input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} className="input" placeholder="+923001234567" required />
+            </div>
+          </div>
+
+          {/* Second Row: Address, City, Mohalla */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="relative">
+              <label className="label flex items-center gap-1.5"><MapPin size={13} /> Address</label>
+              <input
+                value={form.address}
+                onChange={(e) => handleAddressChange(e.target.value)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                className="input"
+                placeholder="Start typing address..."
+              />
+              {showSuggestions && addressSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto z-50">
+                  {addressSuggestions.map((s: any) => (
+                    <button key={s.place_id} type="button" onClick={() => selectPlace(s.place_id, s.description)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-700 flex items-center gap-2">
+                      <MapPin size={12} className="text-gray-400 flex-shrink-0" /> {s.description}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div>
               <label className="label">City</label>
               <input value={form.city} onChange={(e) => set("city", e.target.value)} className="input" />
             </div>
             <div>
-              <label className="label">State</label>
-              <input value={form.state} onChange={(e) => set("state", e.target.value)} className="input" />
-            </div>
-            <div>
-              <label className="label">Country</label>
-              <input value={form.country} onChange={(e) => set("country", e.target.value)} className="input" />
+              <label className="label">Mohalla</label>
+              <input value={form.state} onChange={(e) => set("state", e.target.value)} className="input" placeholder="Enter mohalla/area" />
             </div>
           </div>
 
