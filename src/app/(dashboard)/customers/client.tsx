@@ -443,7 +443,7 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100 flex items-center gap-3">
           <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center">
             <User size={20} className="text-primary-600" />
