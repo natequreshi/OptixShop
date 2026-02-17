@@ -9,6 +9,7 @@ import {
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import OpticalDisplayGrid from "@/components/OpticalDisplayGrid";
 import OpticalGrid, { OpticalData } from "@/components/OpticalGrid";
 
 /* ── Types ─────────────────────────────────────── */
@@ -692,66 +693,31 @@ function PrescriptionCard({ prescription: rx }: { prescription: HistoryPrescript
         )}
       </div>
 
-      {/* Rx Values */}
-      <div className="grid grid-cols-2 gap-4 mt-3">
-        <div>
-          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">OD — Right Eye</p>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Sphere:</span>
-              <span className="font-medium font-mono">{fmtRx(rx.odSphere)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Cylinder:</span>
-              <span className="font-medium font-mono">{fmtRx(rx.odCylinder)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Axis:</span>
-              <span className="font-medium font-mono">{rx.odAxis ?? "—"}°</span>
-            </div>
-            {rx.odAdd !== null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">Add:</span>
-                <span className="font-medium font-mono">{fmtRx(rx.odAdd)}</span>
-              </div>
-            )}
-            {rx.odPd !== null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">PD:</span>
-                <span className="font-medium font-mono">{rx.odPd} mm</span>
-              </div>
-            )}
-          </div>
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">OS — Left Eye</p>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Sphere:</span>
-              <span className="font-medium font-mono">{fmtRx(rx.osSphere)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Cylinder:</span>
-              <span className="font-medium font-mono">{fmtRx(rx.osCylinder)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Axis:</span>
-              <span className="font-medium font-mono">{rx.osAxis ?? "—"}°</span>
-            </div>
-            {rx.osAdd !== null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">Add:</span>
-                <span className="font-medium font-mono">{fmtRx(rx.osAdd)}</span>
-              </div>
-            )}
-            {rx.osPd !== null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">PD:</span>
-                <span className="font-medium font-mono">{rx.osPd} mm</span>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Rx Values - Using OpticalDisplayGrid */}
+      <div className="mt-4">
+        <OpticalDisplayGrid 
+          data={{
+            distanceOdSphere: rx.odSphere,
+            distanceOdCylinder: rx.odCylinder,
+            distanceOdAxis: rx.odAxis,
+            distanceOsSphere: rx.osSphere,
+            distanceOsCylinder: rx.osCylinder,
+            distanceOsAxis: rx.osAxis,
+            nearOdSphere: null, // These fields don't exist yet in customer history
+            nearOdCylinder: null,
+            nearOdAxis: null,
+            nearOsSphere: null,
+            nearOsCylinder: null,
+            nearOsAxis: null,
+            addOdSphere: rx.odAdd,
+            addOdCylinder: null,
+            addOdAxis: null,
+            addOsSphere: rx.osAdd,
+            addOsCylinder: null,
+            addOsAxis: null,
+          }}
+          showColors={true}
+        />
       </div>
 
       {/* Notes */}

@@ -77,22 +77,34 @@ export default function OpticalDisplayGrid({ data, showColors = true }: OpticalD
             <tr>
               <td className="border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">Distance</td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.distanceOdSphere} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.distanceOdSphere)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.distanceOdCylinder} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.distanceOdCylinder)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.distanceOdAxis} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {data.distanceOdAxis ? `${data.distanceOdAxis}°` : "—"}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.distanceOsSphere} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.distanceOsSphere)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.distanceOsCylinder} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.distanceOsCylinder)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.distanceOsAxis} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {data.distanceOsAxis ? `${data.distanceOsAxis}°` : "—"}
+                </div>
               </td>
               <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">1</td>
             </tr>
@@ -101,22 +113,34 @@ export default function OpticalDisplayGrid({ data, showColors = true }: OpticalD
             <tr>
               <td className="border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">Near</td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.nearOdSphere} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.nearOdSphere)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.nearOdCylinder} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.nearOdCylinder)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.nearOdAxis} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {data.nearOdAxis ? `${data.nearOdAxis}°` : "—"}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.nearOsSphere} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.nearOsSphere)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.nearOsCylinder} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.nearOsCylinder)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.nearOsAxis} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {data.nearOsAxis ? `${data.nearOsAxis}°` : "—"}
+                </div>
               </td>
               <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">2</td>
             </tr>
@@ -125,22 +149,34 @@ export default function OpticalDisplayGrid({ data, showColors = true }: OpticalD
             <tr>
               <td className="border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">Add</td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.addOdSphere} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.addOdSphere)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.addOdCylinder} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.addOdCylinder)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.addOdAxis} bgColor={showColors ? 'bg-blue-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {data.addOdAxis ? `${data.addOdAxis}°` : "—"}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.addOsSphere} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.addOsSphere)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.addOsCylinder} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {fmtRx(data.addOsCylinder)}
+                </div>
               </td>
               <td className={`border border-gray-200 ${showColors ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <DisplayCell value={data.addOsAxis} bgColor={showColors ? 'bg-green-50' : undefined} />
+                <div className="px-3 py-2 text-sm font-mono text-center">
+                  {data.addOsAxis ? `${data.addOsAxis}°` : "—"}
+                </div>
               </td>
               <td className="border border-gray-200 px-3 py-2 text-center text-xs text-gray-500">3</td>
             </tr>
