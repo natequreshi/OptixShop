@@ -5,12 +5,41 @@ import { Plus, Search, Eye, Edit2, Trash2, FileText } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import OpticalDisplayGrid from "@/components/OpticalDisplayGrid";
 
 interface Rx {
-  id: string; prescriptionNo: string; customerName: string; customerId: string;
-  prescribedBy: string; prescriptionDate: string; expiryDate: string;
-  odSphere: number | null; odCylinder: number | null; odAxis: number | null; odAdd: number | null;
-  osSphere: number | null; osCylinder: number | null; osAxis: number | null; osAdd: number | null;
+  id: string;
+  prescriptionNo: string;
+  customerName: string;
+  customerId: string;
+  prescribedBy: string;
+  prescriptionDate: string;
+  expiryDate: string;
+  // Right Eye (OD)
+  odDistanceSphere: number | null;
+  odDistanceCylinder: number | null;
+  odDistanceAxis: number | null;
+  odNearSphere: number | null;
+  odNearCylinder: number | null;
+  odNearAxis: number | null;
+  odAddSphere: number | null;
+  odAddCylinder: number | null;
+  odAddAxis: number | null;
+  odPd: number | null;
+  // Left Eye (OS)
+  osDistanceSphere: number | null;
+  osDistanceCylinder: number | null;
+  osDistanceAxis: number | null;
+  osNearSphere: number | null;
+  osNearCylinder: number | null;
+  osNearAxis: number | null;
+  osAddSphere: number | null;
+  osAddCylinder: number | null;
+  osAddAxis: number | null;
+  osPd: number | null;
+  // Other fields
+  photoUrl?: string | null;
+  notes?: string | null;
 }
 
 export default function PrescriptionsClient({ prescriptions, customers }: {
@@ -70,10 +99,10 @@ export default function PrescriptionsClient({ prescriptions, customers }: {
                   <td className="px-4 py-3 text-sm text-gray-600">{p.prescribedBy || "—"}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{formatDate(p.prescriptionDate)}</td>
                   <td className="px-4 py-3 text-sm text-center font-mono text-gray-700">
-                    {p.odSphere ?? "—"} / {p.odCylinder ?? "—"} × {p.odAxis ?? "—"}
+                    {p.odDistanceSphere ?? "—"} / {p.odDistanceCylinder ?? "—"} × {p.odDistanceAxis ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-sm text-center font-mono text-gray-700">
-                    {p.osSphere ?? "—"} / {p.osCylinder ?? "—"} × {p.osAxis ?? "—"}
+                    {p.osDistanceSphere ?? "—"} / {p.osDistanceCylinder ?? "—"} × {p.osDistanceAxis ?? "—"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
@@ -90,8 +119,8 @@ export default function PrescriptionsClient({ prescriptions, customers }: {
       </div>
 
       {viewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setViewing(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <FileText className="text-primary-600" size={24} />
               <div>
@@ -103,27 +132,34 @@ export default function PrescriptionsClient({ prescriptions, customers }: {
               <div><p className="text-gray-500">Doctor</p><p className="font-medium">{viewing.prescribedBy || "—"}</p></div>
               <div><p className="text-gray-500">Date</p><p className="font-medium">{formatDate(viewing.prescriptionDate)}</p></div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <p className="text-xs font-semibold text-blue-700 mb-2">Right Eye (OD)</p>
-                <div className="text-sm space-y-1">
-                  <p>SPH: <b>{viewing.odSphere ?? "—"}</b></p>
-                  <p>CYL: <b>{viewing.odCylinder ?? "—"}</b></p>
-                  <p>AXIS: <b>{viewing.odAxis ?? "—"}</b></p>
-                  <p>ADD: <b>{viewing.odAdd ?? "—"}</b></p>
-                </div>
-              </div>
-              <div className="bg-green-50 rounded-lg p-3">
-                <p className="text-xs font-semibold text-green-700 mb-2">Left Eye (OS)</p>
-                <div className="text-sm space-y-1">
-                  <p>SPH: <b>{viewing.osSphere ?? "—"}</b></p>
-                  <p>CYL: <b>{viewing.osCylinder ?? "—"}</b></p>
-                  <p>AXIS: <b>{viewing.osAxis ?? "—"}</b></p>
-                  <p>ADD: <b>{viewing.osAdd ?? "—"}</b></p>
-                </div>
-              </div>
+            <div className="p-6">
+              <OpticalDisplayGrid 
+                data={{
+                  distanceOdSphere: viewing.odDistanceSphere,
+                  distanceOdCylinder: viewing.odDistanceCylinder,
+                  distanceOdAxis: viewing.odDistanceAxis,
+                  distanceOsSphere: viewing.osDistanceSphere,
+                  distanceOsCylinder: viewing.osDistanceCylinder,
+                  distanceOsAxis: viewing.osDistanceAxis,
+                  nearOdSphere: viewing.odNearSphere,
+                  nearOdCylinder: viewing.odNearCylinder,
+                  nearOdAxis: viewing.odNearAxis,
+                  nearOsSphere: viewing.osNearSphere,
+                  nearOsCylinder: viewing.osNearCylinder,
+                  nearOsAxis: viewing.osNearAxis,
+                  addOdSphere: viewing.odAddSphere,
+                  addOdCylinder: viewing.odAddCylinder,
+                  addOdAxis: viewing.odAddAxis,
+                  addOsSphere: viewing.osAddSphere,
+                  addOsCylinder: viewing.osAddCylinder,
+                  addOsAxis: viewing.osAddAxis,
+                }}
+                showColors={true}
+              />
             </div>
-            <button onClick={() => setViewing(null)} className="btn-secondary w-full mt-4">Close</button>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button onClick={() => setViewing(null)} className="btn-primary">Close</button>
+            </div>
           </div>
         </div>
       )}
@@ -145,8 +181,16 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
   const [creatingCust, setCreatingCust] = useState(false);
   const [form, setForm] = useState({
     customerId: "", prescribedBy: "", prescriptionDate: new Date().toISOString().split("T")[0],
-    odSphere: "", odCylinder: "", odAxis: "", odAdd: "",
-    osSphere: "", osCylinder: "", osAxis: "", osAdd: "",
+    // Right Eye (OD)
+    odDistanceSphere: "", odDistanceCylinder: "", odDistanceAxis: "",
+    odNearSphere: "", odNearCylinder: "", odNearAxis: "",
+    odAddSphere: "", odAddCylinder: "", odAddAxis: "",
+    odPd: "",
+    // Left Eye (OS)
+    osDistanceSphere: "", osDistanceCylinder: "", osDistanceAxis: "",
+    osNearSphere: "", osNearCylinder: "", osNearAxis: "",
+    osAddSphere: "", osAddCylinder: "", osAddAxis: "",
+    osPd: "",
     photoUrl: "",
   });
 
@@ -178,14 +222,26 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
-        odSphere: form.odSphere ? +form.odSphere : null,
-        odCylinder: form.odCylinder ? +form.odCylinder : null,
-        odAxis: form.odAxis ? +form.odAxis : null,
-        odAdd: form.odAdd ? +form.odAdd : null,
-        osSphere: form.osSphere ? +form.osSphere : null,
-        osCylinder: form.osCylinder ? +form.osCylinder : null,
-        osAxis: form.osAxis ? +form.osAxis : null,
-        osAdd: form.osAdd ? +form.osAdd : null,
+        odDistanceSphere: form.odDistanceSphere ? +form.odDistanceSphere : null,
+        odDistanceCylinder: form.odDistanceCylinder ? +form.odDistanceCylinder : null,
+        odDistanceAxis: form.odDistanceAxis ? +form.odDistanceAxis : null,
+        odNearSphere: form.odNearSphere ? +form.odNearSphere : null,
+        odNearCylinder: form.odNearCylinder ? +form.odNearCylinder : null,
+        odNearAxis: form.odNearAxis ? +form.odNearAxis : null,
+        odAddSphere: form.odAddSphere ? +form.odAddSphere : null,
+        odAddCylinder: form.odAddCylinder ? +form.odAddCylinder : null,
+        odAddAxis: form.odAddAxis ? +form.odAddAxis : null,
+        odPd: form.odPd ? +form.odPd : null,
+        osDistanceSphere: form.osDistanceSphere ? +form.osDistanceSphere : null,
+        osDistanceCylinder: form.osDistanceCylinder ? +form.osDistanceCylinder : null,
+        osDistanceAxis: form.osDistanceAxis ? +form.osDistanceAxis : null,
+        osNearSphere: form.osNearSphere ? +form.osNearSphere : null,
+        osNearCylinder: form.osNearCylinder ? +form.osNearCylinder : null,
+        osNearAxis: form.osNearAxis ? +form.osNearAxis : null,
+        osAddSphere: form.osAddSphere ? +form.osAddSphere : null,
+        osAddCylinder: form.osAddCylinder ? +form.osAddCylinder : null,
+        osAddAxis: form.osAddAxis ? +form.osAddAxis : null,
+        osPd: form.osPd ? +form.osPd : null,
       }),
     });
     if (res.ok) { toast.success("Created"); onSaved(); }
@@ -225,19 +281,83 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
             <div><label className="label">Doctor</label><input value={form.prescribedBy} onChange={(e) => setForm({...form, prescribedBy: e.target.value})} className="input" /></div>
             <div><label className="label">Date</label><input type="date" value={form.prescriptionDate} onChange={(e) => setForm({...form, prescriptionDate: e.target.value})} className="input" /></div>
           </div>
-          <p className="text-sm font-semibold text-blue-700">Right Eye (OD)</p>
-          <div className="grid grid-cols-4 gap-3">
-            <div><label className="label text-xs">SPH</label><input value={form.odSphere} onChange={(e) => setForm({...form, odSphere: e.target.value})} className="input" /></div>
-            <div><label className="label text-xs">CYL</label><input value={form.odCylinder} onChange={(e) => setForm({...form, odCylinder: e.target.value})} className="input" /></div>
-            <div><label className="label text-xs">AXIS</label><input value={form.odAxis} onChange={(e) => setForm({...form, odAxis: e.target.value})} className="input" /></div>
-            <div><label className="label text-xs">ADD</label><input value={form.odAdd} onChange={(e) => setForm({...form, odAdd: e.target.value})} className="input" /></div>
-          </div>
-          <p className="text-sm font-semibold text-green-700">Left Eye (OS)</p>
-          <div className="grid grid-cols-4 gap-3">
-            <div><label className="label text-xs">SPH</label><input value={form.osSphere} onChange={(e) => setForm({...form, osSphere: e.target.value})} className="input" /></div>
-            <div><label className="label text-xs">CYL</label><input value={form.osCylinder} onChange={(e) => setForm({...form, osCylinder: e.target.value})} className="input" /></div>
-            <div><label className="label text-xs">AXIS</label><input value={form.osAxis} onChange={(e) => setForm({...form, osAxis: e.target.value})} className="input" /></div>
-            <div><label className="label text-xs">ADD</label><input value={form.osAdd} onChange={(e) => setForm({...form, osAdd: e.target.value})} className="input" /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Right Eye (OD) */}
+            <div>
+              <p className="text-sm font-semibold text-blue-700 mb-1">Right Eye (OD)</p>
+              <table className="w-full text-xs border">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border px-2 py-1">&nbsp;</th>
+                    <th className="border px-2 py-1">Shp</th>
+                    <th className="border px-2 py-1">Cyl</th>
+                    <th className="border px-2 py-1">Axis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border px-2 py-1">Distance</td>
+                    <td className="border px-2 py-1"><input value={form.odDistanceSphere} onChange={e => setForm({...form, odDistanceSphere: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.odDistanceCylinder} onChange={e => setForm({...form, odDistanceCylinder: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.odDistanceAxis} onChange={e => setForm({...form, odDistanceAxis: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                  <tr>
+                    <td className="border px-2 py-1">Near</td>
+                    <td className="border px-2 py-1"><input value={form.odNearSphere} onChange={e => setForm({...form, odNearSphere: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.odNearCylinder} onChange={e => setForm({...form, odNearCylinder: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.odNearAxis} onChange={e => setForm({...form, odNearAxis: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                  <tr>
+                    <td className="border px-2 py-1">Add</td>
+                    <td className="border px-2 py-1"><input value={form.odAddSphere} onChange={e => setForm({...form, odAddSphere: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.odAddCylinder} onChange={e => setForm({...form, odAddCylinder: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.odAddAxis} onChange={e => setForm({...form, odAddAxis: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                  <tr>
+                    <td className="border px-2 py-1">PD</td>
+                    <td className="border px-2 py-1" colSpan={3}><input value={form.odPd} onChange={e => setForm({...form, odPd: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {/* Left Eye (OS) */}
+            <div>
+              <p className="text-sm font-semibold text-green-700 mb-1">Left Eye (OS)</p>
+              <table className="w-full text-xs border">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border px-2 py-1">&nbsp;</th>
+                    <th className="border px-2 py-1">Shp</th>
+                    <th className="border px-2 py-1">Cyl</th>
+                    <th className="border px-2 py-1">Axis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border px-2 py-1">Distance</td>
+                    <td className="border px-2 py-1"><input value={form.osDistanceSphere} onChange={e => setForm({...form, osDistanceSphere: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.osDistanceCylinder} onChange={e => setForm({...form, osDistanceCylinder: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.osDistanceAxis} onChange={e => setForm({...form, osDistanceAxis: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                  <tr>
+                    <td className="border px-2 py-1">Near</td>
+                    <td className="border px-2 py-1"><input value={form.osNearSphere} onChange={e => setForm({...form, osNearSphere: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.osNearCylinder} onChange={e => setForm({...form, osNearCylinder: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.osNearAxis} onChange={e => setForm({...form, osNearAxis: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                  <tr>
+                    <td className="border px-2 py-1">Add</td>
+                    <td className="border px-2 py-1"><input value={form.osAddSphere} onChange={e => setForm({...form, osAddSphere: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.osAddCylinder} onChange={e => setForm({...form, osAddCylinder: e.target.value})} className="input input-xs w-full" /></td>
+                    <td className="border px-2 py-1"><input value={form.osAddAxis} onChange={e => setForm({...form, osAddAxis: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                  <tr>
+                    <td className="border px-2 py-1">PD</td>
+                    <td className="border px-2 py-1" colSpan={3}><input value={form.osPd} onChange={e => setForm({...form, osPd: e.target.value})} className="input input-xs w-full" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div>
             <label className="label">Prescription Photo (Optional)</label>
