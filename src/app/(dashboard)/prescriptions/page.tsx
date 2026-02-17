@@ -20,8 +20,27 @@ export default async function PrescriptionsPage() {
     prescribedBy: p.prescribedBy ?? "",
     prescriptionDate: p.prescriptionDate,
     expiryDate: p.expiryDate ?? "",
-    odSphere: p.odSphere, odCylinder: p.odCylinder, odAxis: p.odAxis, odAdd: p.odAdd,
-    osSphere: p.osSphere, osCylinder: p.osCylinder, osAxis: p.osAxis, osAdd: p.osAdd,
+    // Map to actual database field names that exist
+    odDistanceSphere: p.odSphere,
+    odDistanceCylinder: p.odCylinder,
+    odDistanceAxis: p.odAxis,
+    odNearSphere: null, // These fields don't exist yet in DB
+    odNearCylinder: null,
+    odNearAxis: null,
+    odAddSphere: null,
+    odAddCylinder: null,
+    odAddAxis: null,
+    odPd: null,
+    osDistanceSphere: p.osSphere,
+    osDistanceCylinder: p.osCylinder,
+    osDistanceAxis: p.osAxis,
+    osNearSphere: null,
+    osNearCylinder: null,
+    osNearAxis: null,
+    osAddSphere: null,
+    osAddCylinder: null,
+    osAddAxis: null,
+    osPd: null,
   }));
 
   const custList = customers.map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName ?? ""}`.trim(), no: c.customerNo }));
