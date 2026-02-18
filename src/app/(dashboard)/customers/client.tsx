@@ -39,9 +39,10 @@ interface Customer {
   latestRx: RxData | null; sales: SaleRecord[];
 }
 
-type ColumnKey = "whatsapp" | "email" | "city" | "country" | "odRx" | "osRx" | "purchases" | "totalSpent";
+type ColumnKey = "phone" | "whatsapp" | "email" | "city" | "country" | "odRx" | "osRx" | "purchases" | "totalSpent";
 
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
+  { key: "phone", label: "Phone" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "email", label: "Email" },
   { key: "city", label: "City" },
@@ -52,7 +53,7 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "totalSpent", label: "Total Spent" },
 ];
 
-const DEFAULT_COLUMNS: ColumnKey[] = ["whatsapp", "city", "odRx", "osRx", "purchases", "totalSpent"];
+const DEFAULT_COLUMNS: ColumnKey[] = ["phone", "whatsapp", "city", "purchases", "totalSpent"];
 
 function getInitialColumns(settings: Record<string, string>): ColumnKey[] {
   const raw = settings["customer_visible_columns"];
@@ -169,6 +170,7 @@ export default function CustomersClient({ customers, settings }: { customers: Cu
               <tr className="table-header">
                 <th className="px-3 py-3 w-8"></th>
                 <th className="px-4 py-3 text-left">Customer</th>
+                {isCol("phone") && <th className="px-4 py-3 text-left">Phone</th>}
                 {isCol("whatsapp") && <th className="px-4 py-3 text-left">WhatsApp</th>}
                 {isCol("email") && <th className="px-4 py-3 text-left">Email</th>}
                 {isCol("city") && <th className="px-4 py-3 text-left">City</th>}
@@ -238,6 +240,14 @@ function CustomerRow({ customer: c, visibleCols, colCount, onEdit, onDelete, onV
             </div>
           </div>
         </td>
+        {/* Phone */}
+        {isCol("phone") && (
+          <td className="px-4 py-3 text-sm text-gray-600">
+            {c.phone ? (
+              <span className="flex items-center gap-1.5"><Phone size={13} className="text-gray-400" />{c.phone}</span>
+            ) : "—"}
+          </td>
+        )}
         {/* WhatsApp */}
         {isCol("whatsapp") && (
           <td className="px-4 py-3 text-sm">
