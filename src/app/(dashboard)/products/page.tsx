@@ -37,6 +37,7 @@ export default async function ProductsPage() {
     description: p.description ?? "",
     colors: p.colors ?? "",
     colorVariants: p.colorVariants ? JSON.parse(p.colorVariants) : [],
+    openingBalance: p.openingBalance,
     isActive: p.isActive,
   }));
 
