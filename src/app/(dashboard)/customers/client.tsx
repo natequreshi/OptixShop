@@ -34,7 +34,7 @@ interface Customer {
   id: string; customerNo: string; firstName: string; lastName: string;
   phone: string; whatsapp: string; email: string; city: string;
   country: string; gender: string; address: string; state: string;
-  loyaltyPoints: number; totalPurchases: number; salesCount: number;
+  totalPurchases: number; salesCount: number;
   rxCount: number; isActive: boolean;
   latestRx: RxData | null; sales: SaleRecord[];
 }

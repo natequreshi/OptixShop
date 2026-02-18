@@ -6,11 +6,24 @@ export const dynamic = "force-dynamic";
 export default async function CustomersPage() {
   const customers = await prisma.customer.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
+    select: {
+      id: true, customerNo: true, firstName: true, lastName: true,
+      phone: true, whatsapp: true, email: true, city: true, country: true,
+      gender: true, address: true, state: true, totalPurchases: true, isActive: true,
       _count: { select: { sales: true, prescriptions: true } },
       prescriptions: {
         orderBy: { createdAt: "desc" },
         take: 1,
+        select: {
+          prescriptionNo: true, prescriptionDate: true,
+          odDistanceSphere: true, odDistanceCylinder: true, odDistanceAxis: true,
+          osDistanceSphere: true, osDistanceCylinder: true, osDistanceAxis: true,
+          odNearSphere: true, odNearCylinder: true, odNearAxis: true,
+          osNearSphere: true, osNearCylinder: true, osNearAxis: true,
+          odAddSphere: true, odAddCylinder: true, odAddAxis: true,
+          osAddSphere: true, osAddCylinder: true, osAddAxis: true,
+          odPd: true, osPd: true,
+        },
       },
     },
   });
@@ -34,7 +47,6 @@ export default async function CustomersPage() {
       gender: c.gender ?? "",
       address: c.address ?? "",
       state: c.state ?? "",
-      loyaltyPoints: c.loyaltyPoints,
       totalPurchases: c.totalPurchases,
       salesCount: c._count.sales,
       rxCount: c._count.prescriptions,

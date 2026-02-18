@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface Props {
   stats: { totalRevenue: number; totalTax: number; totalSales: number; avgTicket: number };
   monthlySales: { month: string; revenue: number; tax: number; count: number }[];
-  topCustomers: { name: string; totalPurchases: number; loyaltyPoints: number }[];
+  topCustomers: { name: string; totalPurchases: number }[];
   typeDistribution: { type: string; count: number }[];
 }
 
@@ -101,7 +101,7 @@ export default function ReportsClient({ stats, monthlySales, topCustomers, typeD
         <table className="w-full">
           <thead><tr className="table-header">
             <th className="px-4 py-3">#</th><th className="px-4 py-3">Customer</th>
-            <th className="px-4 py-3 text-right">Total Purchases</th><th className="px-4 py-3 text-center">Loyalty Points</th>
+            <th className="px-4 py-3 text-right">Total Purchases</th>
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
             {topCustomers.map((c, i) => (
@@ -109,9 +109,6 @@ export default function ReportsClient({ stats, monthlySales, topCustomers, typeD
                 <td className="px-4 py-3 text-sm text-gray-400">{i + 1}</td>
                 <td className="px-4 py-3 text-sm font-medium text-gray-800">{c.name}</td>
                 <td className="px-4 py-3 text-sm text-right font-semibold">{formatCurrency(c.totalPurchases)}</td>
-                <td className="px-4 py-3 text-sm text-center">
-                  <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs">{c.loyaltyPoints} pts</span>
-                </td>
               </tr>
             ))}
           </tbody>

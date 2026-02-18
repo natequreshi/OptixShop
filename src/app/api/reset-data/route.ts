@@ -9,9 +9,6 @@ export async function POST() {
     await prisma.return.deleteMany({});
     await prisma.sale.deleteMany({});
     await prisma.prescription.deleteMany({});
-    await prisma.labOrder.deleteMany({});
-    await prisma.grnItem.deleteMany({});
-    await prisma.goodsReceiptNote.deleteMany({});
     await prisma.purchaseInvoiceItem.deleteMany({});
     await prisma.purchaseInvoice.deleteMany({});
     await prisma.purchaseOrderItem.deleteMany({});
@@ -28,7 +25,6 @@ export async function POST() {
     await prisma.customer.deleteMany({});
     await prisma.vendor.deleteMany({});
     await prisma.expense.deleteMany({});
-    await prisma.loyaltyTransaction.deleteMany({});
 
     // ── Categories ──
     const catFrames = await prisma.productCategory.create({ data: { name: "Frames", isActive: true } });
@@ -105,7 +101,7 @@ export async function POST() {
         email: "nasir.qureshi@example.com", address: "Block 15, Gulistan-e-Johar",
         city: "Karachi", state: "Sindh", country: "Pakistan",
         gender: "male", dateOfBirth: "1985-05-15",
-        isActive: true, loyaltyPoints: 250, totalPurchases: 0,
+        isActive: true, totalPurchases: 0,
       },
     });
     const cust2 = await prisma.customer.create({
@@ -115,7 +111,7 @@ export async function POST() {
         email: "ayesha.khan@example.com", address: "House 42, F-8/3",
         city: "Islamabad", state: "ICT", country: "Pakistan",
         gender: "female", dateOfBirth: "1992-08-22",
-        isActive: true, loyaltyPoints: 120, totalPurchases: 0,
+        isActive: true, totalPurchases: 0,
       },
     });
     const cust3 = await prisma.customer.create({
@@ -125,7 +121,7 @@ export async function POST() {
         email: "bilal.ahmed@example.com", address: "44-A, Model Town",
         city: "Lahore", state: "Punjab", country: "Pakistan",
         gender: "male", dateOfBirth: "1978-11-03",
-        isActive: true, loyaltyPoints: 80, totalPurchases: 0,
+        isActive: true, totalPurchases: 0,
       },
     });
     const cust4 = await prisma.customer.create({
@@ -135,7 +131,7 @@ export async function POST() {
         email: "fatima.rizvi@example.com", address: "Plot 12, Cantt Area",
         city: "Peshawar", state: "KPK", country: "Pakistan",
         gender: "female", dateOfBirth: "1995-03-10",
-        isActive: true, loyaltyPoints: 50, totalPurchases: 0,
+        isActive: true, totalPurchases: 0,
       },
     });
     const cust5 = await prisma.customer.create({
@@ -145,7 +141,7 @@ export async function POST() {
         address: "House 7, Satellite Town",
         city: "Quetta", state: "Balochistan", country: "Pakistan",
         gender: "male", dateOfBirth: "1988-07-19",
-        isActive: true, loyaltyPoints: 0, totalPurchases: 0,
+        isActive: true, totalPurchases: 0,
       },
     });
 

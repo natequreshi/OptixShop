@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Settings, Store, Receipt, Shield,
-  CreditCard, Tag, Save, Palette, Globe, FileText, Award,
+  CreditCard, Tag, Save, Palette, Globe, FileText,
   MessageCircle, Users, Phone, Send, Key, Link, PenTool,
   Layout, Type, Grid, AlignLeft, AlignCenter, AlignRight,
   MapPin, Eye, EyeOff, Coins, Calendar,
@@ -12,12 +12,11 @@ import {
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "tax" | "loyalty" | "modules" | "receipt" | "pos" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment" | "events";
+type Tab = "general" | "tax" | "modules" | "receipt" | "pos" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment" | "events";
 
 const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "general", label: "General", icon: Store },
   { key: "tax", label: "Tax & GST", icon: Receipt },
-  { key: "loyalty", label: "Loyalty Program", icon: Award },
   { key: "payment", label: "Payment Gateway", icon: CreditCard },
   { key: "modules", label: "Modules", icon: Shield },
   { key: "pos", label: "POS Settings", icon: Coins },
@@ -39,7 +38,6 @@ const CUSTOMER_COLUMN_OPTIONS = [
   { key: "osRx", label: "OS (Rx)" },
   { key: "purchases", label: "Purchases" },
   { key: "totalSpent", label: "Total Spent" },
-  { key: "loyalty", label: "Loyalty Points" },
 ];
 
 export default function SettingsClient({ settings }: { settings: Record<string, string> }) {
@@ -153,21 +151,6 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
             </>
           )}
 
-          {tab === "loyalty" && (
-            <>
-              <SectionTitle icon={Award} title="Loyalty Program" />
-              <Toggle label="Enable Loyalty Points" checked={val("loyalty_enabled", "false") === "true"} onToggle={() => toggle("loyalty_enabled")} desc="Customers earn points on purchases" />
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Points per 100 spent" value={val("loyalty_points_per_100", "1")} onChange={(v) => set("loyalty_points_per_100", v)} type="number" />
-                <Field label="Point Value (Rs.)" value={val("loyalty_point_value", "1")} onChange={(v) => set("loyalty_point_value", v)} type="number" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Min Points to Redeem" value={val("loyalty_min_redeem", "100")} onChange={(v) => set("loyalty_min_redeem", v)} type="number" />
-                <Field label="Max Discount (%)" value={val("loyalty_max_discount_pct", "10")} onChange={(v) => set("loyalty_max_discount_pct", v)} type="number" />
-              </div>
-            </>
-          )}
-
           {tab === "payment" && (
             <>
               <SectionTitle icon={CreditCard} title="Payment Gateway Settings" />
@@ -212,11 +195,7 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Toggle label="POS (Point of Sale)" checked={val("module_pos", "true") === "true"} onToggle={() => toggle("module_pos")} />
               <Toggle label="Inventory Management" checked={val("module_inventory", "true") === "true"} onToggle={() => toggle("module_inventory")} />
               <Toggle label="Prescriptions" checked={val("module_prescriptions", "true") === "true"} onToggle={() => toggle("module_prescriptions")} />
-              <Toggle label="Vendors" checked={val("module_vendors", "true") === "true"} onToggle={() => toggle("module_vendors")} />
-              <Toggle label="Purchase Orders" checked={val("module_purchase_orders", "true") === "true"} onToggle={() => toggle("module_purchase_orders")} />
-              <Toggle label="Goods Receipt Notes (GRN)" checked={val("module_grn", "true") === "true"} onToggle={() => toggle("module_grn")} />
-              <Toggle label="Purchase Invoices" checked={val("module_purchase_invoices", "true") === "true"} onToggle={() => toggle("module_purchase_invoices")} />
-              <Toggle label="Lab Orders" checked={val("module_lab_orders", "true") === "true"} onToggle={() => toggle("module_lab_orders")} />
+              <Toggle label="Vendors & Purchasing" checked={val("module_vendors", "true") === "true"} onToggle={() => toggle("module_vendors")} desc="Vendors, Purchase Orders, Purchase Invoices" />
               <Toggle label="Accounting" checked={val("module_accounting", "true") === "true"} onToggle={() => toggle("module_accounting")} />
               <Toggle label="Reports" checked={val("module_reports", "true") === "true"} onToggle={() => toggle("module_reports")} />
               <Toggle label="Cash Register" checked={val("module_register", "true") === "true"} onToggle={() => toggle("module_register")} />
@@ -409,7 +388,7 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <SectionTitle icon={Users} title="Customer Table Columns" />
               <p className="text-sm text-gray-500 mb-4">Choose which columns are visible by default in the Customers table.</p>
               {CUSTOMER_COLUMN_OPTIONS.map((col) => {
-                const colsRaw = val("customer_visible_columns", '["phone","whatsapp","city","odRx","osRx","purchases","totalSpent","loyalty"]');
+                const colsRaw = val("customer_visible_columns", '["phone","whatsapp","city","purchases","totalSpent"]');
                 let cols: string[] = [];
                 try { cols = JSON.parse(colsRaw); } catch { cols = []; }
                 const checked = cols.includes(col.key);

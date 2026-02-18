@@ -8,7 +8,6 @@ import {
   Users,
   Package,
   AlertTriangle,
-  Microscope,
   TrendingUp,
   TrendingDown,
   ArrowUpRight,
@@ -87,7 +86,6 @@ interface Props {
     monthSalesCount: number;
     monthSalesAmount: number;
     lowStockCount: number;
-    pendingLabOrders: number;
     totalSales: number;
     netSales: number;
     invoiceDue: number;

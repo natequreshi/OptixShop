@@ -102,6 +102,10 @@ model Product {
   saleItems          SaleItem[]
   sunglassesAttrs    SunglassesAttribute?
 
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([isActive])
+  @@index([productType])
   @@map("products")
 }
 
@@ -300,6 +304,8 @@ model PurchaseOrder {
   createdBy        User?               @relation(fields: [createdById], references: [id])
   vendor           Vendor              @relation(fields: [vendorId], references: [id])
 
+  @@index([vendorId])
+  @@index([status])
   @@map("purchase_orders")
 }
 
@@ -384,6 +390,8 @@ model PurchaseInvoice {
   po              PurchaseOrder?        @relation(fields: [poId], references: [id])
   vendor          Vendor                @relation(fields: [vendorId], references: [id])
 
+  @@index([vendorId])
+  @@index([status])
   @@map("purchase_invoices")
 }
 
@@ -442,6 +450,9 @@ model Sale {
 
   @@index([customerId])
   @@index([customerId, createdAt(sort: Desc)])
+  @@index([saleDate])
+  @@index([status])
+  @@index([paymentStatus])
   @@map("sales")
 }
 
@@ -687,6 +698,8 @@ model Expense {
   updatedAt     DateTime @updatedAt @map("updated_at")
   createdBy     User?    @relation("expenseCreator", fields: [createdById], references: [id])
 
+  @@index([expenseDate])
+  @@index([category])
   @@map("expenses")
 }
 

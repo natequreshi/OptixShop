@@ -6,11 +6,15 @@ export const dynamic = "force-dynamic";
 export default async function ProductsPage() {
   const [products, categories, brands] = await Promise.all([
     prisma.product.findMany({
-      include: {
-        category: true,
-        brand: true,
-        inventory: true,
-        saleItems: { select: { quantity: true } },
+      select: {
+        id: true, sku: true, name: true, productType: true,
+        categoryId: true, brandId: true, costPrice: true, sellingPrice: true,
+        mrp: true, taxRate: true, imageUrl: true, description: true,
+        colorVariants: true, openingBalance: true, isActive: true,
+        category: { select: { name: true } },
+        brand: { select: { name: true } },
+        inventory: { select: { quantity: true } },
+        _count: { select: { saleItems: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -32,7 +36,7 @@ export default async function ProductsPage() {
     mrp: p.mrp,
     taxRate: p.taxRate,
     stock: p.inventory?.quantity ?? 0,
-    sold: p.saleItems.reduce((sum, item) => sum + item.quantity, 0),
+    sold: p._count.saleItems,
     imageUrl: p.imageUrl ?? "",
     description: p.description ?? "",
     colorVariants: p.colorVariants ? JSON.parse(p.colorVariants) : [],

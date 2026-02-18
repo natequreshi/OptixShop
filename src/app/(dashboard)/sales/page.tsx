@@ -5,11 +5,16 @@ export const dynamic = "force-dynamic";
 
 export default async function SalesPage() {
   const sales = await prisma.sale.findMany({
-    include: {
-      customer: true,
-      cashier: true,
-      items: { include: { product: true } },
-      payments: true,
+    take: 200,
+    select: {
+      id: true, invoiceNo: true, saleDate: true, subtotal: true,
+      discountAmount: true, taxAmount: true, totalAmount: true,
+      paidAmount: true, balanceAmount: true, status: true,
+      paymentStatus: true, customerId: true, notes: true,
+      customer: { select: { firstName: true, lastName: true } },
+      cashier: { select: { fullName: true } },
+      items: { select: { quantity: true, unitPrice: true, discountAmount: true, taxAmount: true, total: true, product: { select: { name: true } } } },
+      payments: { select: { paymentMethod: true } },
     },
     orderBy: { createdAt: "desc" },
   });

@@ -7,7 +7,7 @@ import { formatCurrency, formatDate, cn } from "@/lib/utils";
 interface PO {
   id: string; poNumber: string; vendorName: string; orderDate: string;
   expectedDelivery: string; totalAmount: number; status: string;
-  itemCount: number; grnCount: number;
+  itemCount: number;
 }
 
 const statusColors: Record<string, string> = {
@@ -54,7 +54,7 @@ export default function POClient({ purchaseOrders, vendors }: { purchaseOrders: 
               <th className="px-4 py-3">PO Number</th><th className="px-4 py-3">Vendor</th>
               <th className="px-4 py-3">Order Date</th><th className="px-4 py-3">Expected</th>
               <th className="px-4 py-3 text-center">Items</th><th className="px-4 py-3 text-right">Total</th>
-              <th className="px-4 py-3 text-center">Status</th><th className="px-4 py-3 text-center">GRNs</th>
+              <th className="px-4 py-3 text-center">Status</th>
             </tr></thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((po) => (
@@ -68,10 +68,9 @@ export default function POClient({ purchaseOrders, vendors }: { purchaseOrders: 
                   <td className="px-4 py-3 text-center">
                     <span className={cn("text-xs px-2 py-1 rounded-full font-medium", statusColors[po.status] ?? "bg-gray-100 text-gray-600")}>{po.status}</span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-center text-gray-600">{po.grnCount}</td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-gray-400">No purchase orders found</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-gray-400">No purchase orders found</td></tr>}
             </tbody>
           </table>
         </div>

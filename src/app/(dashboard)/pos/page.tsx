@@ -30,7 +30,7 @@ interface CartItem extends Product {
 
 interface Customer {
   id: string; customerNo: string; firstName: string; lastName: string;
-  phone: string; loyaltyPoints: number;
+  phone: string;
 }
 
 function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: (p: Product, variantIdx?: number) => void }) {

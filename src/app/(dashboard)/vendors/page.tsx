@@ -7,15 +7,29 @@ export default async function VendorsPage() {
   const [vendors, purchaseOrders, products] = await Promise.all([
     prisma.vendor.findMany({
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { purchaseOrders: true, purchaseInvoices: true } } },
+      select: {
+        id: true, vendorCode: true, companyName: true, contactPerson: true,
+        phone: true, email: true, city: true, paymentTerms: true, creditDays: true, isActive: true,
+        _count: { select: { purchaseOrders: true, purchaseInvoices: true } },
+      },
     }),
     prisma.purchaseOrder.findMany({
+      take: 100,
       orderBy: { createdAt: "desc" },
-      include: { vendor: true },
+      select: {
+        id: true, poNumber: true, vendorId: true, totalAmount: true,
+        status: true, notes: true, createdAt: true,
+        vendor: { select: { companyName: true } },
+      },
     }),
     prisma.product.findMany({
+      where: { isActive: true },
       orderBy: { name: "asc" },
-      include: { category: true, brand: true },
+      select: {
+        id: true, name: true, sku: true, costPrice: true, sellingPrice: true,
+        category: { select: { name: true } },
+        brand: { select: { name: true } },
+      },
     }),
   ]);
 
