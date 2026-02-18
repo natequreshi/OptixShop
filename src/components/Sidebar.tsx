@@ -19,22 +19,35 @@ import {
   BarChart3,
   CreditCard,
   ChevronLeft,
+  ChevronDown,
   Glasses,
   Settings,
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+interface NavItem {
+  href: string;
+  icon: any;
+  label: string;
+  module: string | null;
+  children?: { href: string; label: string }[];
+}
+
+const navItems: NavItem[] = [
   { href: "/dashboard",          icon: LayoutDashboard, label: "Dashboard", module: null },
   { href: "/pos",                icon: ShoppingCart,    label: "POS", module: "module_pos" },
   { href: "/products",           icon: Package,         label: "Products", module: null },
   { href: "/inventory",          icon: Boxes,           label: "Inventory", module: "module_inventory" },
   { href: "/customers",          icon: Users,           label: "Customers", module: null },
   { href: "/prescriptions",      icon: FileText,        label: "Prescriptions", module: "module_prescriptions" },
-  { href: "/vendors",            icon: Truck,           label: "Vendors", module: "module_vendors" },
-  { href: "/purchase-orders",    icon: ClipboardList,   label: "Purchase Orders", module: "module_purchase_orders" },
-  { href: "/purchase-invoices",  icon: Receipt,         label: "Purchase Invoices", module: "module_purchase_invoices" },
+  { href: "/vendors",            icon: Truck,           label: "Vendors", module: "module_vendors",
+    children: [
+      { href: "/vendors", label: "All Vendors" },
+      { href: "/purchase-orders", label: "Purchase Orders" },
+      { href: "/purchase-invoices", label: "Purchase Invoices" },
+    ],
+  },
   { href: "/sales",              icon: DollarSign,      label: "Sales", module: null },
   { href: "/expenses",           icon: Wallet,          label: "Expenses", module: null },
   { href: "/accounting",         icon: BookOpen,        label: "Accounting", module: "module_accounting" },
@@ -55,6 +68,23 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const [visibleNavItems, setVisibleNavItems] = useState(navItems);
   const [storeName, setStoreName] = useState("OptixShop");
   const [logoUrl, setLogoUrl] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const vendorPaths = ["/vendors", "/purchase-orders", "/purchase-invoices"];
+    if (vendorPaths.some(p => pathname.startsWith(p))) {
+      setExpandedGroups(new Set(["Vendors"]));
+    }
+  }, [pathname]);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -70,7 +100,6 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         if (settings.store_name) setStoreName(settings.store_name);
         if (settings.logo_url) setLogoUrl(settings.logo_url);
         
-        // Build visible nav items array - only include enabled modules
         const visible = navItems.filter(item => {
           if (!item.module) return true;
           const moduleValue = modules[item.module];
@@ -118,6 +147,51 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
         {visibleNavItems.map((item) => {
+          if (item.children && !collapsed) {
+            const isGroupActive = item.children.some(c => pathname === c.href || pathname.startsWith(c.href + "/"));
+            const isExpanded = expandedGroups.has(item.label);
+            return (
+              <div key={item.label}>
+                <button
+                  onClick={() => toggleGroup(item.label)}
+                  title={item.label}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    isGroupActive
+                      ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white"
+                  )}
+                >
+                  <item.icon size={20} className={cn("flex-shrink-0", isGroupActive && "text-primary-600 dark:text-primary-400")} />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  <ChevronDown size={14} className={cn("transition-transform", isExpanded ? "rotate-0" : "-rotate-90")} />
+                </button>
+                {isExpanded && (
+                  <div className="ml-8 mt-0.5 space-y-0.5">
+                    {item.children.map((child) => {
+                      const childActive = pathname === child.href;
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => onClose?.()}
+                          className={cn(
+                            "block px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                            childActive
+                              ? "text-primary-700 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/10"
+                              : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                          )}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           const active = pathname === item.href;
           return (
             <Link

@@ -311,16 +311,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" title="Calendar">
             <Calendar size={20} />
           </button>
-          {showCalendar && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Calendar</h3>
-              </div>
-              <div className="p-4">
-                <input type="date" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
-              </div>
-            </div>
-          )}
+          {showCalendar && <CalendarDropdown />}
         </div>
         
         {/* Calculator */}
@@ -816,5 +807,57 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <PrintInvoiceModal sale={printingSale} onClose={() => setPrintingSale(null)} />
       )}
     </header>
+  );
+}
+
+function CalendarDropdown() {
+  const [viewDate, setViewDate] = useState(new Date());
+  const today = new Date();
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const isToday = (d: number) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+  return (
+    <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+      <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">&lt;</button>
+        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+          {viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+        </span>
+        <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">&gt;</button>
+      </div>
+      <div className="p-3">
+        <div className="grid grid-cols-7 gap-0.5 mb-1">
+          {dayNames.map((d) => (
+            <div key={d} className="text-center text-[10px] font-semibold text-gray-400 dark:text-gray-500 py-1">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-0.5">
+          {cells.map((d, i) => (
+            <div key={i} className={cn(
+              "text-center text-xs py-1.5 rounded-md",
+              d === null ? "" : "text-gray-700 dark:text-gray-300",
+              d !== null && isToday(d) && "bg-purple-600 text-white font-bold",
+            )}>
+              {d ?? ""}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="px-3 pb-3 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {today.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+        </p>
+      </div>
+    </div>
   );
 }
