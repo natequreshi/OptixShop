@@ -7,7 +7,7 @@ import {
   CreditCard, Tag, Save, Palette, Globe, FileText,
   MessageCircle, Users, Phone, Send, Key, Link, PenTool,
   Layout, Type, Grid, AlignLeft, AlignCenter, AlignRight,
-  MapPin, Eye, EyeOff, Coins, Calendar,
+  MapPin, Eye, EyeOff, Coins, Calendar, Database, AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -204,6 +204,8 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
                 <h4 className="text-sm font-semibold text-gray-800 mb-3">Product Settings</h4>
                 <Toggle label="Product Color Variations" checked={val("product_variations_enabled", "true") === "true"} onToggle={() => toggle("product_variations_enabled")} desc="Allow adding color/image variants to products" />
               </div>
+
+              <DemoDataSection />
             </>
           )}
 
@@ -504,6 +506,70 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DemoDataSection() {
+  const [loading, setLoading] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const router = useRouter();
+
+  async function handleLoad() {
+    if (!confirm) { setConfirm(true); return; }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/reset-data", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to load demo data");
+      toast.success("Demo data loaded successfully!");
+      setConfirm(false);
+      router.refresh();
+    } catch {
+      toast.error("Failed to load demo data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 pt-6 border-t border-gray-200">
+      <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <Database size={16} /> Demo Data
+      </h4>
+      <p className="text-xs text-gray-500 mb-3">
+        Load sample Pakistan-based customers, products, sales, and other records for testing purposes.
+      </p>
+      {confirm && (
+        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3">
+          <AlertTriangle size={16} className="text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800">
+            This will <strong>delete all existing data</strong> and replace it with demo records. Are you sure?
+          </p>
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button
+          onClick={handleLoad}
+          disabled={loading}
+          className={cn(
+            "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+            confirm
+              ? "bg-red-600 text-white hover:bg-red-700"
+              : "bg-gray-800 text-white hover:bg-gray-900",
+            loading && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          {loading ? "Loading..." : confirm ? "Yes, Replace All Data" : "Load Demo Data"}
+        </button>
+        {confirm && (
+          <button
+            onClick={() => setConfirm(false)}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+          >
+            Cancel
+          </button>
+        )}
       </div>
     </div>
   );
