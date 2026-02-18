@@ -693,8 +693,9 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
               <input type="number" step="0.01" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: +e.target.value })} className="input" />
             </div>
             <div>
-              <label className="label">Opening Balance</label>
-              <input type="number" step="1" value={form.openingBalance} onChange={(e) => setForm({ ...form, openingBalance: +e.target.value })} className="input" />
+              <label className="label">Opening Stock</label>
+              <input type="number" step="1" min="0" value={form.openingBalance} onChange={(e) => setForm({ ...form, openingBalance: +e.target.value })} className="input" placeholder="Initial inventory qty" />
+              <p className="text-xs text-gray-400 mt-1">Initial inventory quantity when adding this product</p>
             </div>
           </div>
           {taxEnabled && (
