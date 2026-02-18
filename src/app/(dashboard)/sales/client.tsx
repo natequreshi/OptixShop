@@ -706,84 +706,87 @@ function InvoiceTemplate({ sale, template, taxEnabled, settings }: { sale: Sale;
 
 /* ── Create Sale Modal ─────────────────── */
 function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const router = useRouter();
-  const [products, setProducts] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  
-  const [form, setForm] = useState({
-    customerId: "",
-    items: [{ productId: "", quantity: 1, unitPrice: 0, discount: 0 }],
-    paymentMethod: "cash",
-    paymentStatus: "paid",
-    amountTendered: 0,
-    transactionId: "",
-    globalDiscount: 0,
-    notes: "",
-  });
-  
-  const [productSearch, setProductSearch] = useState<string[]>(form.items.map(() => ""));
-  const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
+  const [customerId, setCustomerId] = useState("");
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [showCustDropdown, setShowCustDropdown] = useState(false);
+  const [selectedCustomerName, setSelectedCustomerName] = useState("Walk-in Customer");
+
+  const [productQuery, setProductQuery] = useState("");
+  const [productResults, setProductResults] = useState<any[]>([]);
+  const [showProdDropdown, setShowProdDropdown] = useState(false);
+  const [searchTimer, setSearchTimer] = useState<any>(null);
+
+  const [cart, setCart] = useState<{ id: string; name: string; sku: string; qty: number; price: number; taxRate: number }[]>([]);
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
   const [discountValue, setDiscountValue] = useState(0);
-  const [customerSales, setCustomerSales] = useState<any[]>([]);
-  const [showCustomerSales, setShowCustomerSales] = useState(false);
-  
+
   const [showNewCustomer, setShowNewCustomer] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({
-    firstName: "", lastName: "", email: "", phone: "", whatsapp: "",
-    address: "", city: "", country: "",
-    rxOd: "", rxOs: "", rxPd: "", rxAdd: ""
-  });
+  const [newCustomer, setNewCustomer] = useState({ firstName: "", lastName: "", phone: "", whatsapp: "", city: "" });
 
+  // Customer search
   useEffect(() => {
-    fetch("/api/products").then(r => r.json()).then(setProducts);
-    fetch("/api/customers").then(r => r.json()).then(setCustomers);
-  }, []);
+    if (!customerQuery || customerQuery.length < 2) { setCustomerResults([]); return; }
+    fetch("/api/customers").then(r => r.json()).then((custs: any[]) => {
+      const q = customerQuery.toLowerCase();
+      setCustomerResults(
+        custs.filter((c: any) =>
+          `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
+          (c.phone && c.phone.includes(q))
+        ).slice(0, 8)
+      );
+    });
+  }, [customerQuery]);
 
-  const addItem = () => {
-    setForm({...form, items: [...form.items, { productId: "", quantity: 1, unitPrice: 0, discount: 0 }]});
-    setProductSearch([...productSearch, ""]);
-  };
+  // Product search (debounced API call)
+  function searchProducts(q: string) {
+    if (searchTimer) clearTimeout(searchTimer);
+    if (!q || q.length < 2) { setProductResults([]); setShowProdDropdown(false); return; }
+    const timer = setTimeout(() => {
+      fetch(`/api/products?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => { setProductResults(data); setShowProdDropdown(true); });
+    }, 250);
+    setSearchTimer(timer);
+  }
 
-  const removeItem = (index: number) => {
-    setForm({...form, items: form.items.filter((_, i) => i !== index)});
-    setProductSearch(productSearch.filter((_, i) => i !== index));
-  };
-
-  const updateItem = (index: number, field: string, value: any) => {
-    const items = [...form.items];
-    items[index] = {...items[index], [field]: value};
-    
-    if (field === "productId") {
-      const product = products.find(p => p.id === value);
-      if (product) items[index].unitPrice = product.sellingPrice;
+  function addToCart(product: any) {
+    const existing = cart.find(c => c.id === product.id);
+    if (existing) {
+      setCart(cart.map(c => c.id === product.id ? { ...c, qty: c.qty + 1 } : c));
+    } else {
+      setCart([...cart, {
+        id: product.id, name: product.name, sku: product.sku,
+        qty: 1, price: product.sellingPrice, taxRate: product.taxRate ?? 0,
+      }]);
     }
-    
-    setForm({...form, items});
-  };
+    setProductQuery("");
+    setProductResults([]);
+    setShowProdDropdown(false);
+  }
 
-  const rawSubtotal = form.items.reduce((sum, item) => {
-    const product = products.find(p => p.id === item.productId);
-    if (!product) return sum;
-    return sum + (item.unitPrice * item.quantity) - item.discount;
-  }, 0);
-  
-  const globalDiscountAmount = discountType === 'percent' 
-    ? (rawSubtotal * form.globalDiscount) / 100 
-    : form.globalDiscount;
-  const subtotal = rawSubtotal - globalDiscountAmount;
+  function removeFromCart(id: string) {
+    setCart(cart.filter(c => c.id !== id));
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  function updateCartQty(id: string, qty: number) {
+    if (qty < 1) return;
+    setCart(cart.map(c => c.id === id ? { ...c, qty } : c));
+  }
+
+  const rawTotal = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
+  const discountAmount = discountType === "percent" ? (rawTotal * discountValue) / 100 : discountValue;
+  const total = Math.max(0, rawTotal - discountAmount);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.items.length === 0 || !form.items[0].productId) {
-      return toast.error("Add at least one product");
-    }
-    
+    if (cart.length === 0) return toast.error("Add at least one product");
+
     setLoading(true);
     try {
-      let customerId = form.customerId;
-      
-      // Create new customer if needed
+      let finalCustomerId = customerId;
+
       if (showNewCustomer && newCustomer.firstName && newCustomer.phone) {
         const custRes = await fetch("/api/customers", {
           method: "POST",
@@ -791,45 +794,38 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
           body: JSON.stringify(newCustomer),
         });
         if (custRes.ok) {
-          const createdCustomer = await custRes.json();
-          customerId = createdCustomer.id;
+          finalCustomerId = (await custRes.json()).id;
         } else {
           toast.error("Failed to create customer");
           setLoading(false);
           return;
         }
       }
-      
-      const discountPct = discountType === 'percent' ? form.globalDiscount : (subtotal > 0 ? (form.globalDiscount / subtotal) * 100 : 0);
-      
+
+      const discountPct = discountType === "percent" ? discountValue : (rawTotal > 0 ? (discountValue / rawTotal) * 100 : 0);
+
       const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerId: customerId || null,
-          paymentMethod: form.paymentMethod,
-          paymentStatus: form.paymentStatus,
-          amountTendered: form.amountTendered,
-          transactionId: form.transactionId || undefined,
+          customerId: finalCustomerId || null,
+          paymentMethod: "cash",
+          paymentStatus: "paid",
+          amountTendered: total,
           discountPercent: discountPct,
-          notes: form.notes || null,
-          items: form.items.map(item => {
-            const product = products.find(p => p.id === item.productId);
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              discount: item.discount,
-              taxRate: product?.taxRate || 0,
-            };
-          }),
+          items: cart.map(c => ({
+            productId: c.id,
+            quantity: c.qty,
+            unitPrice: c.price,
+            discount: 0,
+            taxRate: c.taxRate,
+          })),
         }),
       });
-      
+
       if (res.ok) {
-        toast.success("Sale created successfully!");
+        toast.success("Sale created!");
         onCreated();
-        onClose();
       } else {
         toast.error("Failed to create sale");
       }
@@ -837,290 +833,183 @@ function CreateSaleModal({ onClose, onCreated }: { onClose: () => void; onCreate
       toast.error("Error creating sale");
     }
     setLoading(false);
-  };
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-lg font-semibold dark:text-white">Create New Sale</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold dark:text-white">New Sale</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
         </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-          <div className="grid grid-cols-2 gap-4">
+
+        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-130px)]">
+          <div className="p-5 space-y-4">
+            {/* Customer */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="label mb-0">Customer (Optional)</label>
-                <button type="button" onClick={() => setShowNewCustomer(!showNewCustomer)} className="text-xs text-primary-600 hover:text-primary-700 font-medium">
-                  {showNewCustomer ? "Select Existing" : "+ Create New"}
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Customer</label>
+                <button type="button" onClick={() => { setShowNewCustomer(!showNewCustomer); if (!showNewCustomer) { setCustomerId(""); setSelectedCustomerName("Walk-in Customer"); } }}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                  {showNewCustomer ? "Select Existing" : "+ New Customer"}
                 </button>
               </div>
               {!showNewCustomer ? (
-                <div className="relative"
-                  onMouseEnter={() => {
-                    if (form.customerId) {
-                      setShowCustomerSales(true);
-                      fetch(`/api/sales?customerId=${form.customerId}`).then(r => r.json()).then(data => setCustomerSales(Array.isArray(data) ? data.slice(0, 5) : data.sales ? data.sales.slice(0, 5) : []));
-                    }
-                  }}
-                  onMouseLeave={() => setShowCustomerSales(false)}
-                >
-                  <select value={form.customerId} onChange={(e) => { setForm({...form, customerId: e.target.value}); setCustomerSales([]); }} className="input">
-                    <option value="">Walk-in Customer</option>
-                    {customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.firstName} {c.lastName} ({c.phone})</option>
-                    ))}
-                  </select>
-                  {showCustomerSales && form.customerId && customerSales.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-30 p-3">
-                      <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Purchases</p>
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                        {customerSales.map((s: any) => (
-                          <div key={s.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                            <div>
-                              <span className="font-medium text-gray-700 dark:text-gray-300">{s.invoiceNo}</span>
-                              <span className="text-gray-400 ml-2">{new Date(s.saleDate).toLocaleDateString()}</span>
-                            </div>
-                            <span className="font-semibold text-primary-600">{formatCurrency(s.totalAmount)}</span>
-                          </div>
-                        ))}
-                      </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={customerId ? selectedCustomerName : customerQuery}
+                    onChange={(e) => {
+                      setCustomerQuery(e.target.value);
+                      setCustomerId("");
+                      setSelectedCustomerName("Walk-in Customer");
+                      setShowCustDropdown(true);
+                    }}
+                    onFocus={() => { if (!customerId) setShowCustDropdown(true); }}
+                    onBlur={() => setTimeout(() => setShowCustDropdown(false), 200)}
+                    placeholder="Walk-in Customer"
+                    className="input"
+                  />
+                  {customerId && (
+                    <button type="button" onClick={() => { setCustomerId(""); setSelectedCustomerName("Walk-in Customer"); setCustomerQuery(""); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X size={14} />
+                    </button>
+                  )}
+                  {showCustDropdown && customerResults.length > 0 && !customerId && (
+                    <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {customerResults.map((c: any) => (
+                        <button key={c.id} type="button"
+                          onMouseDown={() => {
+                            setCustomerId(c.id);
+                            setSelectedCustomerName(`${c.firstName} ${c.lastName || ""}`.trim());
+                            setCustomerQuery("");
+                            setShowCustDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-primary-50 dark:hover:bg-gray-700 text-sm border-b border-gray-50 dark:border-gray-700 last:border-0">
+                          <span className="font-medium text-gray-800 dark:text-gray-200">{c.firstName} {c.lastName || ""}</span>
+                          {c.phone && <span className="text-xs text-gray-400 ml-2">{c.phone}</span>}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-sm text-primary-700 dark:text-primary-300">
-                  Fill customer details below
+                <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                  <input type="text" value={newCustomer.firstName} onChange={(e) => setNewCustomer({ ...newCustomer, firstName: e.target.value })} className="input text-sm" placeholder="First Name *" required />
+                  <input type="text" value={newCustomer.lastName} onChange={(e) => setNewCustomer({ ...newCustomer, lastName: e.target.value })} className="input text-sm" placeholder="Last Name" />
+                  <input type="tel" value={newCustomer.phone} onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="input text-sm" placeholder="Phone *" required />
+                  <input type="tel" value={newCustomer.whatsapp} onChange={(e) => setNewCustomer({ ...newCustomer, whatsapp: e.target.value })} className="input text-sm" placeholder="WhatsApp" />
+                  <input type="text" value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} className="input text-sm col-span-2" placeholder="City" />
                 </div>
               )}
             </div>
-            
-            <div>
-              <label className="label">Payment Method</label>
-              <select value={form.paymentMethod} onChange={(e) => setForm({...form, paymentMethod: e.target.value})} className="input">
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="easypaisa">Easypaisa</option>
-                <option value="jazzcash">JazzCash</option>
-              </select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            {/* Product Search */}
             <div>
-              <label className="label">Payment Status</label>
-              <select value={form.paymentStatus} onChange={(e) => setForm({...form, paymentStatus: e.target.value})} className="input">
-                <option value="paid">Paid</option>
-                <option value="partial">Partial</option>
-                <option value="unpaid">Unpaid</option>
-              </select>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Add Products</label>
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={productQuery}
+                  onChange={(e) => { setProductQuery(e.target.value); searchProducts(e.target.value); }}
+                  onFocus={() => { if (productResults.length > 0) setShowProdDropdown(true); }}
+                  onBlur={() => setTimeout(() => setShowProdDropdown(false), 200)}
+                  placeholder="Search by name, SKU or barcode..."
+                  className="input pl-9"
+                />
+                {showProdDropdown && productResults.length > 0 && (
+                  <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                    {productResults.map((p: any) => (
+                      <button key={p.id} type="button"
+                        onMouseDown={() => addToCart(p)}
+                        className="w-full text-left px-3 py-2.5 hover:bg-primary-50 dark:hover:bg-gray-700 flex items-center gap-3 text-sm border-b border-gray-50 dark:border-gray-700 last:border-0">
+                        {p.imageUrl ? (
+                          <img src={p.imageUrl} alt="" className="w-9 h-9 rounded object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                            <Package size={14} className="text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{p.name}</p>
+                          <p className="text-xs text-gray-400">{p.sku} &middot; Stock: {p.inventory?.quantity ?? 0}</p>
+                        </div>
+                        <span className="text-sm font-semibold text-primary-600 flex-shrink-0">{formatCurrency(p.sellingPrice)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showProdDropdown && productQuery.length >= 2 && productResults.length === 0 && (
+                  <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-4 text-center text-sm text-gray-400">
+                    No products found
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <div>
-              <label className="label">Amount Tendered</label>
-              <input type="number" value={form.amountTendered} onChange={(e) => setForm({...form, amountTendered: parseFloat(e.target.value) || 0})} className="input" step="0.01" />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Transaction ID (Optional)</label>
-              <input type="text" value={form.transactionId} onChange={(e) => setForm({...form, transactionId: e.target.value})} className="input" placeholder="Enter transaction reference" />
-            </div>
-            <div>
-              <label className="label">Discount</label>
-              <div className="flex gap-1">
-                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                  <button type="button" onClick={() => { setDiscountType('percent'); setDiscountValue(0); setForm({...form, globalDiscount: 0}); }} className={cn("px-3 py-2 text-sm font-medium transition", discountType === 'percent' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700')}>%</button>
-                  <button type="button" onClick={() => { setDiscountType('fixed'); setDiscountValue(0); setForm({...form, globalDiscount: 0}); }} className={cn("px-3 py-2 text-sm font-medium transition", discountType === 'fixed' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700')}>Rs.</button>
-                </div>
-                <input type="number" value={discountValue} onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  setDiscountValue(val);
-                  // globalDiscount will be converted to percent for API
-                  setForm({...form, globalDiscount: val});
-                }} className="input" step="0.1" placeholder="0" />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="label">Notes (Optional)</label>
-            <textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} className="input" rows={2} placeholder="Additional notes"></textarea>
-          </div>
-
-          {showNewCustomer && (
-            <div className="border-t border-b border-gray-200 dark:border-gray-700 py-4 space-y-4">
-              <h3 className="font-semibold text-sm dark:text-white">New Customer Details</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label text-xs">First Name *</label>
-                  <input type="text" value={newCustomer.firstName} onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})} className="input text-sm" placeholder="First Name" required />
-                </div>
-                <div>
-                  <label className="label text-xs">Last Name</label>
-                  <input type="text" value={newCustomer.lastName} onChange={(e) => setNewCustomer({...newCustomer, lastName: e.target.value})} className="input text-sm" placeholder="Last Name" />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label text-xs">Phone *</label>
-                  <input type="tel" value={newCustomer.phone} onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})} className="input text-sm" placeholder="+92-XXX-XXXXXXX" required />
-                </div>
-                <div>
-                  <label className="label text-xs">WhatsApp</label>
-                  <input type="tel" value={newCustomer.whatsapp} onChange={(e) => setNewCustomer({...newCustomer, whatsapp: e.target.value})} className="input text-sm" placeholder="+92-XXX-XXXXXXX" />
-                </div>
-              </div>
-              
-              <div>
-                <label className="label text-xs">Email</label>
-                <input type="email" value={newCustomer.email} onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})} className="input text-sm" placeholder="email@example.com" />
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="label text-xs">Address</label>
-                  <input type="text" value={newCustomer.address} onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})} className="input text-sm" placeholder="Street Address" />
-                </div>
-                <div>
-                  <label className="label text-xs">City</label>
-                  <input type="text" value={newCustomer.city} onChange={(e) => setNewCustomer({...newCustomer, city: e.target.value})} className="input text-sm" placeholder="City" />
-                </div>
-                <div>
-                  <label className="label text-xs">Country</label>
-                  <input type="text" value={newCustomer.country} onChange={(e) => setNewCustomer({...newCustomer, country: e.target.value})} className="input text-sm" placeholder="Pakistan" />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <label className="label text-xs">RX OD</label>
-                  <input type="text" value={newCustomer.rxOd} onChange={(e) => setNewCustomer({...newCustomer, rxOd: e.target.value})} className="input text-sm" placeholder="Right Eye" />
-                </div>
-                <div>
-                  <label className="label text-xs">RX OS</label>
-                  <input type="text" value={newCustomer.rxOs} onChange={(e) => setNewCustomer({...newCustomer, rxOs: e.target.value})} className="input text-sm" placeholder="Left Eye" />
-                </div>
-                <div>
-                  <label className="label text-xs">RX PD</label>
-                  <input type="text" value={newCustomer.rxPd} onChange={(e) => setNewCustomer({...newCustomer, rxPd: e.target.value})} className="input text-sm" placeholder="PD" />
-                </div>
-                <div>
-                  <label className="label text-xs">RX ADD</label>
-                  <input type="text" value={newCustomer.rxAdd} onChange={(e) => setNewCustomer({...newCustomer, rxAdd: e.target.value})} className="input text-sm" placeholder="Addition" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold dark:text-white">
-                Products {products.length > 0 && <span className="text-sm text-gray-500 font-normal">({products.length} available)</span>}
-              </h3>
-              <button type="button" onClick={addItem} className="btn-secondary text-sm flex items-center gap-1">
-                <Plus size={14} /> Add Product
-              </button>
-            </div>
-            
-            {products.length === 0 && (
-              <div className="text-center py-4 text-gray-400 text-sm">
-                Loading products...
+            {/* Cart */}
+            {cart.length > 0 && (
+              <div className="space-y-2">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{item.name}</p>
+                      <p className="text-xs text-gray-400 font-mono">{item.sku}</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button type="button" onClick={() => updateCartQty(item.id, item.qty - 1)}
+                        className="w-7 h-7 rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold hover:bg-gray-300">−</button>
+                      <span className="w-8 text-center text-sm font-semibold">{item.qty}</span>
+                      <button type="button" onClick={() => updateCartQty(item.id, item.qty + 1)}
+                        className="w-7 h-7 rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold hover:bg-gray-300">+</button>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 w-24 text-right">{formatCurrency(item.price * item.qty)}</span>
+                    <button type="button" onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 p-1 flex-shrink-0">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
-            
-            <div className="space-y-3">
-              {form.items.map((item, index) => (
-                <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div className="flex-1 grid grid-cols-4 gap-2">
-                    <div className="col-span-2 relative">
-                      <input
-                        type="text"
-                        value={productSearch[index] || ""}
-                        onChange={(e) => {
-                          const newSearch = [...productSearch];
-                          newSearch[index] = e.target.value;
-                          setProductSearch(newSearch);
-                          // Clear selection if user edits text
-                          if (item.productId) {
-                            const items = [...form.items];
-                            items[index] = { ...items[index], productId: "", unitPrice: 0 };
-                            setForm({ ...form, items });
-                          }
-                        }}
-                        className="input w-full"
-                        placeholder="Search product by name or SKU..."
-                        required={!item.productId}
-                      />
-                      {/* Dropdown results */}
-                      {productSearch[index] && productSearch[index].length > 0 && !item.productId && (
-                        <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                          {products
-                            .filter(p => {
-                              const q = productSearch[index].toLowerCase();
-                              return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
-                            })
-                            .slice(0, 8)
-                            .map((p: any) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => {
-                                  const newSearch = [...productSearch];
-                                  newSearch[index] = `${p.name} (${p.sku})`;
-                                  setProductSearch(newSearch);
-                                  updateItem(index, "productId", p.id);
-                                }}
-                                className="w-full text-left px-3 py-2 hover:bg-primary-50 dark:hover:bg-gray-700 flex items-center gap-3 text-sm border-b border-gray-50 dark:border-gray-700 last:border-0"
-                              >
-                                {p.imageUrl && (
-                                  <img src={p.imageUrl} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{p.name}</p>
-                                  <p className="text-xs text-gray-400">{p.sku} · {formatCurrency(p.sellingPrice)}</p>
-                                </div>
-                              </button>
-                            ))}
-                          {products.filter(p => {
-                            const q = productSearch[index].toLowerCase();
-                            return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
-                          }).length === 0 && (
-                            <div className="px-3 py-4 text-center text-sm text-gray-400">No products found</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <input type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)} className="input" placeholder="Qty" min="1" required />
-                    <input type="number" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", parseFloat(e.target.value) || 0)} className="input" placeholder="Price" step="0.01" required />
-                  </div>
-                  <button type="button" onClick={() => removeItem(index)} className="text-red-500 hover:text-red-700 p-2">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
+
+            {cart.length === 0 && (
+              <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                Search and add products above
+              </div>
+            )}
           </div>
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1">
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(rawSubtotal)}</span></div>
-            {globalDiscountAmount > 0 && <div className="flex justify-between text-sm"><span className="text-gray-500">Discount ({discountType === 'percent' ? `${form.globalDiscount}%` : `Rs. ${form.globalDiscount}`})</span><span className="text-red-600">-{formatCurrency(globalDiscountAmount)}</span></div>}
-            <div className="flex justify-between items-center pt-1 border-t border-gray-200 dark:border-gray-600">
-              <span className="font-semibold dark:text-white">Total:</span>
-              <span className="text-xl font-bold text-primary-600">{formatCurrency(subtotal)}</span>
+          {/* Footer with discount + total */}
+          <div className="border-t border-gray-100 dark:border-gray-700 p-5 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
+            {/* Discount */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 w-16">Discount</span>
+              <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md overflow-hidden flex-shrink-0">
+                <button type="button" onClick={() => { setDiscountType("percent"); setDiscountValue(0); }}
+                  className={cn("px-2.5 py-1.5 text-xs font-medium transition", discountType === "percent" ? "bg-primary-600 text-white" : "text-gray-500")}>%</button>
+                <button type="button" onClick={() => { setDiscountType("fixed"); setDiscountValue(0); }}
+                  className={cn("px-2.5 py-1.5 text-xs font-medium transition", discountType === "fixed" ? "bg-primary-600 text-white" : "text-gray-500")}>Rs.</button>
+              </div>
+              <input type="number" value={discountValue || ""} onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                className="input w-24 text-sm" placeholder="0" min="0" step="0.1" />
+              {discountAmount > 0 && <span className="text-sm text-red-500 ml-auto">−{formatCurrency(discountAmount)}</span>}
             </div>
-          </div>
 
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-            <button type="submit" disabled={loading} className="btn-primary flex-1">
-              {loading ? "Creating..." : "Create Sale"}
-            </button>
+            {/* Total */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
+              <span className="text-base font-semibold text-gray-800 dark:text-white">Total</span>
+              <span className="text-2xl font-bold text-primary-600">{formatCurrency(total)}</span>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+              <button type="submit" disabled={loading || cart.length === 0} className="btn-primary flex-1 disabled:opacity-50">
+                {loading ? "Creating..." : "Create Sale"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

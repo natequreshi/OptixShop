@@ -3,7 +3,30 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const q = searchParams.get("q")?.trim();
+
+  if (q) {
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { sku: { contains: q, mode: "insensitive" } },
+          { barcode: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true, sku: true, barcode: true, name: true,
+        sellingPrice: true, costPrice: true, taxRate: true, imageUrl: true,
+        inventory: { select: { quantity: true } },
+      },
+      take: 10,
+    });
+    return NextResponse.json(products);
+  }
+
   const products = await prisma.product.findMany({
     include: { category: true, brand: true, inventory: true },
     orderBy: { createdAt: "desc" },
