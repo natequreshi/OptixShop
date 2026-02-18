@@ -94,12 +94,12 @@ export default function OpticalGrid({ data = defaultData, onChange, disabled = f
             </tr>
             <tr>
               <th className="bg-gray-50 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-medium text-gray-400"></th>
-              <th className="bg-blue-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center">Sph</th>
-              <th className="bg-blue-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center">Cyl</th>
-              <th className="bg-blue-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center">Axis</th>
-              <th className="bg-green-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center">Sph</th>
-              <th className="bg-green-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center">Cyl</th>
-              <th className="bg-green-50/30 border-b border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center">Axis</th>
+              <th className="bg-blue-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center uppercase">Sph</th>
+              <th className="bg-blue-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center uppercase">Cyl</th>
+              <th className="bg-blue-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center uppercase">Axis</th>
+              <th className="bg-green-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center uppercase">Sph</th>
+              <th className="bg-green-50/30 border-b border-r border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center uppercase">Cyl</th>
+              <th className="bg-green-50/30 border-b border-gray-200 px-2 py-1.5 text-[11px] font-semibold text-gray-600 text-center uppercase">Axis</th>
             </tr>
           </thead>
           <tbody>
