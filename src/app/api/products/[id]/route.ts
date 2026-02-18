@@ -19,6 +19,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       imageUrl: body.imageUrl || null,
       colors: body.colors || null,
       colorVariants: body.colorVariants || null,
+      openingBalance: body.openingBalance,
       isActive: body.isActive,
     },
   });

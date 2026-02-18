@@ -29,11 +29,12 @@ export async function POST(req: Request) {
       imageUrl: body.imageUrl || null,
       colors: body.colors || null,
       colorVariants: body.colorVariants || null,
+      openingBalance: body.openingBalance ?? 0,
     },
   });
-  // Create inventory record
+  // Create inventory record with opening balance
   await prisma.inventory.create({
-    data: { productId: product.id, quantity: 0, avgCost: body.costPrice ?? 0 },
+    data: { productId: product.id, quantity: body.openingBalance ?? 0, avgCost: body.costPrice ?? 0 },
   });
   return NextResponse.json(product, { status: 201 });
 }

@@ -119,20 +119,22 @@ export default function PrescriptionsClient({ prescriptions, customers }: {
       </div>
 
       {viewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4">
-              <FileText className="text-primary-600" size={24} />
-              <div>
-                <h3 className="text-lg font-semibold">{viewing.prescriptionNo}</h3>
-                <p className="text-sm text-gray-500">{viewing.customerName}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <FileText className="text-primary-600" size={24} />
+                <div>
+                  <h3 className="text-lg font-semibold">{viewing.prescriptionNo}</h3>
+                  <p className="text-sm text-gray-500">{viewing.customerName}</p>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-gray-500">Doctor</p><p className="font-medium">{viewing.prescribedBy || "—"}</p></div>
-              <div><p className="text-gray-500">Date</p><p className="font-medium">{formatDate(viewing.prescriptionDate)}</p></div>
-            </div>
             <div className="p-6">
+              <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div><p className="text-gray-500">Doctor</p><p className="font-medium">{viewing.prescribedBy || "—"}</p></div>
+                <div><p className="text-gray-500">Date</p><p className="font-medium">{formatDate(viewing.prescriptionDate)}</p></div>
+              </div>
               <OpticalDisplayGrid 
                 data={{
                   distanceOdSphere: viewing.odDistanceSphere,
@@ -250,10 +252,10 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100"><h2 className="text-lg font-semibold">New Prescription</h2></div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div><label className="label">Patient</label>
             <div className="flex gap-2">
               <select value={form.customerId} onChange={(e) => setForm({...form, customerId: e.target.value})} className="input flex-1" required>
@@ -281,82 +283,86 @@ function RxModal({ customers, onClose, onSaved }: { customers: { id: string; nam
             <div><label className="label">Doctor</label><input value={form.prescribedBy} onChange={(e) => setForm({...form, prescribedBy: e.target.value})} className="input" /></div>
             <div><label className="label">Date</label><input type="date" value={form.prescriptionDate} onChange={(e) => setForm({...form, prescriptionDate: e.target.value})} className="input" /></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Right Eye (OD) */}
             <div>
-              <p className="text-sm font-semibold text-blue-700 mb-1">Right Eye (OD)</p>
-              <table className="w-full text-xs border">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border px-2 py-1">&nbsp;</th>
-                    <th className="border px-2 py-1">Shp</th>
-                    <th className="border px-2 py-1">Cyl</th>
-                    <th className="border px-2 py-1">Axis</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border px-2 py-1">Distance</td>
-                    <td className="border px-2 py-1"><input value={form.odDistanceSphere} onChange={e => setForm({...form, odDistanceSphere: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.odDistanceCylinder} onChange={e => setForm({...form, odDistanceCylinder: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.odDistanceAxis} onChange={e => setForm({...form, odDistanceAxis: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                  <tr>
-                    <td className="border px-2 py-1">Near</td>
-                    <td className="border px-2 py-1"><input value={form.odNearSphere} onChange={e => setForm({...form, odNearSphere: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.odNearCylinder} onChange={e => setForm({...form, odNearCylinder: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.odNearAxis} onChange={e => setForm({...form, odNearAxis: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                  <tr>
-                    <td className="border px-2 py-1">Add</td>
-                    <td className="border px-2 py-1"><input value={form.odAddSphere} onChange={e => setForm({...form, odAddSphere: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.odAddCylinder} onChange={e => setForm({...form, odAddCylinder: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.odAddAxis} onChange={e => setForm({...form, odAddAxis: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                  <tr>
-                    <td className="border px-2 py-1">PD</td>
-                    <td className="border px-2 py-1" colSpan={3}><input value={form.odPd} onChange={e => setForm({...form, odPd: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                </tbody>
-              </table>
+              <p className="text-sm font-semibold text-blue-700 mb-3">Right Eye (OD)</p>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border-r border-b px-3 py-2 text-left font-medium">&nbsp;</th>
+                      <th className="border-r border-b px-3 py-2 text-center font-medium">Sphere</th>
+                      <th className="border-r border-b px-3 py-2 text-center font-medium">Cylinder</th>
+                      <th className="border-b px-3 py-2 text-center font-medium">Axis</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border-r border-b px-3 py-2 font-medium">Distance</td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.odDistanceSphere} onChange={e => setForm({...form, odDistanceSphere: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.odDistanceCylinder} onChange={e => setForm({...form, odDistanceCylinder: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-b px-2 py-2"><input value={form.odDistanceAxis} onChange={e => setForm({...form, odDistanceAxis: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                    <tr>
+                      <td className="border-r border-b px-3 py-2 font-medium">Near</td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.odNearSphere} onChange={e => setForm({...form, odNearSphere: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.odNearCylinder} onChange={e => setForm({...form, odNearCylinder: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-b px-2 py-2"><input value={form.odNearAxis} onChange={e => setForm({...form, odNearAxis: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                    <tr>
+                      <td className="border-r border-b px-3 py-2 font-medium">Add</td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.odAddSphere} onChange={e => setForm({...form, odAddSphere: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.odAddCylinder} onChange={e => setForm({...form, odAddCylinder: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-b px-2 py-2"><input value={form.odAddAxis} onChange={e => setForm({...form, odAddAxis: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                    <tr>
+                      <td className="border-r px-3 py-2 font-medium">PD</td>
+                      <td className="border-r px-2 py-2" colSpan={3}><input value={form.odPd} onChange={e => setForm({...form, odPd: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
             {/* Left Eye (OS) */}
             <div>
-              <p className="text-sm font-semibold text-green-700 mb-1">Left Eye (OS)</p>
-              <table className="w-full text-xs border">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border px-2 py-1">&nbsp;</th>
-                    <th className="border px-2 py-1">Shp</th>
-                    <th className="border px-2 py-1">Cyl</th>
-                    <th className="border px-2 py-1">Axis</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border px-2 py-1">Distance</td>
-                    <td className="border px-2 py-1"><input value={form.osDistanceSphere} onChange={e => setForm({...form, osDistanceSphere: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.osDistanceCylinder} onChange={e => setForm({...form, osDistanceCylinder: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.osDistanceAxis} onChange={e => setForm({...form, osDistanceAxis: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                  <tr>
-                    <td className="border px-2 py-1">Near</td>
-                    <td className="border px-2 py-1"><input value={form.osNearSphere} onChange={e => setForm({...form, osNearSphere: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.osNearCylinder} onChange={e => setForm({...form, osNearCylinder: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.osNearAxis} onChange={e => setForm({...form, osNearAxis: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                  <tr>
-                    <td className="border px-2 py-1">Add</td>
-                    <td className="border px-2 py-1"><input value={form.osAddSphere} onChange={e => setForm({...form, osAddSphere: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.osAddCylinder} onChange={e => setForm({...form, osAddCylinder: e.target.value})} className="input input-xs w-full" /></td>
-                    <td className="border px-2 py-1"><input value={form.osAddAxis} onChange={e => setForm({...form, osAddAxis: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                  <tr>
-                    <td className="border px-2 py-1">PD</td>
-                    <td className="border px-2 py-1" colSpan={3}><input value={form.osPd} onChange={e => setForm({...form, osPd: e.target.value})} className="input input-xs w-full" /></td>
-                  </tr>
-                </tbody>
-              </table>
+              <p className="text-sm font-semibold text-green-700 mb-3">Left Eye (OS)</p>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border-r border-b px-3 py-2 text-left font-medium">&nbsp;</th>
+                      <th className="border-r border-b px-3 py-2 text-center font-medium">Sphere</th>
+                      <th className="border-r border-b px-3 py-2 text-center font-medium">Cylinder</th>
+                      <th className="border-b px-3 py-2 text-center font-medium">Axis</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border-r border-b px-3 py-2 font-medium">Distance</td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.osDistanceSphere} onChange={e => setForm({...form, osDistanceSphere: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.osDistanceCylinder} onChange={e => setForm({...form, osDistanceCylinder: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-b px-2 py-2"><input value={form.osDistanceAxis} onChange={e => setForm({...form, osDistanceAxis: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                    <tr>
+                      <td className="border-r border-b px-3 py-2 font-medium">Near</td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.osNearSphere} onChange={e => setForm({...form, osNearSphere: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.osNearCylinder} onChange={e => setForm({...form, osNearCylinder: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-b px-2 py-2"><input value={form.osNearAxis} onChange={e => setForm({...form, osNearAxis: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                    <tr>
+                      <td className="border-r border-b px-3 py-2 font-medium">Add</td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.osAddSphere} onChange={e => setForm({...form, osAddSphere: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-r border-b px-2 py-2"><input value={form.osAddCylinder} onChange={e => setForm({...form, osAddCylinder: e.target.value})} className="input input-sm w-full text-center" /></td>
+                      <td className="border-b px-2 py-2"><input value={form.osAddAxis} onChange={e => setForm({...form, osAddAxis: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                    <tr>
+                      <td className="border-r px-3 py-2 font-medium">PD</td>
+                      <td className="border-r px-2 py-2" colSpan={3}><input value={form.osPd} onChange={e => setForm({...form, osPd: e.target.value})} className="input input-sm w-full text-center" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div>

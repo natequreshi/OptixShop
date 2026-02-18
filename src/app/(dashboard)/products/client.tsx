@@ -12,6 +12,7 @@ interface Product {
   costPrice: number; sellingPrice: number; mrp: number; taxRate: number;
   stock: number; sold: number; imageUrl: string; description: string;
   colors: string; colorVariants?: {color: string; image: string; sku: string}[];
+  openingBalance: number;
   isActive: boolean;
 }
 
@@ -383,6 +384,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     imageUrl: product?.imageUrl ?? "",
     description: product?.description ?? "",
     colors: product?.colors ?? "",
+    openingBalance: product?.openingBalance ?? 0,
   });
 
   // Fetch tax settings
@@ -715,7 +717,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Cost Price</label>
               <input type="number" step="0.01" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: +e.target.value })} className="input" />
@@ -724,9 +726,15 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
               <label className="label">Selling Price</label>
               <input type="number" step="0.01" value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: +e.target.value })} className="input" />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">MRP</label>
               <input type="number" step="0.01" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: +e.target.value })} className="input" />
+            </div>
+            <div>
+              <label className="label">Opening Balance</label>
+              <input type="number" step="1" value={form.openingBalance} onChange={(e) => setForm({ ...form, openingBalance: +e.target.value })} className="input" />
             </div>
           </div>
           {taxEnabled && (
