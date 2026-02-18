@@ -11,7 +11,7 @@ interface Product {
   categoryId: string; category: string; brandId: string; brand: string;
   costPrice: number; sellingPrice: number; mrp: number; taxRate: number;
   stock: number; sold: number; imageUrl: string; description: string;
-  colors: string; colorVariants?: {color: string; image: string; sku: string}[];
+  colorVariants?: {color: string; image: string; sku: string}[];
   openingBalance: number;
   isActive: boolean;
 }
@@ -183,42 +183,13 @@ export default function ProductsClient({ products, categories, brands }: Props) 
                             {variant.image ? (
                               <img src={variant.image} alt={variant.color} className="w-full h-full object-cover" />
                             ) : (
-                              <Package size={14} className="text-gray-400" />
+                              <span className="text-[9px] font-medium text-gray-500 leading-tight text-center px-0.5">{variant.color}</span>
                             )}
                           </div>
                         ))}
                         {p.colorVariants.length > 4 && (
                           <span className="text-xs text-gray-500 font-medium">
                             +{p.colorVariants.length - 4}
-                          </span>
-                        )}
-                      </div>
-                    ) : p.colors ? (
-                      <div className="flex gap-1.5 items-center">
-                        {p.colors.split(',').slice(0, 5).map((color, i) => {
-                          const colorName = color.trim().toLowerCase();
-                          const colorMap: Record<string, string> = {
-                            black: '#000000', white: '#FFFFFF', red: '#EF4444', blue: '#3B82F6',
-                            green: '#10B981', yellow: '#F59E0B', orange: '#F97316', purple: '#A855F7',
-                            pink: '#EC4899', gray: '#6B7280', grey: '#6B7280', brown: '#92400E',
-                            gold: '#D4AF37', silver: '#C0C0C0', bronze: '#CD7F32', navy: '#1E3A8A',
-                            maroon: '#7F1D1D', teal: '#14B8A6', cyan: '#06B6D4', lime: '#84CC16',
-                            indigo: '#6366F1', violet: '#8B5CF6', rose: '#F43F5E', amber: '#F59E0B',
-                            emerald: '#059669', sky: '#0EA5E9', slate: '#64748B', transparent: 'transparent'
-                          };
-                          const bgColor = colorMap[colorName] || '#9CA3AF';
-                          return (
-                            <div
-                              key={i}
-                              className="w-6 h-6 rounded-md border-2 border-gray-200 shadow-sm"
-                              style={{ backgroundColor: bgColor }}
-                              title={color.trim()}
-                            />
-                          );
-                        })}
-                        {p.colors.split(',').length > 5 && (
-                          <span className="text-xs text-gray-500 font-medium">
-                            +{p.colors.split(',').length - 5}
                           </span>
                         )}
                       </div>
@@ -364,6 +335,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingVariantImage, setUploadingVariantImage] = useState(false);
   const [taxEnabled, setTaxEnabled] = useState(false);
+  const [variationsEnabled, setVariationsEnabled] = useState(true);
   const [defaultTaxRate, setDefaultTaxRate] = useState(0);
   const [colorVariants, setColorVariants] = useState<{color: string; image: string; sku: string}[]>(
     product?.colorVariants ? JSON.parse(JSON.stringify(product.colorVariants)) : []
@@ -383,21 +355,19 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     taxRate: product?.taxRate ?? 0,
     imageUrl: product?.imageUrl ?? "",
     description: product?.description ?? "",
-    colors: product?.colors ?? "",
     openingBalance: product?.openingBalance ?? 0,
   });
 
-  // Fetch tax settings
   useEffect(() => {
     fetch('/api/settings')
       .then(res => res.json())
       .then(settings => {
-        const taxEnabledSetting = settings.find((s: any) => s.key === 'tax_enabled')?.value === 'true';
-        const taxRateValue = parseFloat(settings.find((s: any) => s.key === 'tax_rate')?.value || '0');
+        const taxEnabledSetting = settings.tax_enabled === 'true';
+        const taxRateValue = parseFloat(settings.tax_rate || '0');
         setTaxEnabled(taxEnabledSetting);
         setDefaultTaxRate(taxRateValue);
-        
-        // Only set tax rate for new products if tax is enabled
+        setVariationsEnabled(settings.product_variations_enabled !== 'false');
+
         if (!product && taxEnabledSetting) {
           setForm(prev => ({ ...prev, taxRate: taxRateValue }));
         }
@@ -442,7 +412,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
     setLoading(true);
     const url = product ? `/api/products/${product.id}` : "/api/products";
     const method = product ? "PUT" : "POST";
-    const payload = { ...form, colorVariants: colorVariants.length > 0 ? JSON.stringify(colorVariants) : null };
+    const payload = { ...form, colorVariants: colorVariants.length > 0 ? JSON.stringify(colorVariants) : null, colors: null };
     const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (res.ok) { toast.success(product ? "Updated" : "Created"); onSaved(); }
     else toast.error("Failed to save");
@@ -598,19 +568,9 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
             <label className="label">Description</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input min-h-[60px]" placeholder="Product description..." />
           </div>
-          <div>
-            <label className="label">Colors (comma-separated for fallback)</label>
-            <input 
-              type="text" 
-              value={form.colors} 
-              onChange={(e) => setForm({ ...form, colors: e.target.value })} 
-              className="input" 
-              placeholder="Black, Gold, Silver, Blue"
-            />
-          </div>
 
           {/* Color Variants Section */}
-          <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+          {variationsEnabled && <div className="border border-gray-200 rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
               <label className="label mb-0">Color Variants (with images)</label>
               <span className="text-xs text-gray-500">{colorVariants.length} variants</span>
@@ -699,7 +659,7 @@ function ProductModal({ product, categories, brands, onClose, onSaved }: {
                 </button>
               </div>
             </div>
-          </div>
+          </div>}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

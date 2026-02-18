@@ -220,6 +220,11 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
               <Toggle label="Accounting" checked={val("module_accounting", "true") === "true"} onToggle={() => toggle("module_accounting")} />
               <Toggle label="Reports" checked={val("module_reports", "true") === "true"} onToggle={() => toggle("module_reports")} />
               <Toggle label="Cash Register" checked={val("module_register", "true") === "true"} onToggle={() => toggle("module_register")} />
+
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">Product Settings</h4>
+                <Toggle label="Product Color Variations" checked={val("product_variations_enabled", "true") === "true"} onToggle={() => toggle("product_variations_enabled")} desc="Allow adding color/image variants to products" />
+              </div>
             </>
           )}
 
