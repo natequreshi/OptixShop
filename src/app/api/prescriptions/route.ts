@@ -12,8 +12,8 @@ export async function POST(req: Request) {
       prescribedBy: body.prescribedBy || null,
       prescriptionDate: body.prescriptionDate,
       expiryDate: body.expiryDate || null,
-      odSphere: body.odSphere, odCylinder: body.odCylinder, odAxis: body.odAxis, odAdd: body.odAdd,
-      osSphere: body.osSphere, osCylinder: body.osCylinder, osAxis: body.osAxis, osAdd: body.osAdd,
+      odDistanceSphere: body.odSphere, odDistanceCylinder: body.odCylinder, odDistanceAxis: body.odAxis, odAddSphere: body.odAdd,
+      osDistanceSphere: body.osSphere, osDistanceCylinder: body.osCylinder, osDistanceAxis: body.osAxis, osAddSphere: body.osAdd,
     },
   });
   return NextResponse.json(rx, { status: 201 });

@@ -42,13 +42,12 @@ export default async function CustomersPage() {
       latestRx: rx ? {
         prescriptionNo: rx.prescriptionNo,
         date: rx.prescriptionDate,
-        // Use old field names that actually exist in database
-        odDistanceSphere: rx.odSphere,
-        odDistanceCylinder: rx.odCylinder,
-        odDistanceAxis: rx.odAxis,
-        osDistanceSphere: rx.osSphere,
-        osDistanceCylinder: rx.osCylinder,
-        osDistanceAxis: rx.osAxis,
+        odDistanceSphere: rx.odDistanceSphere,
+        odDistanceCylinder: rx.odDistanceCylinder,
+        odDistanceAxis: rx.odDistanceAxis,
+        osDistanceSphere: rx.osDistanceSphere,
+        osDistanceCylinder: rx.osDistanceCylinder,
+        osDistanceAxis: rx.osDistanceAxis,
         // Near Vision (null for now until fields are available)
         odNearSphere: rx.odNearSphere,
         odNearCylinder: rx.odNearCylinder,
