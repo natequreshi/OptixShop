@@ -430,19 +430,29 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
       country: form.country,
     };
 
-    // Include Rx data if any Rx field is filled
     const hasRx = Object.values(opticalData).some(value => value && value.trim() !== "");
     if (hasRx) {
+      const pf = (v: string) => v ? parseFloat(v) : null;
+      const pi = (v: string) => v ? parseInt(v) : null;
       payload.rx = {
-        // Map distance vision to existing database fields
-        odSphere: opticalData.distanceOdSphere ? parseFloat(opticalData.distanceOdSphere) : null,
-        odCylinder: opticalData.distanceOdCylinder ? parseFloat(opticalData.distanceOdCylinder) : null,
-        odAxis: opticalData.distanceOdAxis ? parseInt(opticalData.distanceOdAxis) : null,
-        osSphere: opticalData.distanceOsSphere ? parseFloat(opticalData.distanceOsSphere) : null,
-        osCylinder: opticalData.distanceOsCylinder ? parseFloat(opticalData.distanceOsCylinder) : null,
-        osAxis: opticalData.distanceOsAxis ? parseInt(opticalData.distanceOsAxis) : null,
-        // Note: Near and Add fields will be stored when database schema is fully updated
-        // For now, we're only using the distance vision fields that exist in the current schema
+        odSphere: pf(opticalData.distanceOdSphere),
+        odCylinder: pf(opticalData.distanceOdCylinder),
+        odAxis: pi(opticalData.distanceOdAxis),
+        osSphere: pf(opticalData.distanceOsSphere),
+        osCylinder: pf(opticalData.distanceOsCylinder),
+        osAxis: pi(opticalData.distanceOsAxis),
+        odNearSphere: pf(opticalData.nearOdSphere),
+        odNearCylinder: pf(opticalData.nearOdCylinder),
+        odNearAxis: pi(opticalData.nearOdAxis),
+        osNearSphere: pf(opticalData.nearOsSphere),
+        osNearCylinder: pf(opticalData.nearOsCylinder),
+        osNearAxis: pi(opticalData.nearOsAxis),
+        odAdd: pf(opticalData.addOdSphere),
+        odAddCylinder: pf(opticalData.addOdCylinder),
+        odAddAxis: pi(opticalData.addOdAxis),
+        osAdd: pf(opticalData.addOsSphere),
+        osAddCylinder: pf(opticalData.addOsCylinder),
+        osAddAxis: pi(opticalData.addOsAxis),
       };
     }
 
@@ -461,15 +471,14 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
           </div>
           <h2 className="text-lg font-semibold">{customer ? "Edit Customer" : "Add Customer"}</h2>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Top Row: Name, Email, WhatsApp */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="label">Name *</label>
               <input value={`${form.firstName} ${form.lastName}`} onChange={(e) => {
-                const names = e.target.value.split(' ');
-                set("firstName", names[0] || "");
-                set("lastName", names.slice(1).join(' ') || "");
+                const parts = e.target.value.split(' ');
+                set("firstName", parts[0] || "");
+                set("lastName", parts.slice(1).join(' ') || "");
               }} className="input" required />
             </div>
             <div>
@@ -482,29 +491,24 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
             </div>
           </div>
 
-          {/* Address Row */}
-          <div className="grid grid-cols-1 gap-4">
-            <div className="relative">
-              <label className="label flex items-center gap-1.5"><MapPin size={13} /> Address</label>
-              <input
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-                className="input"
-                placeholder="Enter address manually..."
-              />
-            </div>
+          <div>
+            <label className="label flex items-center gap-1.5"><MapPin size={13} /> Address</label>
+            <input
+              value={form.address}
+              onChange={(e) => set("address", e.target.value)}
+              className="input"
+              placeholder="Enter address manually..."
+            />
           </div>
 
-          {/* ── Rx Section ─────────────────────── */}
-          <div className="border-t border-gray-100 pt-4">
-            <OpticalGrid 
-              data={opticalData} 
+          <div className="border-t border-gray-100 pt-5">
+            <OpticalGrid
+              data={opticalData}
               onChange={setOpticalData}
               disabled={loading}
             />
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
             <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving..." : "Save"}</button>

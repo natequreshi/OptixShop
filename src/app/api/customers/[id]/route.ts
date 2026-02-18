@@ -19,7 +19,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     },
   });
 
-  // Create/update prescription if Rx data provided
   if (body.rx) {
     const rxCount = await prisma.prescription.count();
     const prescriptionNo = `RX${String(rxCount + 1).padStart(5, "0")}`;
@@ -32,11 +31,21 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         odDistanceSphere: body.rx.odSphere ?? null,
         odDistanceCylinder: body.rx.odCylinder ?? null,
         odDistanceAxis: body.rx.odAxis ?? null,
-        odAddSphere: body.rx.odAdd ?? null,
         osDistanceSphere: body.rx.osSphere ?? null,
         osDistanceCylinder: body.rx.osCylinder ?? null,
         osDistanceAxis: body.rx.osAxis ?? null,
+        odNearSphere: body.rx.odNearSphere ?? null,
+        odNearCylinder: body.rx.odNearCylinder ?? null,
+        odNearAxis: body.rx.odNearAxis ?? null,
+        osNearSphere: body.rx.osNearSphere ?? null,
+        osNearCylinder: body.rx.osNearCylinder ?? null,
+        osNearAxis: body.rx.osNearAxis ?? null,
+        odAddSphere: body.rx.odAdd ?? null,
+        odAddCylinder: body.rx.odAddCylinder ?? null,
+        odAddAxis: body.rx.odAddAxis ?? null,
         osAddSphere: body.rx.osAdd ?? null,
+        osAddCylinder: body.rx.osAddCylinder ?? null,
+        osAddAxis: body.rx.osAddAxis ?? null,
       },
     });
   }
