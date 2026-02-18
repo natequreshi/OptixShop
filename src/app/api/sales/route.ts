@@ -45,6 +45,12 @@ export async function POST(req: Request) {
     const paidAmount = body.amountTendered ?? totalAmount;
     const isDraft = body.amountTendered === 0 || (body.amountTendered === undefined && !body.paymentMethod);
 
+    let cashierId: string | null = (session?.user as any)?.id || null;
+    if (cashierId) {
+      const userExists = await prisma.user.findUnique({ where: { id: cashierId }, select: { id: true } });
+      if (!userExists) cashierId = null;
+    }
+
     const sale = await prisma.sale.create({
       data: {
         invoiceNo,
@@ -60,7 +66,7 @@ export async function POST(req: Request) {
         balanceAmount: isDraft ? totalAmount : Math.max(0, totalAmount - paidAmount),
         status: isDraft ? "draft" : "completed",
         paymentStatus: isDraft ? "unpaid" : (paidAmount >= totalAmount ? "paid" : "partial"),
-        cashierId: (session?.user as any)?.id || null,
+        cashierId,
         items: { create: itemsData },
       },
     });
