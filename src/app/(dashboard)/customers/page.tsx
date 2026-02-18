@@ -12,12 +12,6 @@ export default async function CustomersPage() {
         orderBy: { createdAt: "desc" },
         take: 1,
       },
-      sales: {
-        orderBy: { createdAt: "desc" },
-        include: {
-          items: { include: { product: { select: { name: true } } } },
-        },
-      },
     },
   });
 
@@ -27,7 +21,6 @@ export default async function CustomersPage() {
 
   const data = customers.map((c) => {
     const rx = c.prescriptions[0] ?? null;
-    const totalPurchases = c.sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
     return {
       id: c.id,
       customerNo: c.customerNo,
@@ -42,14 +35,13 @@ export default async function CustomersPage() {
       address: c.address ?? "",
       state: c.state ?? "",
       loyaltyPoints: c.loyaltyPoints,
-      totalPurchases: totalPurchases,
+      totalPurchases: c.totalPurchases,
       salesCount: c._count.sales,
       rxCount: c._count.prescriptions,
       isActive: c.isActive,
       latestRx: rx ? {
         prescriptionNo: rx.prescriptionNo,
         date: rx.prescriptionDate,
-        // Use existing fields for now - mapping to new structure
         odDistanceSphere: rx.odSphere,
         odDistanceCylinder: rx.odCylinder,
         odDistanceAxis: rx.odAxis,
@@ -70,22 +62,10 @@ export default async function CustomersPage() {
         osAddSphere: null,
         osAddCylinder: null,
         osAddAxis: null,
-        // PD (null for now until fields are available)
         odPd: null,
         osPd: null,
       } : null,
-      sales: c.sales.map((s) => ({
-        id: s.id,
-        invoiceNo: s.invoiceNo,
-        date: s.saleDate,
-        totalAmount: s.totalAmount,
-        status: s.status,
-        items: s.items.map((i) => ({
-          productName: i.product.name,
-          quantity: i.quantity,
-          total: i.total,
-        })),
-      })),
+      sales: [],
     };
   });
 
