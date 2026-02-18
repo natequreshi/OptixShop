@@ -116,8 +116,8 @@ export async function POST() {
         prescriptionNo: "RX00001", customerId: customer.id,
         prescriptionDate: "2026-01-10", expiryDate: "2027-01-10",
         prescribedBy: "Dr. Muddasar",
-        odSphere: -2.5, odCylinder: -0.75, odAxis: 180, odAdd: 0, odPd: 32,
-        osSphere: -2.75, osCylinder: -0.5, osAxis: 175, osAdd: 0, osPd: 32,
+        odDistanceSphere: -2.5, odDistanceCylinder: -0.75, odDistanceAxis: 180, odAddSphere: 0, odPd: 32,
+        osDistanceSphere: -2.75, osDistanceCylinder: -0.5, osDistanceAxis: 175, osAddSphere: 0, osPd: 32,
         photoUrl: "https://images.unsplash.com/photo-1631248055579-7e8c9c3c5c0e?w=400",
       },
     });
@@ -126,8 +126,8 @@ export async function POST() {
         prescriptionNo: "RX00002", customerId: customer.id,
         prescriptionDate: "2026-01-20", expiryDate: "2027-01-20",
         prescribedBy: "Dr. Muddasar",
-        odSphere: -3.0, odCylinder: -1.0, odAxis: 180, odAdd: 1.0, odPd: 31,
-        osSphere: -3.25, osCylinder: -0.75, osAxis: 170, osAdd: 1.0, osPd: 31,
+        odDistanceSphere: -3.0, odDistanceCylinder: -1.0, odDistanceAxis: 180, odAddSphere: 1.0, odPd: 31,
+        osDistanceSphere: -3.25, osDistanceCylinder: -0.75, osDistanceAxis: 170, osAddSphere: 1.0, osPd: 31,
         photoUrl: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400",
       },
     });
@@ -136,8 +136,8 @@ export async function POST() {
         prescriptionNo: "RX00003", customerId: customer.id,
         prescriptionDate: "2026-02-05", expiryDate: "2027-02-05",
         prescribedBy: "Dr. Muddasar",
-        odSphere: -2.75, odCylinder: -0.5, odAxis: 175, odAdd: 0.5, odPd: 32,
-        osSphere: -3.0, osCylinder: -0.75, osAxis: 180, osAdd: 0.5, osPd: 32,
+        odDistanceSphere: -2.75, odDistanceCylinder: -0.5, odDistanceAxis: 175, odAddSphere: 0.5, odPd: 32,
+        osDistanceSphere: -3.0, osDistanceCylinder: -0.75, osDistanceAxis: 180, osAddSphere: 0.5, osPd: 32,
         photoUrl: "https://images.unsplash.com/photo-1614935151651-0bea6508db6b?w=400",
       },
     });
