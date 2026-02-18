@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db execute --file prisma/ensure-product-columns.sql --schema prisma/schema.prisma && next build",
+    "build": "prisma generate && prisma db push --accept-data-loss && next build",
     "start": "next start",
     "seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push",
