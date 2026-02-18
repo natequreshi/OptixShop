@@ -20,7 +20,7 @@ export default async function PrescriptionsPage() {
     prescribedBy: p.prescribedBy ?? "",
     prescriptionDate: p.prescriptionDate,
     expiryDate: p.expiryDate ?? "",
-    // Map to actual database field names that exist
+    // Map to old database field names that actually exist
     odDistanceSphere: p.odSphere,
     odDistanceCylinder: p.odCylinder,
     odDistanceAxis: p.odAxis,
