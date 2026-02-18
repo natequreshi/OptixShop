@@ -5,119 +5,125 @@ import { authOptions } from "@/lib/auth";
 import { sendWhatsAppNotification, formatCurrencyPlain } from "@/lib/whatsapp";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const body = await req.json();
+  try {
+    const session = await getServerSession(authOptions);
+    const body = await req.json();
 
-  const count = await prisma.sale.count();
-  const invoiceNo = `INV${String(count + 1).padStart(5, "0")}`;
-  const today = new Date().toISOString().split("T")[0];
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+      return NextResponse.json({ error: "At least one item is required" }, { status: 400 });
+    }
 
-  // Calculate totals
-  let subtotal = 0;
-  let totalTax = 0;
-  const itemsData = body.items.map((item: any) => {
-    const lineTotal = item.unitPrice * item.quantity;
-    const discountAmt = (item.discount ?? 0) * item.quantity;
-    const taxableAmt = lineTotal - discountAmt;
-    const taxAmt = taxableAmt * ((item.taxRate ?? 0) / 100);
-    subtotal += lineTotal;
-    totalTax += taxAmt;
-    return {
-      productId: item.productId,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      costPrice: 0,
-      discountPct: 0,
-      discountAmount: item.discount ?? 0,
-      taxRate: item.taxRate ?? 0,
-      taxAmount: taxAmt,
-      cgst: taxAmt / 2,
-      sgst: taxAmt / 2,
-      total: taxableAmt + taxAmt,
-    };
-  });
+    const count = await prisma.sale.count();
+    const invoiceNo = `INV${String(count + 1).padStart(5, "0")}`;
+    const today = new Date().toISOString().split("T")[0];
 
-  const totalAmount = subtotal + totalTax;
-  const paidAmount = body.amountTendered ?? totalAmount;
-  const isDraft = body.amountTendered === 0 || body.amountTendered === undefined && !body.paymentMethod;
-
-  const sale = await prisma.sale.create({
-    data: {
-      invoiceNo,
-      customerId: body.customerId || null,
-      saleDate: today,
-      subtotal,
-      discountAmount: 0,
-      taxAmount: totalTax,
-      cgstAmount: totalTax / 2,
-      sgstAmount: totalTax / 2,
-      totalAmount,
-      paidAmount: isDraft ? 0 : Math.min(paidAmount, totalAmount),
-      balanceAmount: isDraft ? totalAmount : Math.max(0, totalAmount - paidAmount),
-      status: isDraft ? "draft" : "completed",
-      paymentStatus: isDraft ? "unpaid" : (paidAmount >= totalAmount ? "paid" : "partial"),
-      cashierId: (session?.user as any)?.id || null,
-      items: { create: itemsData },
-    },
-  });
-
-  // Create payment record - only for completed sales
-  if (!isDraft) {
-    const payCount = await prisma.payment.count();
-    await prisma.payment.create({
-      data: {
-        paymentNo: `PAY${String(payCount + 1).padStart(5, "0")}`,
-        paymentType: "receipt",
-        saleId: sale.id,
-        customerId: body.customerId || null,
-        paymentDate: today,
-        amount: Math.min(paidAmount, totalAmount),
-        paymentMethod: body.paymentMethod ?? "cash",
-      },
-    });
-  }
-
-  // Update inventory - only for completed sales
-  if (!isDraft) {
-    for (const item of body.items) {
-    await prisma.inventory.updateMany({
-      where: { productId: item.productId },
-      data: { quantity: { decrement: item.quantity } },
-    });
-    await prisma.inventoryMovement.create({
-      data: {
+    let subtotal = 0;
+    let totalTax = 0;
+    const itemsData = body.items.map((item: any) => {
+      const lineTotal = item.unitPrice * item.quantity;
+      const discountAmt = (item.discount ?? 0) * (typeof item.quantity === "number" ? item.quantity : 1);
+      const taxableAmt = lineTotal - discountAmt;
+      const taxAmt = taxableAmt * ((item.taxRate ?? 0) / 100);
+      subtotal += lineTotal;
+      totalTax += taxAmt;
+      return {
         productId: item.productId,
-        movementType: "sale",
-        quantity: -item.quantity,
-        referenceType: "sale",
-        referenceId: sale.id,
+        quantity: typeof item.quantity === "number" ? item.quantity : Number(item.quantity) || 1,
+        unitPrice: typeof item.unitPrice === "number" ? item.unitPrice : Number(item.unitPrice) || 0,
+        costPrice: 0,
+        discountPct: 0,
+        discountAmount: discountAmt,
+        taxRate: item.taxRate ?? 0,
+        taxAmount: taxAmt,
+        cgst: taxAmt / 2,
+        sgst: taxAmt / 2,
+        total: taxableAmt + taxAmt,
+      };
+    });
+
+    const totalAmount = subtotal + totalTax;
+    const paidAmount = body.amountTendered ?? totalAmount;
+    const isDraft = body.amountTendered === 0 || (body.amountTendered === undefined && !body.paymentMethod);
+
+    const sale = await prisma.sale.create({
+      data: {
+        invoiceNo,
+        customerId: body.customerId || null,
+        saleDate: today,
+        subtotal,
+        discountAmount: 0,
+        taxAmount: totalTax,
+        cgstAmount: totalTax / 2,
+        sgstAmount: totalTax / 2,
+        totalAmount,
+        paidAmount: isDraft ? 0 : Math.min(paidAmount, totalAmount),
+        balanceAmount: isDraft ? totalAmount : Math.max(0, totalAmount - paidAmount),
+        status: isDraft ? "draft" : "completed",
+        paymentStatus: isDraft ? "unpaid" : (paidAmount >= totalAmount ? "paid" : "partial"),
+        cashierId: (session?.user as any)?.id || null,
+        items: { create: itemsData },
       },
     });
+
+    if (!isDraft) {
+      const payCount = await prisma.payment.count();
+      await prisma.payment.create({
+        data: {
+          paymentNo: `PAY${String(payCount + 1).padStart(5, "0")}`,
+          paymentType: "receipt",
+          saleId: sale.id,
+          customerId: body.customerId || null,
+          paymentDate: today,
+          amount: Math.min(paidAmount, totalAmount),
+          paymentMethod: body.paymentMethod ?? "cash",
+        },
+      });
     }
-  }
 
-  // Update customer totals - only for completed sales
-  if (!isDraft && body.customerId) {
-    await prisma.customer.update({
-      where: { id: body.customerId },
-      data: { totalPurchases: { increment: totalAmount } },
-    });
-
-    // Send WhatsApp notification
-    const customer = await prisma.customer.findUnique({ where: { id: body.customerId } });
-    const waNumber = customer?.whatsapp || customer?.phone;
-    if (waNumber) {
-      const itemsList = body.items.map((i: any) => `${i.productName ?? "Item"} × ${i.quantity}`).join(", ");
-      sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
-        customerName: `${customer!.firstName} ${customer!.lastName ?? ""}`.trim(),
-        invoiceNo: invoiceNo,
-        totalAmount: formatCurrencyPlain(totalAmount),
-        items: itemsList,
-      }).catch((err) => console.error("[WhatsApp] notification error:", err));
+    if (!isDraft) {
+      for (const item of body.items) {
+        await prisma.inventory.updateMany({
+          where: { productId: item.productId },
+          data: { quantity: { decrement: item.quantity } },
+        });
+        await prisma.inventoryMovement.create({
+          data: {
+            productId: item.productId,
+            movementType: "sale",
+            quantity: -item.quantity,
+            referenceType: "sale",
+            referenceId: sale.id,
+          },
+        });
+      }
     }
-  }
 
-  return NextResponse.json(sale, { status: 201 });
+    if (!isDraft && body.customerId) {
+      await prisma.customer.update({
+        where: { id: body.customerId },
+        data: { totalPurchases: { increment: totalAmount } },
+      });
+      const customer = await prisma.customer.findUnique({ where: { id: body.customerId } });
+      const waNumber = customer?.whatsapp || customer?.phone;
+      if (waNumber) {
+        const itemsList = body.items.map((i: any) => `${i.productName ?? "Item"} × ${i.quantity}`).join(", ");
+        sendWhatsAppNotification(waNumber, "whatsapp_order_template", {
+          customerName: `${customer!.firstName} ${customer!.lastName ?? ""}`.trim(),
+          invoiceNo: invoiceNo,
+          totalAmount: formatCurrencyPlain(totalAmount),
+          items: itemsList,
+        }).catch((err) => console.error("[WhatsApp] notification error:", err));
+      }
+    }
+
+    return NextResponse.json(sale, { status: 201 });
+  } catch (err: any) {
+    console.error("[POST /api/sales]", err);
+    return NextResponse.json(
+      { error: err?.message || "Failed to create sale" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(req: Request) {
