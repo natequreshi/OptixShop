@@ -4,6 +4,7 @@ import DashboardClient from "./client";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  try {
   const today = new Date().toISOString().split("T")[0];
   const monthStart = today.slice(0, 7) + "-01";
   const yearStart = today.slice(0, 4) + "-01-01";
@@ -17,7 +18,12 @@ export default async function DashboardPage() {
     id: true, invoiceNo: true, saleDate: true, totalAmount: true,
     status: true, paymentStatus: true, paidAmount: true, balanceAmount: true,
     customer: { select: { firstName: true, lastName: true } },
-    items: { select: { quantity: true, unitPrice: true, discountAmount: true, taxAmount: true, total: true } },
+    items: {
+      select: {
+        quantity: true, unitPrice: true, discountAmount: true, taxAmount: true, total: true,
+        product: { select: { name: true } },
+      },
+    },
   } as const;
 
   const [
@@ -159,7 +165,7 @@ export default async function DashboardPage() {
     paymentStatus: sale.paymentStatus,
     itemCount: sale.items.length,
     items: sale.items.map((item: any) => ({
-      productName: item.productName,
+      productName: item.product?.name ?? "Item",
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       discount: item.discountAmount,
@@ -192,4 +198,14 @@ export default async function DashboardPage() {
       draftSalesStatus={draftSalesStatus}
     />
   );
+  } catch (err: any) {
+    console.error("[Dashboard]", err);
+    return (
+      <div className="p-6 card max-w-lg">
+        <h2 className="text-lg font-semibold text-red-600 mb-2">Unable to load dashboard</h2>
+        <p className="text-sm text-gray-600 mb-4">{err?.message || "A server error occurred."}</p>
+        <a href="/dashboard" className="btn-primary inline-block">Try again</a>
+      </div>
+    );
+  }
 }
