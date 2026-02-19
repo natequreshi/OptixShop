@@ -26,13 +26,19 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
-        setError("Invalid username or password");
-      } else {
+        setError(res.error === "CONNECTION_ERROR"
+          ? "Database is starting up. Please try again in a moment."
+          : "Invalid username or password");
+      } else if (res?.ok) {
         router.push("/dashboard");
         router.refresh();
+      } else {
+        setError("Invalid username or password");
       }
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err: any) {
+      setError(err?.message?.includes("CONNECTION") || err?.message?.includes("fetch")
+        ? "Connection issue. Please try again in a moment."
+        : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

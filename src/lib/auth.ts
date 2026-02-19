@@ -14,9 +14,22 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
-        });
+        const fetchUser = async () =>
+          prisma.user.findUnique({ where: { username: credentials!.username } });
+
+        let user;
+        try {
+          user = await fetchUser();
+        } catch (err: any) {
+          console.error("[Auth] DB error, retrying:", err?.message);
+          await new Promise((r) => setTimeout(r, 2000));
+          try {
+            user = await fetchUser();
+          } catch (retryErr: any) {
+            console.error("[Auth] authorize error:", retryErr?.message);
+            throw new Error("CONNECTION_ERROR");
+          }
+        }
 
         if (!user || !user.isActive) return null;
 
@@ -37,7 +50,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 60 * 60, // refresh session every hour
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -56,4 +70,9 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+  events: {
+    signIn: ({ user }) => console.log("[Auth] Signed in:", user?.name),
+    signOut: () => console.log("[Auth] Signed out"),
+  },
 };
