@@ -70,7 +70,6 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true,
   events: {
     signIn: ({ user }) => console.log("[Auth] Signed in:", user?.name),
     signOut: () => console.log("[Auth] Signed out"),
