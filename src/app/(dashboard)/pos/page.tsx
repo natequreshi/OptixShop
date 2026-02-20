@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Banknote, Smartphone, User, X, Receipt, Package, ChevronDown, ShoppingBag
+  Search, Plus, Minus, Trash2, ShoppingCart,
+  User, X, Receipt, Package, ChevronDown, ShoppingBag
 } from "lucide-react";
 import { formatCurrency, cn, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -138,9 +138,6 @@ export default function POSPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [amountTendered, setAmountTendered] = useState("");
   const [loading, setLoading] = useState(false);
   const [manualSubtotal, setManualSubtotal] = useState<number | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -149,10 +146,9 @@ export default function POSPage() {
   const [customerSales, setCustomerSales] = useState<any[]>([]);
   const [showCustomerSales, setShowCustomerSales] = useState(false);
   const [loadingCustomerSales, setLoadingCustomerSales] = useState(false);
-  const [cashDenominations, setCashDenominations] = useState<{[key: number]: number}>({});  const [transactionId, setTransactionId] = useState("");  const [taxEnabled, setTaxEnabled] = useState(true);
+  const [taxEnabled, setTaxEnabled] = useState(true);
   const [printTemplate, setPrintTemplate] = useState<"80mm" | "modern" | "classic" | "minimal">("80mm");
   const [currency, setCurrency] = useState("Rs.");
-  const [showDenominations, setShowDenominations] = useState(true);
   const [storeName, setStoreName] = useState('OPTICS SHOP');
   const [storeAddress, setStoreAddress] = useState('');
   const [storePhone, setStorePhone] = useState('');
@@ -216,13 +212,12 @@ export default function POSPage() {
             selectedVariantSku: item.selectedVariantSku,
           })),
           amountTendered: 0,
-          paymentMethod: paymentMethod,
-          discountPercent,
-          discountValue,
-        };
+                paymentMethod: "cash",
+                discountPercent,
+                discountValue,
+              };
 
-        // Save as draft
-        await fetch("/api/sales", {
+              await fetch("/api/sales", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(draftSale),
@@ -243,7 +238,7 @@ export default function POSPage() {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [cart, selectedCustomer, paymentMethod, discountPercent, discountValue]);
+  }, [cart, selectedCustomer, discountPercent, discountValue]);
 
   const filteredProducts = products.filter(p => {
     const searchLower = search.toLowerCase();
@@ -302,9 +297,6 @@ export default function POSPage() {
     return s + lineAfterGlobalDiscount * (i.taxRate / 100);
   }, 0) : 0;
   const grandTotal = taxableAmount + taxAmount;
-  const denominationsTotal = Object.entries(cashDenominations).reduce((sum, [denom, count]) => sum + (Number(denom) * count), 0);
-  const change = amountTendered ? Math.max(0, +amountTendered - grandTotal) : denominationsTotal > 0 ? Math.max(0, denominationsTotal - grandTotal) : 0;
-
   async function completeSale() {
     if (cart.length === 0) return toast.error("Cart is empty");
     setLoading(true);
@@ -314,11 +306,10 @@ export default function POSPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId: selectedCustomer?.id || null,
-          paymentMethod,
-          transactionId: transactionId || undefined,
-          amountTendered: +amountTendered || denominationsTotal || grandTotal,
+          paymentMethod: "cash",
+          amountTendered: grandTotal,
           discountPercent,
-          taxEnabled: taxEnabled,
+          taxEnabled,
           items: cart.map(i => ({
             productId: i.id,
             quantity: i.qty,
@@ -331,15 +322,9 @@ export default function POSPage() {
       if (res.ok) {
         const saleData = await res.json();
         toast.success("Sale completed!");
-        
-        // Print thermal receipt
         printThermalReceipt(saleData);
-        
         setCart([]); setSelectedCustomer(null);
-        setShowPayment(false); setAmountTendered("");
         setManualSubtotal(null); setDiscountPercent(0); setDiscountValue(0); setDiscountType('percent');
-        setCashDenominations({});
-        setTransactionId("");
         router.refresh();
       } else {
         toast.error("Failed to complete sale");
@@ -447,33 +432,9 @@ export default function POSPage() {
         </div>
         
         <div class="row">
-          <span>Payment Method:</span>
-          <span class="bold" style="font-size:9px">${paymentMethod.toUpperCase().replace('_', ' ')}</span>
+          <span>Payment:</span>
+          <span class="bold" style="font-size:9px">CASH</span>
         </div>
-        ${transactionId ? `
-        <div class="row">
-          <span>Transaction ID:</span>
-          <span class="bold" style="font-size:9px">${transactionId}</span>
-        </div>
-        ` : ''}
-        ${paymentMethod === 'cash' && (denominationsTotal > 0 || parseFloat(amountTendered) > 0) ? `
-        <div class="row">
-          <span>Cash Tendered:</span>
-          <span style="font-size:9px">${formatCurrency(denominationsTotal > 0 ? denominationsTotal : parseFloat(amountTendered))}</span>
-        </div>
-        ${change > 0 ? `
-        <div class="row">
-          <span>Change:</span>
-          <span style="font-size:9px">${formatCurrency(change)}</span>
-        </div>
-        ` : ''}
-        ${(() => { const tendered = denominationsTotal > 0 ? denominationsTotal : parseFloat(amountTendered); return tendered < grandTotal ? `
-        <div class="row bold" style="color:#c00;font-size:9px">
-          <span>Remaining:</span>
-          <span>${formatCurrency(grandTotal - tendered)}</span>
-        </div>
-        ` : ''; })()}
-        ` : ''}
         
         <div class="separator"></div>
         
@@ -712,7 +673,7 @@ export default function POSPage() {
                   selectedVariantSku: item.selectedVariantSku,
                 })),
                 amountTendered: 0,
-                paymentMethod,
+                paymentMethod: "cash",
                 discountPercent,
                 discountValue,
               };
@@ -745,71 +706,11 @@ export default function POSPage() {
             <ShoppingCart size={16} /> {loading ? "Saving..." : "Save as Draft"}
           </button>
 
-          {!showPayment ? (
-            <button onClick={() => setShowPayment(true)} disabled={cart.length === 0}
-              className="w-full py-3 text-base font-semibold flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <CreditCard size={20} /> Pay {formatCurrency(grandTotal)}
-            </button>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                {[{ m: "cash", icon: Banknote, label: "Cash" }, { m: "card", icon: CreditCard, label: "Card" }, { m: "bank_transfer", icon: Smartphone, label: "Bank Transfer" }].map(({ m, icon: Icon, label }) => (
-                  <button key={m} onClick={() => setPaymentMethod(m)}
-                    className={cn("flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition",
-                      paymentMethod === m ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    )}><Icon size={16} /> {label}</button>
-                ))}
-              </div>
-              {paymentMethod === "cash" && (
-                <div className="space-y-3">
-                  {showDenominations && (
-                    <div>
-                      <label className="label text-xs">Cash Denominations</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[2000, 1000, 500, 200, 100, 50, 20, 10].map(denom => (
-                          <div key={denom} className="flex flex-col items-center">
-                            <span className="text-xs text-gray-500 mb-1">{currency}{denom}</span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={cashDenominations[denom] || 0}
-                              onChange={(e) => setCashDenominations({...cashDenominations, [denom]: parseInt(e.target.value) || 0})}
-                              className="input text-xs text-center w-full p-1"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      {denominationsTotal > 0 && (
-                        <p className="text-sm text-blue-600 mt-2">Total Cash: {currency} {denominationsTotal.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                      )}
-                    </div>
-                  )}
-                  <div>
-                    <label className="label text-xs">Amount Tendered</label>
-                    <input type="number" value={amountTendered} onChange={(e) => setAmountTendered(e.target.value)} className="input" placeholder={grandTotal.toFixed(0)} />
-                    {change > 0 && <p className="text-sm text-green-600 mt-1">Change: {currency} {change.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>}
-                  </div>
-                </div>
-              )}
-              <div>
-                <label className="label text-xs">Transaction ID (Optional)</label>
-                <input 
-                  type="text" 
-                  value={transactionId} 
-                  onChange={(e) => setTransactionId(e.target.value)} 
-                  className="input text-sm" 
-                  placeholder="Enter transaction reference" 
-                />
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setShowPayment(false)} className="btn-secondary flex-1">Cancel</button>
-                <button onClick={completeSale} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                  <Receipt size={16} /> {loading ? "Processing..." : "Complete"}
-                </button>
-              </div>
-            </div>
-          )}
+          <button onClick={completeSale} disabled={cart.length === 0 || loading}
+            className="w-full py-3 text-base font-semibold flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Receipt size={20} /> {loading ? "Processing..." : `Complete ${formatCurrency(grandTotal)}`}
+          </button>
         </div>
       </div>
 
