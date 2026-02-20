@@ -7,12 +7,12 @@ import {
   CreditCard, Tag, Save, Palette, Globe, FileText,
   MessageCircle, Users, Phone, Send, Key, Link, PenTool,
   Layout, Type, Grid, AlignLeft, AlignCenter, AlignRight,
-  MapPin, Eye, EyeOff, Coins, Calendar, Database, AlertTriangle,
+  MapPin, Eye, EyeOff, Coins, Database, AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "tax" | "modules" | "receipt" | "pos" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment" | "events";
+type Tab = "general" | "tax" | "modules" | "receipt" | "pos" | "invoice_designer" | "appearance" | "whatsapp" | "customers" | "payment";
 
 const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "general", label: "General", icon: Store },
@@ -25,7 +25,6 @@ const tabs: { key: Tab; label: string; icon: any }[] = [
   { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { key: "customers", label: "Customer Columns", icon: Users },
   { key: "appearance", label: "Appearance", icon: Palette },
-  { key: "events", label: "Events Calendar", icon: Calendar },
 ];
 
 const CUSTOMER_COLUMN_OPTIONS = [
@@ -442,69 +441,6 @@ export default function SettingsClient({ settings }: { settings: Record<string, 
             </>
           )}
 
-          {tab === "events" && (
-            <>
-              <SectionTitle icon={Calendar} title="Business Events Calendar" />
-              <p className="text-sm text-gray-600 mb-4">Manage important business events and dates. These will appear in the dashboard calendar.</p>
-              
-              <div className="space-y-4">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">Add New Event</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="label">Event Name</label>
-                      <input type="text" placeholder="e.g., Stock Inventory, Staff Meeting" className="input" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="label">Event Date</label>
-                        <input type="date" className="input" />
-                      </div>
-                      <div>
-                        <label className="label">Event Type</label>
-                        <select className="input">
-                          <option value="personal">Personal</option>
-                          <option value="meeting">Meeting</option>
-                          <option value="inventory">Inventory</option>
-                          <option value="maintenance">Maintenance</option>
-                          <option value="promotion">Promotion</option>
-                          <option value="holiday">Holiday</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="label">Description</label>
-                      <textarea placeholder="Event details..." rows={2} className="input resize-none"></textarea>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="btn-primary flex-1">Add Event</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">Upcoming Events</h4>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div>
-                        <p className="font-medium text-sm">Stock Inventory Audit</p>
-                        <p className="text-xs text-gray-500">February 20, 2026 • Inventory</p>
-                      </div>
-                      <button className="text-red-500 hover:text-red-700 text-sm">Remove</button>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div>
-                        <p className="font-medium text-sm">Spring Sale Campaign</p>
-                        <p className="text-xs text-gray-500">March 1, 2026 • Promotion</p>
-                      </div>
-                      <button className="text-red-500 hover:text-red-700 text-sm">Remove</button>
-                    </div>
-                    <p className="text-xs text-gray-400 text-center py-4">No more upcoming events</p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>

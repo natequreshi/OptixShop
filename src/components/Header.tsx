@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, User, Settings, Calculator, ListTodo, X, Trash2, Plus, ShoppingCart, UserPlus, CreditCard, Package, Menu, DollarSign, Calendar, ShoppingBag } from "lucide-react";
+import { ChevronDown, LogOut, User, Settings, X, ShoppingCart, UserPlus, CreditCard, Package, Menu, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import SalesStatusDropdown from "@/components/SalesStatusDropdown";
@@ -19,15 +19,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showCalculator, setShowCalculator] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showTodoList, setShowTodoList] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
-  const [calcDisplay, setCalcDisplay] = useState("0");
-  const [todos, setTodos] = useState<{id: number; text: string; done: boolean}[]>([]);
-  const [todoInput, setTodoInput] = useState("");
   
   // Customer form
   const [customerForm, setCustomerForm] = useState({
@@ -64,15 +57,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
   
   const ref = useRef<HTMLDivElement>(null);
   const registerRef = useRef<HTMLDivElement>(null);
-  const notificationRef = useRef<HTMLDivElement>(null);
-  const calendarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
       if (registerRef.current && !registerRef.current.contains(e.target as Node)) setShowRegisterDropdown(false);
-      if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) setShowNotifications(false);
-      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) setShowCalendar(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -306,47 +295,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
           />
         </div>
         
-        {/* Calendar */}
-        <div ref={calendarRef} className="relative">
-          <button onClick={() => setShowCalendar(!showCalendar)} className="p-2 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" title="Calendar">
-            <Calendar size={20} />
-          </button>
-          {showCalendar && <CalendarDropdown />}
-        </div>
-        
-        {/* Calculator */}
-        <button onClick={() => setShowCalculator(!showCalculator)} className="p-2 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors" title="Calculator">
-          <Calculator size={20} />
-        </button>
-        
-        {/* Todo List */}
-        <button onClick={() => setShowTodoList(!showTodoList)} className="p-2 text-cyan-500 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors" title="Todo List">
-          <ListTodo size={20} />
-        </button>
-        
-        {/* Notifications */}
-        <div ref={notificationRef} className="relative">
-          <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors" title="Notifications">
-            <Bell size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
-          
-          {/* Notifications Dropdown */}
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h3>
-              </div>
-              
-              <div className="max-h-80 overflow-y-auto">
-                <div className="p-6 text-center">
-                  <Bell size={32} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-sm text-gray-400">No notifications yet</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* User dropdown */}
         <div ref={ref} className="relative">
@@ -383,81 +331,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
           )}
         </div>
       </div>
-
-      {/* Calculator Modal */}
-      {showCalculator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowCalculator(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-80 p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold dark:text-white">Calculator</h3>
-              <button onClick={() => setShowCalculator(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4 text-right">
-              <div className="text-2xl font-mono font-bold dark:text-white">{calcDisplay}</div>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map((btn) => (
-                <button key={btn} onClick={() => {
-                  if (btn === '=') {
-                    try { setCalcDisplay(eval(calcDisplay).toString()); } catch { setCalcDisplay('Error'); }
-                  } else if (calcDisplay === '0' || calcDisplay === 'Error') {
-                    setCalcDisplay(btn);
-                  } else {
-                    setCalcDisplay(calcDisplay + btn);
-                  }
-                }} className={cn("py-3 rounded-lg font-medium transition", 
-                  btn === '=' ? "bg-primary-600 text-white hover:bg-primary-700" : 
-                  "bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 dark:text-white"
-                )}>{btn}</button>
-              ))}
-              <button onClick={() => setCalcDisplay('0')} className="col-span-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 font-medium">Clear</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Todo List Modal */}
-      {showTodoList && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowTodoList(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-96 max-h-[600px] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-lg font-semibold dark:text-white">Todo List</h3>
-              <button onClick={() => setShowTodoList(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
-            </div>
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-              <div className="flex gap-2">
-                <input value={todoInput} onChange={(e) => setTodoInput(e.target.value)} onKeyDown={(e) => {
-                  if (e.key === 'Enter' && todoInput.trim()) {
-                    setTodos([...todos, { id: Date.now(), text: todoInput.trim(), done: false }]);
-                    setTodoInput('');
-                  }
-                }} placeholder="Add new todo..." className="input flex-1" />
-                <button onClick={() => {
-                  if (todoInput.trim()) {
-                    setTodos([...todos, { id: Date.now(), text: todoInput.trim(), done: false }]);
-                    setTodoInput('');
-                  }
-                }} className="btn-primary"><Plus size={18} /></button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {todos.length === 0 ? (
-                <p className="text-center text-gray-400 py-8">No todos yet. Add one above!</p>
-              ) : (
-                todos.map((todo) => (
-                  <div key={todo.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group">
-                    <input type="checkbox" checked={todo.done} onChange={() => setTodos(todos.map(t => t.id === todo.id ? {...t, done: !t.done} : t))}
-                      className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500" />
-                    <span className={cn("flex-1 text-sm dark:text-gray-200", todo.done && "line-through text-gray-400")}>{todo.text}</span>
-                    <button onClick={() => setTodos(todos.filter(t => t.id !== todo.id))}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition"><Trash2 size={14} /></button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* New Customer Modal */}
       {showNewCustomer && (
@@ -810,54 +683,3 @@ export default function Header({ onMenuClick }: HeaderProps) {
   );
 }
 
-function CalendarDropdown() {
-  const [viewDate, setViewDate] = useState(new Date());
-  const today = new Date();
-
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  const isToday = (d: number) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-
-  return (
-    <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-      <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-        <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">&lt;</button>
-        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-          {viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-        </span>
-        <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">&gt;</button>
-      </div>
-      <div className="p-3">
-        <div className="grid grid-cols-7 gap-0.5 mb-1">
-          {dayNames.map((d) => (
-            <div key={d} className="text-center text-[10px] font-semibold text-gray-400 dark:text-gray-500 py-1">{d}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-0.5">
-          {cells.map((d, i) => (
-            <div key={i} className={cn(
-              "text-center text-xs py-1.5 rounded-md",
-              d === null ? "" : "text-gray-700 dark:text-gray-300",
-              d !== null && isToday(d) && "bg-purple-600 text-white font-bold",
-            )}>
-              {d ?? ""}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="px-3 pb-3 text-center">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {today.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-        </p>
-      </div>
-    </div>
-  );
-}
