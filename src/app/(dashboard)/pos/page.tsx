@@ -183,7 +183,6 @@ export default function POSPage() {
       setTaxEnabled(settings['tax_enabled'] === 'true');
       setPrintTemplate((settings['print_template'] as any) || '80mm');
       setCurrency(settings['currency'] || 'Rs.');
-      setShowDenominations(settings['pos_show_denominations'] !== 'false');
       setStoreName(settings['store_name'] || 'OPTICS SHOP');
       setStoreAddress(settings['store_address'] || '');
       setStorePhone(settings['store_phone'] || '');
