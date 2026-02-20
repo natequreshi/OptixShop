@@ -9,6 +9,19 @@ async function main() {
   const hash = (pwd: string) => bcrypt.hashSync(pwd, 10);
 
   // ─── USERS ────────────────────────────────────────
+  const nate = await prisma.user.upsert({
+    where: { username: "nate" },
+    update: {},
+    create: {
+      username: "nate",
+      fullName: "Nasir Qureshi",
+      email: "nasir.pk@gmail.com",
+      passwordHash: "$2a$12$2ATneOeqOP.WS.ucJj/dj.FISAasJeECb0ggrQFYoEbBz6ELBv.Ju",
+      role: "ADMIN",
+      isActive: true
+    },
+  });
+
   const admin = await prisma.user.upsert({
     where: { username: "admin" },
     update: {},
